@@ -1,5 +1,5 @@
 import { teamMembers, type TeamMember } from "@/data/team";
-import { eventsData, type EventItem } from "@/data/events";
+import { demoEvents, type Ae2vEvent } from "@/data/events";
 import { shopProducts, type ShopProduct } from "@/data/shop";
 
 const DYNAMIC_MEMBERS_KEY = "ae2v_dynamic_team_v1";
@@ -52,18 +52,18 @@ export function deleteTeamMember(id: string) {
 /* 2. ÉVÉNEMENTS                                                              */
 /* -------------------------------------------------------------------------- */
 
-export function getDynamicEvents(): EventItem[] {
-  if (typeof window === "undefined") return eventsData;
+export function getDynamicEvents(): Ae2vEvent[] {
+  if (typeof window === "undefined") return demoEvents;
   try {
     const raw = localStorage.getItem(DYNAMIC_EVENTS_KEY);
-    if (!raw) return eventsData;
+    if (!raw) return demoEvents;
     return JSON.parse(raw);
   } catch {
-    return eventsData;
+    return demoEvents;
   }
 }
 
-export function saveDynamicEvents(events: EventItem[]) {
+export function saveDynamicEvents(events: Ae2vEvent[]) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(DYNAMIC_EVENTS_KEY, JSON.stringify(events));

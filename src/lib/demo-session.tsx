@@ -453,8 +453,22 @@ type DemoContextValue = {
   can: (permission: DemoPermission) => boolean;
   signIn: (accountId: string) => void;
   signInWithCredentials: (email: string, password: string) => { ok: boolean; error?: string };
+  signUp: (params: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    departement: string;
+    niveau: string;
+  }) => { ok: boolean; error?: string };
   signOut: () => void;
   dossiers: Dossier[];
+  addDossier: (
+    newDossier: Omit<
+      Dossier,
+      "id" | "submittedAt" | "validatedAt" | "memberSince" | "status" | "note"
+    >,
+  ) => void;
   updateDossier: (id: string, patch: Partial<Dossier>) => void;
   candidatures: Candidature[];
   addCandidature: (input: Omit<Candidature, "id" | "submittedAt" | "status">) => void;

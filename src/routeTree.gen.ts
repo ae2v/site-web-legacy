@@ -23,6 +23,7 @@ import { Route as EspaceRouteImport } from './routes/espace'
 import { Route as EvenementsRouteImport } from './routes/evenements'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as RemboursementsRouteImport } from './routes/remboursements'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as BdeIndexRouteImport } from './routes/bde.index'
 import { Route as BdeAssociationRouteImport } from './routes/bde.association'
 import { Route as BdeEquipeRouteImport } from './routes/bde.equipe'
@@ -102,6 +103,11 @@ const RemboursementsRoute = RemboursementsRouteImport.update({
   path: '/remboursements',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BdeIndexRoute = BdeIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
   '/remboursements': typeof RemboursementsRoute
+  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
   '/bde/poles': typeof BdePolesRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/espace': typeof EspaceRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/remboursements': typeof RemboursementsRoute
+  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
   '/bde/poles': typeof BdePolesRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
   '/remboursements': typeof RemboursementsRoute
+  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
   '/bde/poles': typeof BdePolesRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
     | '/evenements'
     | '/mentions-legales'
     | '/remboursements'
+    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
     | '/bde/poles'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/espace'
     | '/mentions-legales'
     | '/remboursements'
+    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
     | '/bde/poles'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/evenements'
     | '/mentions-legales'
     | '/remboursements'
+    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
     | '/bde/poles'
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   EvenementsRoute: typeof EvenementsRouteWithChildren
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   RemboursementsRoute: typeof RemboursementsRoute
+  SetupRoute: typeof SetupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -400,6 +413,13 @@ declare module '@tanstack/react-router' {
       path: '/remboursements'
       fullPath: '/remboursements'
       preLoaderRoute: typeof RemboursementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bde/': {
@@ -519,7 +539,18 @@ const rootRouteChildren: RootRouteChildren = {
   EvenementsRoute: EvenementsRouteWithChildren,
   MentionsLegalesRoute: MentionsLegalesRoute,
   RemboursementsRoute: RemboursementsRoute,
+  SetupRoute: SetupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -13,6 +13,8 @@ const buttonVariants = cva(
         default: "bg-signal text-signal-foreground border-2 border-ae2v-black hover:bg-ae2v-green-dark",
         /** Action identitaire secondaire — rouge dominant. */
         secondary: "bg-primary text-primary-foreground border-2 border-ae2v-black hover:bg-ae2v-red-dark",
+        red: "bg-primary text-primary-foreground border-2 border-ae2v-black hover:bg-ae2v-red-dark",
+        green: "bg-signal text-signal-foreground border-2 border-ae2v-black hover:bg-ae2v-green-dark",
         /** Action neutre forte. */
         black: "bg-ae2v-black text-ae2v-offwhite border-2 border-ae2v-black hover:bg-ae2v-red",
         destructive: "bg-destructive text-destructive-foreground border-2 border-ae2v-black hover:bg-ae2v-red",
