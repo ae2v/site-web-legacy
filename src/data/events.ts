@@ -253,6 +253,8 @@ export const eventStatusLabels: Record<EventStatus, string> = {
   TERMINE: "Terminé",
 };
 
+import { getDynamicEvents } from "@/lib/dynamic-store";
+
 export function findEvent(id: string): Ae2vEvent | undefined {
-  return demoEvents.find((e) => e.id === id);
+  return getDynamicEvents().find((e) => e.id === id);
 }

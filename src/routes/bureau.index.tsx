@@ -28,9 +28,15 @@ import {
 import {
   getDynamicTeamMembers,
   saveDynamicTeamMembers,
+  getDynamicEvents,
+  saveDynamicEvents,
+  getDynamicShopProducts,
+  saveDynamicShopProducts,
   type TeamMember,
 } from "@/lib/dynamic-store";
 import { teamPoles, type TeamPole } from "@/data/team";
+import { eventStatusLabels, type Ae2vEvent, type EventStatus } from "@/data/events";
+import { formatPrice, type ShopProduct } from "@/data/shop";
 
 export const Route = createFileRoute("/bureau/")({
   head: () => ({
@@ -60,11 +66,23 @@ function BureauPage() {
   const [candFilter, setCandFilter] = useState("TOUS");
   const [msgFilter, setMsgFilter] = useState("TOUS");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getDynamicTeamMembers());
+  const [events, setEvents] = useState<Ae2vEvent[]>(getDynamicEvents());
+  const [products, setProducts] = useState<ShopProduct[]>(getDynamicShopProducts());
 
   useEffect(() => {
-    const handler = () => setTeamMembers(getDynamicTeamMembers());
-    window.addEventListener("ae2v_team_changed", handler);
-    return () => window.removeEventListener("ae2v_team_changed", handler);
+    const teamHandler = () => setTeamMembers(getDynamicTeamMembers());
+    const eventHandler = () => setEvents(getDynamicEvents());
+    const shopHandler = () => setProducts(getDynamicShopProducts());
+
+    window.addEventListener("ae2v_team_changed", teamHandler);
+    window.addEventListener("ae2v_events_changed", eventHandler);
+    window.addEventListener("ae2v_products_changed", shopHandler);
+
+    return () => {
+      window.removeEventListener("ae2v_team_changed", teamHandler);
+      window.removeEventListener("ae2v_events_changed", eventHandler);
+      window.removeEventListener("ae2v_products_changed", shopHandler);
+    };
   }, []);
 
   const requests = useMemo(
@@ -181,6 +199,8 @@ function BureauPage() {
           { id: "candidatures", label: "Candidatures bureau", badge: candPending },
           { id: "messages", label: "Messages", badge: msgNew },
           { id: "equipe", label: "Équipe BDE", badge: teamMembers.length },
+          { id: "evenements", label: "Événements", badge: events.length },
+          { id: "boutique", label: "Boutique", badge: products.length },
         ]}
       />
 
@@ -513,15 +533,27 @@ function BureauPage() {
         </Section>
       </TabPanel>
 
-      {/* ------------------------------- Équipe BDE ------------------------- */}
-      <TabPanel id="equipe" idPrefix="bureau" active={tab}>
+      {/* ------------------------------- Événements ------------------------- */}
+      <TabPanel id="evenements" idPrefix="bureau" active={tab}>
         <Section
-          number={5}
-          ghost="ÉQUIPE"
-          title="Gestion de l'équipe"
-          intro="Membres affichés sur la page publique /bde/equipe. Les modifications sont immédiatement visibles."
+          number={6}
+          ghost="AGENDA"
+          title="Gestion des événements & billetterie"
+          intro="Modifiez les jauges, statuts, dates ou ajoutez de nouveaux événements au calendrier."
         >
-          <TeamManager teamMembers={teamMembers} />
+          <EventManager events={events} />
+        </Section>
+      </TabPanel>
+
+      {/* -------------------------------- Boutique -------------------------- */}
+      <TabPanel id="boutique" idPrefix="bureau" active={tab}>
+        <Section
+          number={7}
+          ghost="BOUTIQUE"
+          title="Gestion de la boutique & produits"
+          intro="Modifiez les tarifs, disponibiltés ou basculez la visibilité des produits du catalogue."
+        >
+          <ShopManager products={products} />
         </Section>
       </TabPanel>
     </>
@@ -897,4 +929,192 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* EventManager — gestion des événements bureau                               */
+/* -------------------------------------------------------------------------- */
 
+function EventManager({ events }: { events: Ae2vEvent[] }) {
+  function handleUpdateStatus(id: string, status: EventStatus) {
+    const updated = events.map((e) => (e.id === id ? { ...e, status } : e));
+    saveDynamicEvents(updated);
+  }
+
+  function handleUpdateCapacity(id: string, delta: number) {
+    const updated = events.map((e) => {
+      if (e.id === id) {
+        const newCap = Math.max(10, e.capacity + delta);
+        return { ...e, capacity: newCap, status: e.registered >= newCap ? ("COMPLET" as const) : e.status };
+      }
+      return e;
+    });
+    saveDynamicEvents(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {events.map((event) => (
+          <div key={event.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-ae2v-red">
+                  {event.kind}
+                </span>
+                <StatusPill
+                  tone={
+                    event.status === "OUVERT"
+                      ? "green"
+                      : event.status === "COMPLET"
+                        ? "red"
+                        : "black"
+                  }
+                >
+                  {eventStatusLabels[event.status]}
+                </StatusPill>
+              </div>
+              <h3 className="mt-2 font-bold text-base">{event.title}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{event.date} · {event.place}</p>
+              
+              <div className="mt-4 border-t-2 border-ae2v-black/10 pt-3">
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Inscrits / Jauge :</span>
+                  <span>{event.registered} / {event.capacity}</span>
+                </div>
+                <div className="mt-1.5 h-2.5 w-full border border-ae2v-black bg-ae2v-offwhite">
+                  <div
+                    className={event.registered >= event.capacity ? "h-full bg-ae2v-red" : "h-full bg-ae2v-green"}
+                    style={{ width: `${Math.min(100, Math.round((event.registered / event.capacity) * 100))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2 border-t-2 border-ae2v-black/10 pt-3">
+              <p className="w-full text-[0.65rem] font-bold uppercase text-muted-foreground">
+                Changer le statut :
+              </p>
+              {(["OUVERT", "BIENTOT", "COMPLET", "TERMINE"] as EventStatus[]).map((st) => (
+                <Button
+                  key={st}
+                  size="sm"
+                  variant={event.status === st ? "default" : "secondary"}
+                  className="px-2 py-1 text-xs"
+                  onClick={() => handleUpdateStatus(event.id, st)}
+                >
+                  {st}
+                </Button>
+              ))}
+              <div className="mt-2 flex w-full items-center justify-between gap-2">
+                <span className="text-xs font-bold text-muted-foreground">Ajuster jauge :</span>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleUpdateCapacity(event.id, -10)}
+                  >
+                    -10
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleUpdateCapacity(event.id, 10)}
+                  >
+                    +10
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ShopManager — gestion boutique & produits bureau                          */
+/* -------------------------------------------------------------------------- */
+
+function ShopManager({ products }: { products: ShopProduct[] }) {
+  function handleToggleBadge(id: string) {
+    const updated = products.map((p) => {
+      if (p.id === id) {
+        return { ...p, badge: p.badge ? null : "NOUVEAU" };
+      }
+      return p;
+    });
+    saveDynamicShopProducts(updated);
+  }
+
+  function handleUpdatePrice(id: string, deltaCents: number) {
+    const updated = products.map((p) => {
+      if (p.id === id) {
+        return {
+          ...p,
+          priceMember: Math.max(100, p.priceMember + deltaCents),
+          pricePublic: Math.max(100, p.pricePublic + deltaCents),
+        };
+      }
+      return p;
+    });
+    saveDynamicShopProducts(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {products.map((prod) => (
+          <div key={prod.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2">
+                {prod.badge ? (
+                  <StatusPill tone="green">{prod.badge}</StatusPill>
+                ) : (
+                  <StatusPill tone="neutral">Standard</StatusPill>
+                )}
+                <span className="text-xs text-muted-foreground font-mono">{prod.id}</span>
+              </div>
+              <h3 className="mt-2 font-bold text-base">{prod.name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-snug">{prod.tagline}</p>
+              
+              <div className="mt-3 border-t-2 border-ae2v-black/10 pt-2 text-xs">
+                <p className="font-bold text-ae2v-red">Adhérent : {formatPrice(prod.priceMember)}</p>
+                <p className="text-muted-foreground">Public : {formatPrice(prod.pricePublic)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2 border-t-2 border-ae2v-black/10 pt-3">
+              <Button
+                size="sm"
+                variant={prod.badge ? "secondary" : "default"}
+                className="w-full text-xs"
+                onClick={() => handleToggleBadge(prod.id)}
+              >
+                {prod.badge ? "Retirer le badge NOUVEAU" : "Mettre badge NOUVEAU"}
+              </Button>
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="text-xs font-bold text-muted-foreground">Prix :</span>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleUpdatePrice(prod.id, -100)}
+                  >
+                    -1€
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleUpdatePrice(prod.id, 100)}
+                  >
+                    +1€
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

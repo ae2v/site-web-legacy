@@ -12,6 +12,7 @@ import {
   tierForAudience,
   type Audience,
 } from "@/lib/event-pricing";
+import { getDynamicEvents, saveDynamicEvents } from "@/lib/dynamic-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/evenements/$eventId")({
@@ -376,6 +377,19 @@ function RegistrationCta({
         code: `AE2V-TK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
         status: "valide",
       });
+
+      // Increment jauge in dynamic store
+      const allEvents = getDynamicEvents();
+      const updatedEvents = allEvents.map((e) => {
+        if (e.id === event.id) {
+          const nextRegistered = e.registered + 1;
+          const nextStatus = nextRegistered >= e.capacity ? "COMPLET" : e.status;
+          return { ...e, registered: nextRegistered, status: nextStatus };
+        }
+        return e;
+      });
+      saveDynamicEvents(updatedEvents);
+
       setRegistered(true);
     } catch {
       setError("Une erreur est survenue. Veuillez réessayer.");
