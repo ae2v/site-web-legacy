@@ -455,6 +455,7 @@ N'ÉCRIS AUCUN CODE AVANT MON APPROBATION.
 On `/bde/equipe`, team cards must be a signature interaction.
 
 Compact TeamCard:
+
 - real photo or non-fake fallback
 - full name
 - display role/status
@@ -462,6 +463,7 @@ Compact TeamCard:
 - hard/square AE2V visual
 
 On click/tap/keyboard:
+
 - selected card visually detaches from the grid
 - moves toward viewport center
 - expands/morphs
@@ -469,6 +471,7 @@ On click/tap/keyboard:
 - backdrop reduces distraction
 
 Expanded business card:
+
 - name
 - role/status
 - pole
@@ -478,6 +481,7 @@ Expanded business card:
 - mail CTA
 
 Email policy:
+
 - show only a real stored professional address
 - address must match `*@ae2v.fr`
 - never infer or fabricate an address
@@ -485,6 +489,7 @@ Email policy:
 - if absent, hide the email action
 
 Accessibility:
+
 - implement the expanded state semantically as an accessible dialog even if visually it morphs
 - focus moves inside
 - Escape closes

@@ -20,10 +20,7 @@ export function SiteHeader() {
   const { account } = useDemoSession();
 
   return (
-    <header
-      data-cursor-scheme="light"
-      className="sticky top-0 z-50 bg-ae2v-red text-ae2v-offwhite"
-    >
+    <header data-cursor-scheme="light" className="sticky top-0 z-50 bg-ae2v-red text-ae2v-offwhite">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
         <Link
           to="/"
@@ -99,7 +96,9 @@ export function SiteHeader() {
                     activeProps={{ "data-current": "true", "aria-current": "page" }}
                     className="flex min-h-14 flex-col justify-center border-b border-ae2v-offwhite/20 py-2 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ae2v-green data-[current=true]:text-ae2v-green"
                   >
-                    <span className="font-impact text-2xl leading-none uppercase">{item.label}</span>
+                    <span className="font-impact text-2xl leading-none uppercase">
+                      {item.label}
+                    </span>
                     <span className="text-xs text-ae2v-offwhite/70">{item.description}</span>
                   </Link>
                 </li>

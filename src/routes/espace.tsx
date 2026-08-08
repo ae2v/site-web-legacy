@@ -42,7 +42,11 @@ export const Route = createFileRoute("/espace")({
 });
 
 const modules = [
-  { icon: CreditCard, title: "Ma carte", text: "Carte de membre avec QR code et année d'adhésion." },
+  {
+    icon: CreditCard,
+    title: "Ma carte",
+    text: "Carte de membre avec QR code et année d'adhésion.",
+  },
   { icon: Ticket, title: "Mes billets", text: "Billets d'événement avec QR code d'entrée." },
   { icon: ShoppingBag, title: "Mes commandes", text: "Suivi des commandes boutique." },
   { icon: Gift, title: "Ma cotisation", text: "État de la cotisation et avantages associés." },
@@ -79,7 +83,9 @@ function EspacePage() {
           intro="Connecte-toi pour retrouver ta carte de membre, tes billets et tes commandes."
         >
           <div className="border-2 border-ae2v-black bg-card p-8">
-            <h3 className="ae2v-headline text-[clamp(1.8rem,4.5vw,2.8rem)]">Tu n'es pas connecté</h3>
+            <h3 className="ae2v-headline text-[clamp(1.8rem,4.5vw,2.8rem)]">
+              Tu n'es pas connecté
+            </h3>
             <p className="mt-4 max-w-xl text-sm text-muted-foreground">
               Des comptes de démonstration sont disponibles (membre cotisant, membre non cotisant,
               bureau) pour tester l'ensemble des parcours.
@@ -269,17 +275,22 @@ function EspacePage() {
               </p>
             ) : pendingPayment ? (
               <p className="flex gap-2">
-                <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-ae2v-red" />
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="mt-0.5 size-4 shrink-0 text-ae2v-red"
+                />
                 <span>
-                  <strong>Cotisation en attente : les réductions ne sont pas encore actives.</strong>{" "}
-                  Le règlement se fait au bureau du BDE. Elles seront activées dès la confirmation du
-                  paiement par le trésorier.
+                  <strong>
+                    Cotisation en attente : les réductions ne sont pas encore actives.
+                  </strong>{" "}
+                  Le règlement se fait au bureau du BDE. Elles seront activées dès la confirmation
+                  du paiement par le trésorier.
                 </span>
               </p>
             ) : (
               <p>
-                Tu es membre sans cotisation. Cotiser (montant libre à partir de 5 €, réglé au bureau
-                du BDE) débloque les tarifs réduits.
+                Tu es membre sans cotisation. Cotiser (montant libre à partir de 5 €, réglé au
+                bureau du BDE) débloque les tarifs réduits.
               </p>
             )}
             {!cotisant ? (
@@ -491,15 +502,7 @@ function PendingNotice({ className }: { className?: string }) {
   );
 }
 
-function Kpi({
-  value,
-  label,
-  tone,
-}: {
-  value: string;
-  label: string;
-  tone?: "green" | undefined;
-}) {
+function Kpi({ value, label, tone }: { value: string; label: string; tone?: "green" | undefined }) {
   return (
     <div
       className={`border-2 border-ae2v-black p-5 ${tone === "green" ? "bg-ae2v-green text-ae2v-black" : "bg-card"}`}

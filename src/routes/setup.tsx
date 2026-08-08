@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ShieldCheck, Mail, Save, RefreshCw, Key, Server, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  ShieldCheck,
+  Mail,
+  Save,
+  RefreshCw,
+  Key,
+  Server,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 import { TapeLabel } from "@/components/brand";
 import { PageHero } from "@/components/layout/page-hero";
@@ -315,7 +324,10 @@ function SetupPage() {
                     className={`${inputClass} mt-1`}
                     value={config.smtp.senderEmail}
                     onChange={(e) =>
-                      setConfig({ ...config, smtp: { ...config.smtp, senderEmail: e.target.value } })
+                      setConfig({
+                        ...config,
+                        smtp: { ...config.smtp, senderEmail: e.target.value },
+                      })
                     }
                   />
                 </div>

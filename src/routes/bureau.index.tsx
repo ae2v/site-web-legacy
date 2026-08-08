@@ -3,11 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Mail, Users, Trash2, Plus, Eye, CheckCheck, Clock } from "lucide-react";
 
 import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
-import {
-  contributionTone,
-  membershipTone,
-  today,
-} from "@/components/bureau/dossier-fiche";
+import { contributionTone, membershipTone, today } from "@/components/bureau/dossier-fiche";
 import { PageHero } from "@/components/layout/page-hero";
 import { HardCard, Section, EmptyState } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
@@ -58,8 +54,16 @@ export const Route = createFileRoute("/bureau/")({
 });
 
 function BureauPage() {
-  const { account, can, dossiers, candidatures, messages, updateCandidature, updateDossier, updateMessageStatus } =
-    useDemoSession();
+  const {
+    account,
+    can,
+    dossiers,
+    candidatures,
+    messages,
+    updateCandidature,
+    updateDossier,
+    updateMessageStatus,
+  } = useDemoSession();
   const [tab, setTab] = useState("demandes");
   const [membershipFilter, setMembershipFilter] = useState("TOUS");
   const [contribFilter, setContribFilter] = useState("TOUS");
@@ -518,15 +522,14 @@ function BureauPage() {
           </div>
 
           {visibleMessages.length === 0 ? (
-            <EmptyState label="Aucun message" detail="Aucun message ne correspond aux critères sélectionnés." />
+            <EmptyState
+              label="Aucun message"
+              detail="Aucun message ne correspond aux critères sélectionnés."
+            />
           ) : (
             <ul className="space-y-3">
               {visibleMessages.map((msg) => (
-                <MessageCard
-                  key={msg.id}
-                  msg={msg}
-                  onUpdateStatus={updateMessageStatus}
-                />
+                <MessageCard key={msg.id} msg={msg} onUpdateStatus={updateMessageStatus} />
               ))}
             </ul>
           )}
@@ -583,15 +586,7 @@ function CandidatureButton({
   );
 }
 
-function Kpi({
-  value,
-  label,
-  tone,
-}: {
-  value: string;
-  label: string;
-  tone?: "green" | undefined;
-}) {
+function Kpi({ value, label, tone }: { value: string; label: string; tone?: "green" | undefined }) {
   return (
     <div
       className={`border-2 border-ae2v-black p-5 ${tone === "green" ? "bg-ae2v-green text-ae2v-black" : "bg-card"}`}
@@ -627,9 +622,7 @@ function MessageCard({
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-bold">{msg.name}</p>
             <StatusPill
-              tone={
-                msg.status === "NOUVEAU" ? "red" : msg.status === "LU" ? "neutral" : "black"
-              }
+              tone={msg.status === "NOUVEAU" ? "red" : msg.status === "LU" ? "neutral" : "black"}
             >
               {contactMessageStatusLabels[msg.status]}
             </StatusPill>
@@ -640,39 +633,24 @@ function MessageCard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setExpanded((v) => !v)}
-          >
+          <Button size="sm" variant="secondary" onClick={() => setExpanded((v) => !v)}>
             <Eye aria-hidden="true" className="size-3.5" />
             {expanded ? "Réduire" : "Lire"}
           </Button>
           {msg.status === "NOUVEAU" && (
-            <Button
-              size="sm"
-              variant="black"
-              onClick={() => onUpdateStatus(msg.id, "LU")}
-            >
+            <Button size="sm" variant="black" onClick={() => onUpdateStatus(msg.id, "LU")}>
               <Mail aria-hidden="true" className="size-3.5" />
               Marquer lu
             </Button>
           )}
           {msg.status !== "TRAITE" && (
-            <Button
-              size="sm"
-              onClick={() => onUpdateStatus(msg.id, "TRAITE")}
-            >
+            <Button size="sm" onClick={() => onUpdateStatus(msg.id, "TRAITE")}>
               <CheckCheck aria-hidden="true" className="size-3.5" />
               Traité
             </Button>
           )}
           {msg.status === "TRAITE" && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => onUpdateStatus(msg.id, "NOUVEAU")}
-            >
+            <Button size="sm" variant="secondary" onClick={() => onUpdateStatus(msg.id, "NOUVEAU")}>
               <Clock aria-hidden="true" className="size-3.5" />
               Rouvrir
             </Button>
@@ -814,7 +792,9 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
                 onChange={(e) => setForm((f) => ({ ...f, pole: e.target.value as TeamPole }))}
               >
                 {teamPoles.map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
                 ))}
               </select>
             </div>
@@ -875,9 +855,7 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
               </label>
             </div>
           </div>
-          {formError && (
-            <p className="mt-3 text-sm font-bold text-ae2v-red">✕ {formError}</p>
-          )}
+          {formError && <p className="mt-3 text-sm font-bold text-ae2v-red">✕ {formError}</p>}
           <div className="mt-4 flex flex-wrap gap-2">
             <Button type="submit">Ajouter à l'équipe</Button>
             <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
@@ -889,10 +867,7 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {teamMembers.map((member) => (
-          <div
-            key={member.id}
-            className="flex flex-col border-2 border-ae2v-black bg-card p-4"
-          >
+          <div key={member.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
             <div className="min-w-0 flex-1">
               <p className="font-bold">{member.displayName}</p>
               <p className="text-xs text-muted-foreground">{member.roleTitle}</p>
@@ -907,9 +882,7 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
                 </p>
               )}
               {member.roleEmail && (
-                <p className="mt-0.5 text-xs text-muted-foreground break-all">
-                  {member.roleEmail}
-                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground break-all">{member.roleEmail}</p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">{member.mandate}</p>
             </div>
@@ -943,7 +916,11 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
     const updated = events.map((e) => {
       if (e.id === id) {
         const newCap = Math.max(10, e.capacity + delta);
-        return { ...e, capacity: newCap, status: e.registered >= newCap ? ("COMPLET" as const) : e.status };
+        return {
+          ...e,
+          capacity: newCap,
+          status: e.registered >= newCap ? ("COMPLET" as const) : e.status,
+        };
       }
       return e;
     });
@@ -973,17 +950,27 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
                 </StatusPill>
               </div>
               <h3 className="mt-2 font-bold text-base">{event.title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{event.date} · {event.place}</p>
-              
+              <p className="mt-1 text-xs text-muted-foreground">
+                {event.date} · {event.place}
+              </p>
+
               <div className="mt-4 border-t-2 border-ae2v-black/10 pt-3">
                 <div className="flex justify-between text-xs font-bold">
                   <span>Inscrits / Jauge :</span>
-                  <span>{event.registered} / {event.capacity}</span>
+                  <span>
+                    {event.registered} / {event.capacity}
+                  </span>
                 </div>
                 <div className="mt-1.5 h-2.5 w-full border border-ae2v-black bg-ae2v-offwhite">
                   <div
-                    className={event.registered >= event.capacity ? "h-full bg-ae2v-red" : "h-full bg-ae2v-green"}
-                    style={{ width: `${Math.min(100, Math.round((event.registered / event.capacity) * 100))}%` }}
+                    className={
+                      event.registered >= event.capacity
+                        ? "h-full bg-ae2v-red"
+                        : "h-full bg-ae2v-green"
+                    }
+                    style={{
+                      width: `${Math.min(100, Math.round((event.registered / event.capacity) * 100))}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -1076,9 +1063,11 @@ function ShopManager({ products }: { products: ShopProduct[] }) {
               </div>
               <h3 className="mt-2 font-bold text-base">{prod.name}</h3>
               <p className="mt-1 text-xs text-muted-foreground leading-snug">{prod.tagline}</p>
-              
+
               <div className="mt-3 border-t-2 border-ae2v-black/10 pt-2 text-xs">
-                <p className="font-bold text-ae2v-red">Adhérent : {formatPrice(prod.priceMember)}</p>
+                <p className="font-bold text-ae2v-red">
+                  Adhérent : {formatPrice(prod.priceMember)}
+                </p>
                 <p className="text-muted-foreground">Public : {formatPrice(prod.pricePublic)}</p>
               </div>
             </div>

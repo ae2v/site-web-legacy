@@ -30,7 +30,11 @@ const cards = [
     text: "Ce qu'est l'AE2V, ses missions et son fonctionnement.",
   },
   { to: "/bde/poles", label: "Les pôles", text: "Événementiel, com', partenariats, trésorerie." },
-  { to: "/bde/equipe", label: "L'équipe", text: "Les membres du bureau et leurs cartes de visite." },
+  {
+    to: "/bde/equipe",
+    label: "L'équipe",
+    text: "Les membres du bureau et leurs cartes de visite.",
+  },
 ] as const;
 
 function BdeIndex() {

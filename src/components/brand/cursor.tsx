@@ -97,7 +97,6 @@ function isOverGlyph(element: HTMLElement, x: number, y: number): boolean {
   return false;
 }
 
-
 /**
  * Clarté perçue d'une couleur calculée (0 = noir, 1 = blanc).
  * Gère `rgb()/rgba()` mais aussi `oklch()/oklab()`, renvoyés par les tokens AE2V.
@@ -314,7 +313,6 @@ export function BrandCursor() {
         isOverGlyph(textBlock, x, y)
           ? textBlock
           : null);
-
 
       // Contraste : curseur clair sur les grands blocs rouges/noirs.
       root.classList.toggle("on-dark", resolveScheme(hit ?? under) === "light");

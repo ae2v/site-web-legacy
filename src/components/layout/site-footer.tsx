@@ -129,7 +129,6 @@ export function SiteFooter() {
           </nav>
         </div>
       </div>
-
     </footer>
   );
 }

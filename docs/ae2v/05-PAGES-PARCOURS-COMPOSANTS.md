@@ -377,6 +377,7 @@ La couche 2 ne doit jamais casser la couche 1.
 La page `/bde/equipe` doit valoriser les personnes plutôt que présenter un simple trombinoscope.
 
 Organisation possible :
+
 - intro courte ;
 - filtre ou regroupement par pôle si réellement utile ;
 - grille de TeamCards ;
@@ -385,6 +386,7 @@ Organisation possible :
 ## TeamCard compacte
 
 Doit montrer au minimum :
+
 - photo ;
 - nom ;
 - poste ;
@@ -393,6 +395,7 @@ Doit montrer au minimum :
 Toute la carte est une action de consultation.
 
 Feedback au hover/focus :
+
 - bord / trait change ;
 - petit mouvement ou déplacement graphique ;
 - curseur/pointeur ;
@@ -402,6 +405,7 @@ Feedback au hover/focus :
 ## Transformation
 
 Au clic :
+
 ```text
 TEAM CARD DANS LA GRILLE
         ↓
@@ -419,6 +423,7 @@ La transformation ne doit pas provoquer de saut de layout visible dans la grille
 ## Carte de visite
 
 Afficher :
+
 - nom ;
 - rôle/statut ;
 - pôle ;
@@ -440,6 +445,7 @@ Afficher :
 ## Navigation entre membres
 
 Option P1 :
+
 - précédent / suivant dans la fiche ;
 - clavier flèches uniquement si cela reste accessible et compréhensible.
 
@@ -448,10 +454,12 @@ Ne pas implémenter en V1 si cela complexifie le focus.
 ## Erreurs / absence
 
 Sans email :
+
 - ne rien inventer ;
 - cacher le CTA mail ;
 - garder la fiche complète avec poste/pôle.
 
 Sans photo :
+
 - fallback graphique AE2V avec initiales ou emblème neutre ;
 - ne pas générer de faux portrait.

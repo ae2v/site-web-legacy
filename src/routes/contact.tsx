@@ -11,7 +11,8 @@ export const Route = createFileRoute("/contact")({
       { title: "Contact — AE2V" },
       {
         name: "description",
-        content: "Contacter l'AE2V : email du bureau et réseaux sociaux de l'association étudiante de Vélizy.",
+        content:
+          "Contacter l'AE2V : email du bureau et réseaux sociaux de l'association étudiante de Vélizy.",
       },
       { property: "og:title", content: "Contact — AE2V" },
       { property: "og:description", content: "Contacter le bureau de l'AE2V." },

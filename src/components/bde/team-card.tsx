@@ -7,8 +7,7 @@ import { initials, memberEmails, primaryEmail, type TeamMember } from "@/data/te
 import { cn } from "@/lib/utils";
 
 const prefersReducedMotion = () =>
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ------------------------------------------------------------------ */
 /* Portrait / repli graphique                                          */
@@ -184,7 +183,6 @@ function CardBack({ member }: { member: TeamMember }) {
         )}
       </dl>
 
-
       {member.bio && (
         <p className="relative max-w-prose text-xs text-ae2v-offwhite/75 md:text-sm">
           {member.bio}
@@ -294,7 +292,6 @@ function BusinessCardDialog({
               { ...from, offset: 1 },
             ];
 
-
       try {
         return node.animate(frames, {
           duration: direction === "in" ? 620 : 420,
@@ -305,7 +302,6 @@ function BusinessCardDialog({
         // Animation impossible : on ne bloque jamais l'ouverture/fermeture.
         return null;
       }
-
     },
     [originRect],
   );
@@ -345,7 +341,6 @@ function BusinessCardDialog({
     );
   }, [closing, flipAnimation, onClose]);
 
-
   useEffect(() => {
     closeRef.current?.focus();
 
@@ -361,7 +356,9 @@ function BusinessCardDialog({
         'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
       if (!focusables || focusables.length === 0) return;
-      const list = Array.from(focusables).filter((el) => el.offsetParent !== null || el === closeRef.current);
+      const list = Array.from(focusables).filter(
+        (el) => el.offsetParent !== null || el === closeRef.current,
+      );
       const first = list[0];
       const last = list[list.length - 1];
       if (!first || !last) return;
@@ -429,7 +426,6 @@ function BusinessCardDialog({
           </div>
         </div>
 
-
         {/* Commandes hors carte : jamais masquées par le retournement. */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
@@ -473,7 +469,6 @@ function BusinessCardDialog({
           {memberEmails(member).any ? "" : " Email AE2V non communiqué."}
           {member.bio ? ` ${member.bio}` : ""}
         </p>
-
       </div>
     </div>
   );

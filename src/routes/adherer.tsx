@@ -131,12 +131,12 @@ function AdhererPage() {
       >
         <div className="grid gap-4 md:grid-cols-3">
           <HardCard interactive={false} eyebrow="Durée" title="Une année scolaire">
-            L'adhésion couvre l'année en cours et prend fin à la rentrée suivante. L'historique reste
-            visible dans ton espace.
+            L'adhésion couvre l'année en cours et prend fin à la rentrée suivante. L'historique
+            reste visible dans ton espace.
           </HardCard>
           <HardCard interactive={false} eyebrow="Cotisation" title="Facultative, dès 5 €">
-            Adhérer est gratuit. Cotiser est un soutien libre à partir de 5 €, réglé au bureau du BDE
-            après validation. Seule une cotisation confirmée ouvre les tarifs réduits.
+            Adhérer est gratuit. Cotiser est un soutien libre à partir de 5 €, réglé au bureau du
+            BDE après validation. Seule une cotisation confirmée ouvre les tarifs réduits.
           </HardCard>
           <HardCard interactive={false} eyebrow="Portée" title="Carte nominative">
             L'adhésion est personnelle et non cessible : elle est liée à ton compte étudiant.

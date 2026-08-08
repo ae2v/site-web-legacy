@@ -44,8 +44,7 @@ function MentionsPage() {
         </p>
         <ul className="space-y-1">
           <li>
-            Siège social :{" "}
-            {legalInfo.address ?? <LegalPending label="adresse du siège social" />}
+            Siège social : {legalInfo.address ?? <LegalPending label="adresse du siège social" />}
           </li>
           <li>
             Numéro RNA : {legalInfo.rna ?? <LegalPending label="numéro de déclaration RNA" />}
@@ -79,13 +78,15 @@ function MentionsPage() {
 
       <LegalBlock title="4. Hébergement">
         <p>
-          Le site et ses données sont hébergés sur{" "}
-          <strong>{legalInfo.host.name}</strong>, exploité par {legalInfo.host.company}.
+          Le site et ses données sont hébergés sur <strong>{legalInfo.host.name}</strong>, exploité
+          par {legalInfo.host.company}.
         </p>
         <ul className="space-y-1">
           <li>
             Adresse de l'hébergeur :{" "}
-            {legalInfo.host.address ?? <LegalPending label="adresse contractuelle de l'hébergeur" />}
+            {legalInfo.host.address ?? (
+              <LegalPending label="adresse contractuelle de l'hébergeur" />
+            )}
           </li>
           <li>Localisation des serveurs : {legalInfo.host.region}.</li>
           <li>
@@ -117,10 +118,10 @@ function MentionsPage() {
 
       <LegalBlock title="6. Responsabilité">
         <p>
-          L'AE2V s'efforce de publier des informations exactes et à jour (dates d'événements, tarifs,
-          disponibilité des produits). Des erreurs ou indisponibilités peuvent néanmoins survenir :
-          l'association ne saurait être tenue responsable d'un préjudice résultant de l'usage du
-          site. Les liens sortants vers des sites tiers n'engagent pas l'association.
+          L'AE2V s'efforce de publier des informations exactes et à jour (dates d'événements,
+          tarifs, disponibilité des produits). Des erreurs ou indisponibilités peuvent néanmoins
+          survenir : l'association ne saurait être tenue responsable d'un préjudice résultant de
+          l'usage du site. Les liens sortants vers des sites tiers n'engagent pas l'association.
         </p>
       </LegalBlock>
 
@@ -147,8 +148,9 @@ function MentionsPage() {
 
       <LegalBlock title="9. Droit applicable">
         <p>
-          Les présentes mentions sont soumises au droit français. Tout litige relève des juridictions
-          françaises compétentes, après tentative de résolution amiable auprès du bureau.
+          Les présentes mentions sont soumises au droit français. Tout litige relève des
+          juridictions françaises compétentes, après tentative de résolution amiable auprès du
+          bureau.
         </p>
       </LegalBlock>
     </LegalPage>

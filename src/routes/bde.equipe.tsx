@@ -61,7 +61,11 @@ function EquipePage() {
       />
 
       <section className="mx-auto w-full max-w-7xl px-4 py-12 md:px-6 md:py-16">
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrer par pôle">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filtrer par pôle"
+        >
           {(["Tous", ...teamPoles] as const).map((pole) => {
             const active = filter === pole;
             return (
@@ -104,7 +108,6 @@ function EquipePage() {
             </div>
           ))}
         </div>
-
 
         <div className="mt-12 border-2 border-ae2v-black bg-ae2v-black p-6 text-ae2v-offwhite">
           <h2 className="font-impact text-2xl">Envie d'en faire partie ?</h2>

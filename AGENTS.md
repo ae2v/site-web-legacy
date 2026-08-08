@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,19 +8,25 @@
 >
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
+
 <!-- LOVABLE:END -->
+
 # AGENTS.md — AE2V
 
 ## Core mission
+
 Build the AE2V platform around:
+
 - public discovery,
 - student participation in `/espace`,
 - staff operations in `/bureau`.
 
 ## Visual priority
+
 This is a highly branded website.
 
 The UI must visibly use:
+
 - #D60106 red as dominant brand color
 - #AA0005 dark red
 - #090908 black
@@ -39,7 +46,9 @@ The UI must visibly use:
 Do not silently simplify the brand into generic shadcn components.
 
 ## Ergonomics
+
 Apply these rules:
+
 1. visible system status
 2. real-world/student language
 3. one primary action
@@ -52,6 +61,7 @@ Apply these rules:
 10. useful error recovery/help
 
 Decorative elements must never interfere with:
+
 - reading
 - forms
 - focus
@@ -62,11 +72,14 @@ Decorative elements must never interfere with:
 Aim for 44px+ important mobile touch actions.
 
 ## Stack
+
 Respect the current Lovable/React/TypeScript stack.
 Do not introduce Nuxt or Vue.
 
 ## Change discipline
+
 Before a complex change:
+
 1. inspect
 2. plan
 3. list affected areas
@@ -79,9 +92,11 @@ Do not change unrelated files.
 Avoid new dependencies unless they clearly reduce complexity.
 
 ## Security
+
 Browser is untrusted.
 
 Never:
+
 - client secrets
 - role checks only in UI
 - client-authoritative money
@@ -93,35 +108,42 @@ Sensitive server operation:
 auth → authorize → validate → calculate → mutate → audit.
 
 ## Roles
+
 Display titles and security roles are separate.
 
 Test:
+
 - authorized role
 - unauthorized authenticated role
 - cross-user private access
 
 ## Money
+
 Integer cents.
 Server totals.
 Payment provider/server confirmation controls final paid state.
 
 ## Membership
+
 Per school year.
 Unique user + year.
 Keep history.
 
 ## Events
+
 Support:
 publication, registration window, capacity, price tiers, waitlist, ticket, QR, check-in.
 Prevent overselling server-side.
 
 ## Shop
+
 Multi-item cart.
 Orders use order lines.
 Persist price/name snapshots.
 Inventory is auditable.
 
 ## Forms
+
 Visible labels.
 Preserve values after errors.
 Specific messages.
@@ -129,19 +151,24 @@ Correct autocomplete/inputmode.
 Show costs before confirmation.
 
 ## Accessibility
+
 Keyboard, focus, contrast, reduced motion, semantics.
 Do not use color as the only status signal.
 
 ## Content
+
 Never invent real-world facts.
 Use empty states.
 
 ## SEO
+
 Canonical `bde-velizy.fr`.
 Do not index private/account flows.
 
 ## Done
+
 Not done until:
+
 - happy path
 - loading
 - empty if relevant
@@ -167,12 +194,14 @@ Expanded:
 photo, name, role/status, pole, mandate year, optional public info, and `public_ae2v_email`.
 
 Email must:
+
 - be stored explicitly;
 - end with `@ae2v.fr`;
 - never be guessed;
 - never fall back to personal auth email.
 
 Expanded UI must behave accessibly like a dialog:
+
 - focus management;
 - Escape;
 - visible close;

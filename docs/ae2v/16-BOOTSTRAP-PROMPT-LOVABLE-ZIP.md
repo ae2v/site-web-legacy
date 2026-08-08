@@ -197,6 +197,7 @@ At the end, wait for my approval.
 # Étape suivante
 
 Après que Lovable a :
+
 - confirmé les fichiers,
 - audité le projet,
 - posé ses 3 questions,

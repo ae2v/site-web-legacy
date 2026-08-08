@@ -7,12 +7,14 @@
 ## 1. État des Lieux Actuel (Diagnostic)
 
 ### Assets & Identité Visuelle
+
 - **Couleurs & Marque** : Implémentation solide de la charte (#D60106 rouge, #AA0005 rouge sombre, #090908 noir, #F3F1EC off-white, #BCE707 vert acide).
 - **Typographie** : Anton, Red Hat Display, Raleway intégrés via Google Fonts.
 - **Éléments graphiques** : Cristaux facettés, grilles de points, lignes d'angles, rubans et esthétique brute/cassée conformes aux règles de marque.
 - **Curseur personnalisé** : Présent (`BrandCursor`), mais nécessite des options de contrôle (toggle d'activation / fallback tactile ergonomique).
 
 ### Architecture & Navigation (Routes)
+
 - `/` : Page d'accueil complète (Hero, Actualités, Événements, Avantages, FAQ, CTA).
 - `/bde` : Hub de présentation du BDE (Pages Équipe, Pôles, Association).
 - `/evenements` : Liste et fiche détaillée des événements avec billetterie.
@@ -25,6 +27,7 @@
 - Pages légales : `/mentions-legales`, `/confidentialite`, `/conditions-vente`, `/remboursements`.
 
 ### Données & Persistance
+
 - **Actuellement** : Données de démo codées en dur dans `src/data/*` (`team.ts`, `events.ts`, `shop.ts`, `poles.ts`, `links.ts`) avec un stockage local React Context (`DemoSessionProvider`).
 - **Limites à corriger** : Absence de persistance hybride (Real Auth + DB/JSON dynamique), formulaire d'adhésion non connecté à un stockage modifiable, absence d'interface d'administration système/SMTP.
 

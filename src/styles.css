@@ -223,11 +223,7 @@
 }
 
 @utility ae2v-stripes {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    currentColor 0 2px,
-    transparent 2px 8px
-  );
+  background-image: repeating-linear-gradient(-45deg, currentColor 0 2px, transparent 2px 8px);
 }
 
 @utility ae2v-dots {
@@ -263,7 +259,6 @@
   overflow-wrap: normal;
   hyphens: manual;
 }
-
 
 /* --- Micro-animations AE2V --- */
 
@@ -375,7 +370,6 @@
   }
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -390,7 +384,8 @@
 /* --- Typographies AE2V auto-hébergées (CDN Lovable) --- */
 @font-face {
   font-family: "Anton";
-  src: url("/__l5e/assets-v1/be87934c-70ac-46f1-8dac-3b6d91bcf253/Anton-Regular.ttf") format("truetype");
+  src: url("/__l5e/assets-v1/be87934c-70ac-46f1-8dac-3b6d91bcf253/Anton-Regular.ttf")
+    format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -398,7 +393,8 @@
 
 @font-face {
   font-family: "Bebas Neue Pro Expanded";
-  src: url("/__l5e/assets-v1/3b4827f7-10ad-44d7-ac80-4a0d2de0a5f2/BebasNeuePro-ExpandedExtraBold.otf") format("opentype");
+  src: url("/__l5e/assets-v1/3b4827f7-10ad-44d7-ac80-4a0d2de0a5f2/BebasNeuePro-ExpandedExtraBold.otf")
+    format("opentype");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
@@ -634,7 +630,6 @@
   }
 }
 
-
 /* ============ Accessibilité : décor & mouvement ============ */
 
 /* Mot fantôme décoratif : texte rendu en pseudo-élément, donc hors arbre
@@ -669,4 +664,3 @@
     cursor: auto !important;
   }
 }
-

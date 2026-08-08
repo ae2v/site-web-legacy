@@ -72,7 +72,11 @@ export const demoEvents: Ae2vEvent[] = [
       "Rencontre des promos, DJ set, vestiaire et navette retour. Entrée sur billet nominatif avec QR code présenté à l'entrée.",
     image: soireeImg,
     program: [
-      { time: "21h00", label: "Ouverture des portes", detail: "Contrôle des billets et vestiaire." },
+      {
+        time: "21h00",
+        label: "Ouverture des portes",
+        detail: "Contrôle des billets et vestiaire.",
+      },
       { time: "21h30", label: "Warm-up", detail: "Set d'ouverture par le pôle événementiel." },
       { time: "23h00", label: "DJ set principal" },
       { time: "02h30", label: "Dernier service" },

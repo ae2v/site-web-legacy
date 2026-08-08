@@ -3,7 +3,6 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { ScrollHintEdges } from "@/components/layout/scroll-hint-edges";
 import { useScrollHint } from "@/hooks/use-scroll-hint";
 
-
 export const Route = createFileRoute("/bde")({
   component: BdeLayout,
 });
@@ -51,7 +50,6 @@ function BdeLayout() {
           buttonClass="bg-ae2v-black text-ae2v-offwhite"
         />
       </nav>
-
 
       {/* Les pages du BDE se rendent ici. */}
       <Outlet />

@@ -81,11 +81,12 @@ function ConfidentialitePage() {
 
       <LegalBlock title="4. Cookies et traceurs">
         <p>
-          Le site n'utilise <strong>aucun cookie de mesure d'audience, de publicité ou de réseau
-          social</strong>. Seuls des éléments strictement nécessaires au fonctionnement peuvent être
-          déposés (maintien de session lorsque tu te connectes, préférences d'affichage stockées
-          localement) : ils sont exemptés de consentement au sens des recommandations de la CNIL,
-          d'où l'absence de bandeau cookies.
+          Le site n'utilise{" "}
+          <strong>aucun cookie de mesure d'audience, de publicité ou de réseau social</strong>.
+          Seuls des éléments strictement nécessaires au fonctionnement peuvent être déposés
+          (maintien de session lorsque tu te connectes, préférences d'affichage stockées localement)
+          : ils sont exemptés de consentement au sens des recommandations de la CNIL, d'où l'absence
+          de bandeau cookies.
         </p>
         <p>
           Si un outil de mesure venait à être ajouté, cette page serait mise à jour et un
@@ -100,12 +101,9 @@ function ConfidentialitePage() {
             boutique, trésorerie).
           </li>
           <li>
-            Hébergeur : {legalInfo.host.name} ({legalInfo.host.company}) —{" "}
-            {legalInfo.host.region}.
+            Hébergeur : {legalInfo.host.name} ({legalInfo.host.company}) — {legalInfo.host.region}.
           </li>
-          <li>
-            Prestataire de paiement, pour les seules données nécessaires à la transaction.
-          </li>
+          <li>Prestataire de paiement, pour les seules données nécessaires à la transaction.</li>
         </ul>
         <p>
           Les données sont hébergées dans l'Union européenne. Aucun transfert hors UE n'est réalisé

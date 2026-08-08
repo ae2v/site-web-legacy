@@ -8,19 +8,19 @@ Note : l'archive ne contient pas de `docs/ae2v/10-AGENTS.md` ; c'est l'`AGENTS.m
 
 ## Audit du projet actuel (résumé)
 
-| Sujet | État |
-|---|---|
-| Stack | TanStack Start v1, React 19, Vite 8, TypeScript, Tailwind v4 (CSS-first), shadcn/Radix, TanStack Query, zod, sonner |
-| Routes | `__root.tsx` + `index.tsx` (placeholder vierge) uniquement |
-| Composants | `src/components/ui` (shadcn brut) ; aucun composant métier |
-| Backend | Aucun : pas de Cloud, pas d'auth, pas de table |
-| Design system | Tokens shadcn slate par défaut, radius 0.625rem, aucune police custom |
-| `AGENTS.md` | Existe, mais uniquement le bloc Lovable git → fusion, pas d'écrasement |
-| `public_ae2v_email` | Inexistant ; aucun modèle TeamMember |
-| Dette technique | Faible (template neuf) ; le vrai écart est l'absence totale d'architecture AE2V |
-| Ergonomie | Rien d'implémenté (page placeholder) |
-| Visuel / marque | Look shadcn générique = exactement ce que la charte interdit |
-| Sécurité | Rien d'exposé aujourd'hui ; risques à venir : rôles, prix serveur, RLS + GRANTs, QR |
+| Sujet               | État                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Stack               | TanStack Start v1, React 19, Vite 8, TypeScript, Tailwind v4 (CSS-first), shadcn/Radix, TanStack Query, zod, sonner |
+| Routes              | `__root.tsx` + `index.tsx` (placeholder vierge) uniquement                                                          |
+| Composants          | `src/components/ui` (shadcn brut) ; aucun composant métier                                                          |
+| Backend             | Aucun : pas de Cloud, pas d'auth, pas de table                                                                      |
+| Design system       | Tokens shadcn slate par défaut, radius 0.625rem, aucune police custom                                               |
+| `AGENTS.md`         | Existe, mais uniquement le bloc Lovable git → fusion, pas d'écrasement                                              |
+| `public_ae2v_email` | Inexistant ; aucun modèle TeamMember                                                                                |
+| Dette technique     | Faible (template neuf) ; le vrai écart est l'absence totale d'architecture AE2V                                     |
+| Ergonomie           | Rien d'implémenté (page placeholder)                                                                                |
+| Visuel / marque     | Look shadcn générique = exactement ce que la charte interdit                                                        |
+| Sécurité            | Rien d'exposé aujourd'hui ; risques à venir : rôles, prix serveur, RLS + GRANTs, QR                                 |
 
 Écart avec la spec : la totalité du produit (public / `/espace` / `/bureau`) reste à construire.
 
@@ -41,25 +41,31 @@ Note : l'archive ne contient pas de `docs/ae2v/10-AGENTS.md` ; c'est l'`AGENTS.m
 Objectif : rendre le site immédiatement reconnaissable comme AE2V, sans aucune logique métier.
 
 ### 1. Tokens et typographie
+
 - `src/styles.css` : palette AE2V complète (rouge dominant, rouge foncé, noir, off-white, gris, vert acide + nuances) en `oklch`, mappée sur les tokens shadcn (`--primary` = rouge AE2V, vert réservé à un token `--signal` dédié).
 - Échelle de radius dure : 0 / 4 / 8 px, 12 px exceptionnel.
 - Polices chargées via `<link>` dans `__root.tsx` (Anton, Red Hat Display, Raleway depuis Google Fonts) + fallbacks Impact/Verdana. Albireo n'étant pas une police web libre, la couche « impact » utilise Anton condensé en fallback tant que tu ne fournis pas les fichiers de la charte.
 - Tokens `--font-impact / --font-h1 / --font-h2 / --font-body`.
 
 ### 2. Primitives graphiques (`src/components/brand/`)
+
 `CrystalCluster`, `DotCloud`, `CrossMarker`, `FrameCorners`, `DiagonalStripe`, `EditorialUnderline`, `TapeLabel`, `GrainOverlay`, `ImpactTitle`, `SectionNumber`.
 Toutes en SVG/CSS pur, `aria-hidden`, `pointer-events-none`, sans dépendance nouvelle, avec variantes de couleur et respect de `prefers-reduced-motion`.
 
 ### 3. Primitives UI accessibles
+
 Variantes AE2V sur Button (primaire vert acide, secondaire rouge, ghost noir), Badge/Tape, Input/Label, Card angulaire. Cibles tactiles ≥ 44 px, focus visible net, contraste AA.
 
 ### 4. Shell public
+
 Header sticky avec navigation : Événements · Adhérer · Boutique · Avantages · Le BDE · Mon espace (pas de « Membres » en premier niveau). Menu mobile plein écran accessible (focus piégé, Échap, ≥ 44 px). Footer avec liens légaux et réseaux. Shell monté autour de `<Outlet />` dans `__root.tsx`, avec un `<main>` unique.
 
 ### 5. Page de démonstration
+
 `/` reçoit un hero AE2V minimal (grand titre, 2 CTA, cristaux + croix + grain) servant de preuve visuelle du système. Ce n'est pas la homepage finale. Métadonnées `head()` propres (titre, description, og, twitter) remplaçant « Lovable App ».
 
 ### Hors périmètre Phase 1
+
 Paiements, inscriptions événements, adhésion backend, boutique, scanner, migrations, base de données, homepage complète, transformation TeamCard.
 
 ## Détails techniques

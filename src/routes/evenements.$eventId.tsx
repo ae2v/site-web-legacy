@@ -6,12 +6,7 @@ import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
 import { demoEvents, eventStatusLabels, findEvent, type Ae2vEvent } from "@/data/events";
 import { formatCents, hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
-import {
-  fillPercent,
-  remainingSeats,
-  tierForAudience,
-  type Audience,
-} from "@/lib/event-pricing";
+import { fillPercent, remainingSeats, tierForAudience, type Audience } from "@/lib/event-pricing";
 import { getDynamicEvents, saveDynamicEvents } from "@/lib/dynamic-store";
 import { cn } from "@/lib/utils";
 
@@ -235,10 +230,7 @@ function EventPage() {
             </ul>
           </section>
 
-          <section
-            id="inscription"
-            className="scroll-mt-20 border-2 border-ae2v-black bg-card p-5"
-          >
+          <section id="inscription" className="scroll-mt-20 border-2 border-ae2v-black bg-card p-5">
             <h2 className="font-impact text-xl uppercase">Inscription</h2>
             <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase">
               <span>Jauge</span>
@@ -401,9 +393,7 @@ function RegistrationCta({
       <Button className="w-full" size="lg" onClick={handleRegister}>
         S'inscrire à cet événement
       </Button>
-      {error && (
-        <p className="mt-2 text-xs font-bold text-ae2v-red">{error}</p>
-      )}
+      {error && <p className="mt-2 text-xs font-bold text-ae2v-red">{error}</p>}
       <p className="mt-2 text-xs text-muted-foreground">
         {audience !== "adherent"
           ? "Astuce : cotiser réduit ce tarif pour toute l'année."

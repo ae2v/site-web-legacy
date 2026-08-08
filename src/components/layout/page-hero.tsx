@@ -70,4 +70,3 @@ export function ComingSoon({ label, detail }: { label: string; detail: string })
     </div>
   );
 }
-

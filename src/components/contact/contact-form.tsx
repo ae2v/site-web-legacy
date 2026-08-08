@@ -106,7 +106,11 @@ export function ContactForm() {
   } = useForm<ContactFormValues>({
     resolver: zodResolver(schema),
     mode: "onBlur",
-    defaultValues: { name: "", email: "", message: "" } as Partial<ContactFormValues> as ContactFormValues,
+    defaultValues: {
+      name: "",
+      email: "",
+      message: "",
+    } as Partial<ContactFormValues> as ContactFormValues,
   });
 
   const describe = (name: keyof ContactFormValues, hint?: boolean) =>
@@ -267,8 +271,8 @@ export function ContactForm() {
               {...register("consent")}
             />
             <span>
-              J'autorise l'AE2V à utiliser mon adresse e-mail pour répondre à ce message
-              uniquement. Aucune inscription à une liste de diffusion.
+              J'autorise l'AE2V à utiliser mon adresse e-mail pour répondre à ce message uniquement.
+              Aucune inscription à une liste de diffusion.
             </span>
           </label>
         </FieldShell>

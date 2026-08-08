@@ -211,7 +211,10 @@ export function DossierFiche({ dossier }: { dossier: Dossier }) {
 
       {/* ---------------------- Activité (membre validé) ------------------ */}
       {validated && (
-        <section aria-labelledby="fiche-activite" className="border-2 border-ae2v-black bg-card p-5">
+        <section
+          aria-labelledby="fiche-activite"
+          className="border-2 border-ae2v-black bg-card p-5"
+        >
           <h2 id="fiche-activite" className="font-impact text-xl uppercase">
             Activité du membre
           </h2>

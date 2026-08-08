@@ -23,25 +23,25 @@ Le visuel n'est pas un ajout après l'UX : il fait partie de l'identité du prod
 ## Couleurs principales
 
 ```css
---ae2v-red: #D60106;
---ae2v-red-dark: #AA0005;
+--ae2v-red: #d60106;
+--ae2v-red-dark: #aa0005;
 --ae2v-black: #090908;
---ae2v-offwhite: #F3F1EC;
---ae2v-gray: #D6D6D6;
---ae2v-green: #BCE707;
+--ae2v-offwhite: #f3f1ec;
+--ae2v-gray: #d6d6d6;
+--ae2v-green: #bce707;
 ```
 
 ## Nuances
 
 ```css
---ae2v-red-light-1: #EF3039;
---ae2v-red-light-2: #E31820;
---ae2v-red-deep: #C00106;
+--ae2v-red-light-1: #ef3039;
+--ae2v-red-light-2: #e31820;
+--ae2v-red-deep: #c00106;
 
---ae2v-green-light-1: #E6FF50;
---ae2v-green-light-2: #D1F32C;
---ae2v-green-dark-1: #A9CB06;
---ae2v-green-dark-2: #96AF04;
+--ae2v-green-light-1: #e6ff50;
+--ae2v-green-light-2: #d1f32c;
+--ae2v-green-dark-1: #a9cb06;
+--ae2v-green-dark-2: #96af04;
 ```
 
 ## Hiérarchie chromatique
@@ -178,6 +178,7 @@ TA PLACE.
 La charte web reste la référence pour les titres courants.
 
 Pour un display héroïque, autoriser un `clamp()` plus grand si :
+
 - il ne casse pas le mobile ;
 - il ne masque pas le CTA ;
 - la hiérarchie sémantique reste propre.
@@ -453,6 +454,7 @@ Chaque membre apparaît sous forme d'une carte dure / éditoriale :
 ```
 
 Visuel :
+
 - bord noir net ;
 - fond off-white, rouge ou noir selon variante ;
 - radius faible ;
@@ -498,6 +500,7 @@ Ne pas ajouter une grosse dépendance uniquement pour cette animation.
 ```
 
 Informations possibles :
+
 - photo ;
 - prénom + nom ;
 - poste public / statut ;
@@ -513,6 +516,7 @@ Informations possibles :
 Le composant n'affiche que l'adresse publique professionnelle prévue pour le membre.
 
 Règle :
+
 ```text
 *@ae2v.fr
 ```
@@ -522,11 +526,13 @@ Ne jamais afficher automatiquement une adresse personnelle.
 Ne pas inventer `prenom.nom@ae2v.fr` si cette adresse n'existe pas réellement dans les données.
 
 Prévoir un champ de donnée explicite :
+
 ```text
 public_ae2v_email
 ```
 
 Validation serveur / back-office :
+
 - nullable ;
 - si renseigné, doit appartenir au domaine `ae2v.fr` ;
 - affiché uniquement si le membre est public.
@@ -534,6 +540,7 @@ Validation serveur / back-office :
 ## Accessibilité
 
 Même si le rendu est une transformation animée, le comportement doit être celui d'un dialogue accessible :
+
 - élément d'ouverture réellement focusable ;
 - `aria-label` explicite ;
 - focus déplacé vers la fiche ;
@@ -550,6 +557,7 @@ La carte compacte peut être un bouton d'ouverture ; les liens `mailto:` vivent 
 ## Mobile
 
 Sur petit écran :
+
 - la transformation peut finir en carte presque plein écran avec marges de 12–16 px ;
 - aucune information ne sort de l'écran ;
 - bouton fermer atteignable ;
@@ -559,6 +567,7 @@ Sur petit écran :
 ## Reduced motion
 
 Si `prefers-reduced-motion: reduce` :
+
 - supprimer déplacement/scale/morph complexe ;
 - utiliser apparition simple / fondu court ;
 - conserver exactement la même fonction.
@@ -566,6 +575,7 @@ Si `prefers-reduced-motion: reduce` :
 ## Décoration
 
 La fiche développée peut contenir :
+
 - 1 petit cristal ;
 - 1 grille de points OU quelques croix ;
 - 1 soulignement/ruban ;

@@ -122,8 +122,18 @@ export function CrossMarker({
         </>
       ) : (
         <>
-          <line x1="12" y1={variant === "circled" ? 7 : 3} x2="12" y2={variant === "circled" ? 17 : 21} />
-          <line x1={variant === "circled" ? 7 : 3} y1="12" x2={variant === "circled" ? 17 : 21} y2="12" />
+          <line
+            x1="12"
+            y1={variant === "circled" ? 7 : 3}
+            x2="12"
+            y2={variant === "circled" ? 17 : 21}
+          />
+          <line
+            x1={variant === "circled" ? 7 : 3}
+            y1="12"
+            x2={variant === "circled" ? 17 : 21}
+            y2="12"
+          />
         </>
       )}
     </svg>
@@ -140,10 +150,7 @@ export function FrameCorners({
   weight = 2,
   corners = "all",
 }: Decor & { size?: number; weight?: number; corners?: "all" | "diagonal" }) {
-  const shown =
-    corners === "all"
-      ? (["tl", "tr", "bl", "br"] as const)
-      : (["tl", "br"] as const);
+  const shown = corners === "all" ? (["tl", "tr", "bl", "br"] as const) : (["tl", "br"] as const);
 
   const position: Record<string, string> = {
     tl: "left-0 top-0 border-l-2 border-t-2",
@@ -158,7 +165,16 @@ export function FrameCorners({
         <span
           key={corner}
           className={cn("absolute border-current", position[corner])}
-          style={{ width: size, height: size, borderWidth: undefined, borderStyle: "solid", borderTopWidth: corner.startsWith("t") ? weight : 0, borderBottomWidth: corner.startsWith("b") ? weight : 0, borderLeftWidth: corner.endsWith("l") ? weight : 0, borderRightWidth: corner.endsWith("r") ? weight : 0 }}
+          style={{
+            width: size,
+            height: size,
+            borderWidth: undefined,
+            borderStyle: "solid",
+            borderTopWidth: corner.startsWith("t") ? weight : 0,
+            borderBottomWidth: corner.startsWith("b") ? weight : 0,
+            borderLeftWidth: corner.endsWith("l") ? weight : 0,
+            borderRightWidth: corner.endsWith("r") ? weight : 0,
+          }}
         />
       ))}
     </span>
@@ -249,8 +265,6 @@ export function EditorialUnderline({
   );
 }
 
-
-
 /* ------------------------------------------------------------------ */
 /* Ruban / étiquette papier                                            */
 /* ------------------------------------------------------------------ */
@@ -292,10 +306,7 @@ export function TapeLabel({
 /* Grain global                                                        */
 /* ------------------------------------------------------------------ */
 
-export function GrainOverlay({
-  className,
-  opacity = 0.05,
-}: Decor & { opacity?: number }) {
+export function GrainOverlay({ className, opacity = 0.05 }: Decor & { opacity?: number }) {
   return (
     <span
       aria-hidden="true"
@@ -390,8 +401,6 @@ export function SectionHeading({
   );
 }
 
-
-
 export function SectionNumber({
   value,
   className,
@@ -407,7 +416,10 @@ export function SectionNumber({
   const label = typeof value === "number" ? String(value).padStart(2, "0") : value;
 
   return (
-    <span aria-hidden="true" className={cn("font-impact text-[clamp(2rem,5vw,3.5rem)] leading-none", color, className)}>
+    <span
+      aria-hidden="true"
+      className={cn("font-impact text-[clamp(2rem,5vw,3.5rem)] leading-none", color, className)}
+    >
       {label}.
     </span>
   );

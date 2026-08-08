@@ -160,7 +160,10 @@ export function DataTable<T extends { id: string }>({
                     </th>
                   ))}
                   {renderDetails ? (
-                    <th scope="col" className="px-3 py-2 text-right text-[0.65rem] font-bold tracking-[0.14em] uppercase">
+                    <th
+                      scope="col"
+                      className="px-3 py-2 text-right text-[0.65rem] font-bold tracking-[0.14em] uppercase"
+                    >
                       Actions
                     </th>
                   ) : null}

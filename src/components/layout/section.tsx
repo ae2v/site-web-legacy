@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-import { DiagonalStripe, DotCloud, SectionHeading, SectionNumber, TapeLabel } from "@/components/brand";
+import {
+  DiagonalStripe,
+  DotCloud,
+  SectionHeading,
+  SectionNumber,
+  TapeLabel,
+} from "@/components/brand";
 import { Reveal } from "@/components/brand/reveal";
 import { cn } from "@/lib/utils";
 
@@ -108,7 +114,6 @@ export function HardCard({
         className,
       )}
     >
-
       <DiagonalStripe className="pointer-events-none absolute inset-x-0 bottom-0 h-1 opacity-40" />
       {eyebrow && (
         <p className="text-[0.7rem] font-bold tracking-[0.18em] uppercase opacity-70">{eyebrow}</p>
@@ -142,7 +147,10 @@ export function FaqList({ items }: { items: { q: string; a: ReactNode }[] }) {
         <details key={item.q} className="group py-4">
           <summary className="ae2v-focus flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 font-impact text-lg">
             {item.q}
-            <span aria-hidden="true" className="text-ae2v-red transition-transform group-open:rotate-45">
+            <span
+              aria-hidden="true"
+              className="text-ae2v-red transition-transform group-open:rotate-45"
+            >
               +
             </span>
           </summary>

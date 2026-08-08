@@ -96,7 +96,8 @@ function ConnexionPage() {
         {account ? (
           <div className="mb-8 border-2 border-ae2v-black bg-ae2v-green p-5 text-ae2v-black">
             <p className="text-sm font-bold">
-              Connecté en tant que {account.firstName} {account.lastName} · {roleLabels[account.role]}.
+              Connecté en tant que {account.firstName} {account.lastName} ·{" "}
+              {roleLabels[account.role]}.
             </p>
             <Button className="mt-4" variant="black" onClick={signOut}>
               Se déconnecter
@@ -120,8 +121,7 @@ function ConnexionPage() {
                   <strong>Adhésion :</strong> {membershipStatusLabels[demo.membershipStatus]}
                 </li>
                 <li>
-                  <strong>Cotisation :</strong>{" "}
-                  {contributionStatusLabels[demo.contributionStatus]}
+                  <strong>Cotisation :</strong> {contributionStatusLabels[demo.contributionStatus]}
                   {demo.contributionCents > 0
                     ? ` · ${(demo.contributionCents / 100).toFixed(2)} €`
                     : ""}
@@ -134,9 +134,7 @@ function ConnexionPage() {
                       ? "consulter et corriger, sans validation"
                       : "espace étudiant uniquement"}
                 </li>
-                <li className="pt-1 text-xs opacity-70">
-                  {demo.email} · mot de passe : demo1234
-                </li>
+                <li className="pt-1 text-xs opacity-70">{demo.email} · mot de passe : demo1234</li>
               </ul>
               <Button className="mt-4 w-full" onClick={() => quickLogin(demo.id)}>
                 <LogIn aria-hidden="true" />
@@ -180,9 +178,7 @@ function ConnexionPage() {
           onSubmit={onSubmit}
           className="max-w-md border-2 border-ae2v-black bg-ae2v-offwhite p-6"
         >
-          <TapeLabel tone="green">
-            {mode === "login" ? "Accès membre" : "Nouveau compte"}
-          </TapeLabel>
+          <TapeLabel tone="green">{mode === "login" ? "Accès membre" : "Nouveau compte"}</TapeLabel>
 
           {mode === "register" ? (
             <>

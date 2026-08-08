@@ -29,11 +29,7 @@ import member10 from "@/assets/team/member-10.jpg.asset.json";
 import member11 from "@/assets/team/member-11.jpg.asset.json";
 
 export type TeamPole =
-  | "Direction"
-  | "Événementiel"
-  | "Communication"
-  | "Partenariats"
-  | "Trésorerie";
+  "Direction" | "Événementiel" | "Communication" | "Partenariats" | "Trésorerie";
 
 export type TeamMember = {
   id: string;

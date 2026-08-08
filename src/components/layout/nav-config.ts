@@ -33,4 +33,3 @@ export const legalNav = [
   { to: "/conditions-vente", label: "CGV" },
   { to: "/remboursements", label: "Remboursements" },
 ] as const;
-

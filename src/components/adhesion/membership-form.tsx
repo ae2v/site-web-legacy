@@ -64,7 +64,10 @@ const schema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}$/, "Numéro français invalide (ex. 06 12 34 56 78)."),
+    .regex(
+      /^(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}$/,
+      "Numéro français invalide (ex. 06 12 34 56 78).",
+    ),
 
   // 2. Scolarité
   studentId: z
@@ -197,8 +200,7 @@ function FieldShell({
 /* -------------------------------------------------------------------------- */
 
 export function MembershipForm() {
-  const session = useDemoSession();
-  const addDossier = (session as unknown as { addDossier?: (d: any) => void }).addDossier;
+  const { addDossier } = useDemoSession();
   const year = useMemo(() => currentSchoolYear(), []);
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState<MembershipFormValues | null>(null);
@@ -281,7 +283,10 @@ export function MembershipForm() {
     if (data.cotisation === "libre") {
       const amount = Number(String(data.customAmount ?? "").replace(",", "."));
       if (!Number.isFinite(amount) || amount < 5 || amount > 500) {
-        setError("customAmount", { type: "manual", message: "Montant libre : entre 5 € et 500 €." });
+        setError("customAmount", {
+          type: "manual",
+          message: "Montant libre : entre 5 € et 500 €.",
+        });
         setStep(2);
         return;
       }
@@ -546,12 +551,7 @@ export function MembershipForm() {
                   ))}
                 </select>
               </FieldShell>
-              <FieldShell
-                id="niveau"
-                label="Année d'étude"
-                required
-                error={errors.niveau?.message}
-              >
+              <FieldShell id="niveau" label="Année d'étude" required error={errors.niveau?.message}>
                 <select
                   id="niveau"
                   className={inputClass}

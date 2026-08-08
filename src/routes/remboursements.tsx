@@ -65,15 +65,15 @@ function RemboursementsPage() {
         <p>
           Un produit non retiré peut être annulé et remboursé tant qu'il n'a pas été personnalisé ni
           remis. Un produit défectueux ou non conforme est échangé ou remboursé sur signalement dans
-          les 14 jours suivant le retrait. Les produits personnalisés (taille, nom, floquage) ne sont
-          ni repris ni échangés, sauf défaut.
+          les 14 jours suivant le retrait. Les produits personnalisés (taille, nom, floquage) ne
+          sont ni repris ni échangés, sauf défaut.
         </p>
       </LegalBlock>
 
       <LegalBlock title="4. Comment demander un remboursement">
         <p>
-          Écris à <LegalMail /> en précisant ton nom, la référence de la commande ou du billet, et le
-          motif de la demande. Le bureau répond sous 14 jours.
+          Écris à <LegalMail /> en précisant ton nom, la référence de la commande ou du billet, et
+          le motif de la demande. Le bureau répond sous 14 jours.
         </p>
       </LegalBlock>
 

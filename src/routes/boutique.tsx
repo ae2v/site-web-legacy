@@ -80,7 +80,6 @@ function BoutiquePage() {
         </div>
       </Section>
 
-
       <Section number={3} ghost="INFOS" title="Bon à savoir">
         <FaqList
           items={[

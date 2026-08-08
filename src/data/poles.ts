@@ -17,8 +17,7 @@ export const poles: PoleInfo[] = [
   {
     slug: "evenementiel",
     name: "Événementiel",
-    mission:
-      "Imagine et organise les soirées, le gala, les afterworks et les sorties de l'année.",
+    mission: "Imagine et organise les soirées, le gala, les afterworks et les sorties de l'année.",
   },
   {
     slug: "communication",
@@ -35,7 +34,6 @@ export const poles: PoleInfo[] = [
   {
     slug: "tresorerie",
     name: "Trésorerie",
-    mission:
-      "Suit le budget, les encaissements, les remboursements et la transparence financière.",
+    mission: "Suit le budget, les encaissements, les remboursements et la transparence financière.",
   },
 ];

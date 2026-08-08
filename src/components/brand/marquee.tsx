@@ -105,11 +105,7 @@ export function BrandMarquee({
       : "border-ae2v-offwhite text-ae2v-offwhite hover:bg-ae2v-offwhite hover:text-ae2v-black";
 
   const group = (key: string, isRef: boolean) => (
-    <div
-      key={key}
-      ref={isRef ? groupRef : undefined}
-      className="flex shrink-0 items-center"
-    >
+    <div key={key} ref={isRef ? groupRef : undefined} className="flex shrink-0 items-center">
       {items.map((item, index) => (
         <span
           key={`${key}-${item}-${index}`}
@@ -134,11 +130,7 @@ export function BrandMarquee({
     >
       <span className="sr-only">{items.join(" · ")}</span>
 
-      <div
-        ref={trackRef}
-        aria-hidden="true"
-        className="flex w-max py-2.5 will-change-transform"
-      >
+      <div ref={trackRef} aria-hidden="true" className="flex w-max py-2.5 will-change-transform">
         {Array.from({ length: copies }, (_, i) => group(`g${i}`, i === 0))}
       </div>
 

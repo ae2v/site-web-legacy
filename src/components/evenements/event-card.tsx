@@ -131,10 +131,7 @@ export function EventCard({
           >
             <p className="leading-tight">
               <span
-                className={cn(
-                  "block font-impact text-ae2v-red",
-                  compact ? "text-xl" : "text-2xl",
-                )}
+                className={cn("block font-impact text-ae2v-red", compact ? "text-xl" : "text-2xl")}
               >
                 {tier ? (tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)) : "—"}
               </span>
@@ -153,7 +150,6 @@ export function EventCard({
               Voir la page
             </span>
           </div>
-
         </div>
       </article>
     </Reveal>

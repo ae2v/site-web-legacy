@@ -49,8 +49,8 @@ function CgvPage() {
             un tarif adhérent. Un billet est personnel et contrôlé à l'entrée.
           </li>
           <li>
-            <strong>Boutique</strong> : produits proposés dans la limite des stocks disponibles, avec
-            description, taille et prix affichés avant validation.
+            <strong>Boutique</strong> : produits proposés dans la limite des stocks disponibles,
+            avec description, taille et prix affichés avant validation.
           </li>
         </ul>
       </LegalBlock>
@@ -73,10 +73,10 @@ function CgvPage() {
 
       <LegalBlock title="5. Livraison et retrait">
         <p>
-          Les produits boutique sont à retirer en main propre, sur les créneaux et lieux annoncés par
-          le bureau (permanence, stand, événement). Aucun envoi postal n'est assuré, sauf mention
-          contraire explicite sur la fiche produit. Les billets sont dématérialisés et disponibles
-          dans ton espace étudiant.
+          Les produits boutique sont à retirer en main propre, sur les créneaux et lieux annoncés
+          par le bureau (permanence, stand, événement). Aucun envoi postal n'est assuré, sauf
+          mention contraire explicite sur la fiche produit. Les billets sont dématérialisés et
+          disponibles dans ton espace étudiant.
         </p>
       </LegalBlock>
 

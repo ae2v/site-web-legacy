@@ -34,23 +34,23 @@ Le BDE                  Profil                    Contenu / partenaires
 
 # Ordre de lecture
 
-| Ordre | Fichier | Pourquoi |
-|---|---|---|
-| 1 | `01-VISION-ORGANISATION-PRODUIT.md` | Comprendre le produit et les rôles |
-| 2 | `02-ARCHITECTURE-UX-SITEMAP.md` | Comprendre l'arborescence et les parcours |
-| 3 | `03-CHARTE-DESIGN-VISUEL.md` | Comprendre le langage visuel |
-| 4 | `04-ERGONOMIE-10-REGLES.md` | Les 10 règles UX à appliquer partout |
-| 5 | `05-PAGES-PARCOURS-COMPOSANTS.md` | Traduction page par page |
-| 6 | `06-DATA-SECURITY-BACKEND.md` | Architecture métier et sécurité |
-| 7 | `07-BACKOFFICE-BUREAU.md` | Organisation du bureau |
-| 8 | `08-ROADMAP-TESTS-DOD.md` | Ordre de développement et Definition of Done |
-| 9 | `09-LOVABLE-PROJECT-KNOWLEDGE-V2.md` | À coller dans Project Knowledge |
-| 10 | `10-AGENTS.md` | Règles permanentes du repo |
-| 11 | `11-LOVABLE-MASTER-PROMPT-V2.md` | Prompt maître à lancer en Plan mode |
-| 12 | `12-LOVABLE-PROMPTS-ATOMIQUES-V2.md` | Prompts de construction étape par étape |
-| 13 | `13-LOVABLE-SKILL-UX-AUDIT.md` | Skill optionnelle pour les audits UX |
-| 14 | `14-CHECKLIST-VISUEL-ERGONOMIE.md` | Validation avant chaque livraison |
-| 15 | `15-SOURCES-RECHERCHE.md` | Références utilisées |
+| Ordre | Fichier                              | Pourquoi                                     |
+| ----- | ------------------------------------ | -------------------------------------------- |
+| 1     | `01-VISION-ORGANISATION-PRODUIT.md`  | Comprendre le produit et les rôles           |
+| 2     | `02-ARCHITECTURE-UX-SITEMAP.md`      | Comprendre l'arborescence et les parcours    |
+| 3     | `03-CHARTE-DESIGN-VISUEL.md`         | Comprendre le langage visuel                 |
+| 4     | `04-ERGONOMIE-10-REGLES.md`          | Les 10 règles UX à appliquer partout         |
+| 5     | `05-PAGES-PARCOURS-COMPOSANTS.md`    | Traduction page par page                     |
+| 6     | `06-DATA-SECURITY-BACKEND.md`        | Architecture métier et sécurité              |
+| 7     | `07-BACKOFFICE-BUREAU.md`            | Organisation du bureau                       |
+| 8     | `08-ROADMAP-TESTS-DOD.md`            | Ordre de développement et Definition of Done |
+| 9     | `09-LOVABLE-PROJECT-KNOWLEDGE-V2.md` | À coller dans Project Knowledge              |
+| 10    | `10-AGENTS.md`                       | Règles permanentes du repo                   |
+| 11    | `11-LOVABLE-MASTER-PROMPT-V2.md`     | Prompt maître à lancer en Plan mode          |
+| 12    | `12-LOVABLE-PROMPTS-ATOMIQUES-V2.md` | Prompts de construction étape par étape      |
+| 13    | `13-LOVABLE-SKILL-UX-AUDIT.md`       | Skill optionnelle pour les audits UX         |
+| 14    | `14-CHECKLIST-VISUEL-ERGONOMIE.md`   | Validation avant chaque livraison            |
+| 15    | `15-SOURCES-RECHERCHE.md`            | Références utilisées                         |
 
 ---
 
@@ -88,6 +88,7 @@ Elle est terminée lorsqu'elle est :
 ## Mise à jour V3 — Équipe et démarrage ZIP
 
 Nouveautés :
+
 - TeamCard interactive qui se transforme en carte de visite centrée ;
 - adresse professionnelle `@ae2v.fr` uniquement si elle existe réellement ;
 - comportement accessible type dialogue avec transformation visuelle ;

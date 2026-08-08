@@ -318,7 +318,6 @@ export type Dossier = {
   note: string;
 };
 
-
 const initialDossiers: Dossier[] = [
   {
     id: "ADH-2026-0311",
@@ -457,7 +456,8 @@ const initialMessages: ContactMessage[] = [
     name: "Alice Martin",
     email: "alice.martin@etu.uvsq.fr",
     sujet: "Adhésion",
-    message: "Bonjour, je souhaite adhérer à l'AE2V mais je ne comprends pas la différence entre adhésion et cotisation. Pouvez-vous m'expliquer ?",
+    message:
+      "Bonjour, je souhaite adhérer à l'AE2V mais je ne comprends pas la différence entre adhésion et cotisation. Pouvez-vous m'expliquer ?",
     sentAt: "04/09/2026",
     status: "NOUVEAU",
   },
@@ -466,7 +466,8 @@ const initialMessages: ContactMessage[] = [
     name: "Lucas Dufour",
     email: "lucas.dufour@etu.uvsq.fr",
     sujet: "Événement",
-    message: "Y a-t-il une liste d'attente pour la soirée d'intégration ? Je n'ai pas eu le temps de m'inscrire.",
+    message:
+      "Y a-t-il une liste d'attente pour la soirée d'intégration ? Je n'ai pas eu le temps de m'inscrire.",
     sentAt: "05/09/2026",
     status: "LU",
   },
@@ -475,7 +476,8 @@ const initialMessages: ContactMessage[] = [
     name: "Marine Petit",
     email: "marine.petit@entreprise.fr",
     sujet: "Partenariat",
-    message: "Notre entreprise souhaite sponsoriser un événement. Pouvez-vous nous envoyer votre dossier de partenariat ?",
+    message:
+      "Notre entreprise souhaite sponsoriser un événement. Pouvez-vous nous envoyer votre dossier de partenariat ?",
     sentAt: "06/09/2026",
     status: "TRAITE",
   },

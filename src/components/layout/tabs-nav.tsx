@@ -4,7 +4,6 @@ import { ScrollHintEdges } from "@/components/layout/scroll-hint-edges";
 import { useScrollHint } from "@/hooks/use-scroll-hint";
 import { cn } from "@/lib/utils";
 
-
 export type TabItem = { id: string; label: string; badge?: number };
 
 /**
@@ -43,9 +42,7 @@ export function TabsNav({
     const target = tabs[next]!;
     onChange(target.id);
     requestAnimationFrame(() => {
-      listRef.current
-        ?.querySelector<HTMLButtonElement>(`#${idPrefix}-tab-${target.id}`)
-        ?.focus();
+      listRef.current?.querySelector<HTMLButtonElement>(`#${idPrefix}-tab-${target.id}`)?.focus();
     });
   }
 
@@ -59,7 +56,6 @@ export function TabsNav({
         className,
       )}
     >
-
       <div
         ref={listRef}
         role="tablist"
@@ -107,7 +103,6 @@ export function TabsNav({
         }
       />
     </div>
-
   );
 }
 

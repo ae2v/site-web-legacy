@@ -123,7 +123,6 @@ function Index() {
               </Reveal>
             </ImpactTitle>
 
-
             <Reveal delay={320}>
               <p className="mt-6 max-w-xl text-base md:text-lg">
                 L'AE2V fait vivre le campus : événements, adhésion annuelle, boutique et avantages
@@ -214,7 +213,6 @@ function Index() {
         </div>
       </section>
 
-
       {/* 04 — TROIS PORTES D'ENTRÉE */}
       <section className="mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-20">
         <Reveal className="flex items-start gap-4">
@@ -223,7 +221,6 @@ function Index() {
             Par où commencer
           </SectionHeading>
         </Reveal>
-
 
         <ul className="mt-8 grid gap-4 md:grid-cols-3">
           {doors.map((door, index) => (
@@ -238,7 +235,9 @@ function Index() {
                 />
                 <door.icon aria-hidden="true" className="size-7" />
                 <div className="mt-8">
-                  <span className="ae2v-headline text-[clamp(1.5rem,3vw,2.25rem)]">{door.label}</span>
+                  <span className="ae2v-headline text-[clamp(1.5rem,3vw,2.25rem)]">
+                    {door.label}
+                  </span>
                   <p className="mt-2 text-sm text-muted-foreground transition-colors group-hover:text-ae2v-offwhite/80">
                     {door.text}
                   </p>
@@ -336,13 +335,28 @@ function Index() {
                 <Button asChild size="lg">
                   <Link to="/bde">Découvrir le BDE</Link>
                 </Button>
-                <Button asChild size="lg" variant="black" className="border-2 border-ae2v-offwhite/40">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="black"
+                  className="border-2 border-ae2v-offwhite/40"
+                >
                   <Link to="/bde/association">L'association</Link>
                 </Button>
-                <Button asChild size="lg" variant="black" className="border-2 border-ae2v-offwhite/40">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="black"
+                  className="border-2 border-ae2v-offwhite/40"
+                >
                   <Link to="/bde/poles">Les pôles</Link>
                 </Button>
-                <Button asChild size="lg" variant="black" className="border-2 border-ae2v-offwhite/40">
+                <Button
+                  asChild
+                  size="lg"
+                  variant="black"
+                  className="border-2 border-ae2v-offwhite/40"
+                >
                   <Link to="/bde/equipe">L'équipe</Link>
                 </Button>
               </div>
@@ -388,7 +402,6 @@ function Index() {
           </div>
         </div>
       </section>
-
 
       {/* 10 — RÉSEAUX / CONTACT */}
       <section className="mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-20">
