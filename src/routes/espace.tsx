@@ -10,6 +10,7 @@ import { EmptyState, HardCard, Section } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
 import { Button } from "@/components/ui/button";
 import { demoEvents } from "@/data/events";
+import { poles as bdePolesData } from "@/data/poles";
 import {
   contributionStatusLabels,
   formatCents,
@@ -48,7 +49,7 @@ const modules = [
   { icon: UserRound, title: "Mon profil", text: "Informations, promo et gestion du compte." },
 ];
 
-const poles = ["Événementiel", "Communication", "Partenariats", "Trésorerie", "Direction"];
+const poles = bdePolesData.map((p) => p.name);
 
 const TABS = [
   { id: "apercu", label: "Aperçu" },

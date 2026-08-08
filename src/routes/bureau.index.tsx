@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { Mail, Users, Trash2, Plus, Eye, CheckCheck, Clock } from "lucide-react";
 
 import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
 import {
@@ -9,19 +9,28 @@ import {
   today,
 } from "@/components/bureau/dossier-fiche";
 import { PageHero } from "@/components/layout/page-hero";
-import { HardCard, Section } from "@/components/layout/section";
+import { HardCard, Section, EmptyState } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
 import { Button } from "@/components/ui/button";
 import {
   candidatureStatusLabels,
+  contactMessageStatusLabels,
   contributionStatusLabels,
   formatCents,
   membershipStatusLabels,
   roleLabels,
   useDemoSession,
   type Candidature,
+  type ContactMessage,
+  type ContactMessageStatus,
   type Dossier,
 } from "@/lib/demo-session";
+import {
+  getDynamicTeamMembers,
+  saveDynamicTeamMembers,
+  type TeamMember,
+} from "@/lib/dynamic-store";
+import { teamPoles, type TeamPole } from "@/data/team";
 
 export const Route = createFileRoute("/bureau/")({
   head: () => ({
@@ -43,12 +52,20 @@ export const Route = createFileRoute("/bureau/")({
 });
 
 function BureauPage() {
-  const { account, can, dossiers, candidatures, updateCandidature, updateDossier } =
+  const { account, can, dossiers, candidatures, messages, updateCandidature, updateDossier, updateMessageStatus } =
     useDemoSession();
   const [tab, setTab] = useState("demandes");
   const [membershipFilter, setMembershipFilter] = useState("TOUS");
   const [contribFilter, setContribFilter] = useState("TOUS");
   const [candFilter, setCandFilter] = useState("TOUS");
+  const [msgFilter, setMsgFilter] = useState("TOUS");
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getDynamicTeamMembers());
+
+  useEffect(() => {
+    const handler = () => setTeamMembers(getDynamicTeamMembers());
+    window.addEventListener("ae2v_team_changed", handler);
+    return () => window.removeEventListener("ae2v_team_changed", handler);
+  }, []);
 
   const requests = useMemo(
     () =>
@@ -75,11 +92,17 @@ function BureauPage() {
     [candidatures, candFilter],
   );
 
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => msgFilter === "TOUS" || m.status === msgFilter),
+    [messages, msgFilter],
+  );
+
   if (!account) return null;
 
   const pendingCount = dossiers.filter((d) => d.status === "EN_ATTENTE").length;
   const toFixCount = dossiers.filter((d) => d.status === "A_CORRIGER").length;
   const candPending = candidatures.filter((c) => c.status === "EN_ATTENTE").length;
+  const msgNew = messages.filter((m) => m.status === "NOUVEAU").length;
   const collected = dossiers
     .filter((d) => d.contributionStatus === "COTISANT")
     .reduce((sum, d) => sum + d.contributionCents, 0);
@@ -156,7 +179,8 @@ function BureauPage() {
           { id: "demandes", label: "Demandes d'adhésion", badge: pendingCount + toFixCount },
           { id: "membres", label: "Membres validés", badge: members.length },
           { id: "candidatures", label: "Candidatures bureau", badge: candPending },
-          { id: "modules", label: "Modules" },
+          { id: "messages", label: "Messages", badge: msgNew },
+          { id: "equipe", label: "Équipe BDE", badge: teamMembers.length },
         ]}
       />
 
@@ -441,33 +465,63 @@ function BureauPage() {
         </Section>
       </TabPanel>
 
-      {/* ------------------------------ Modules ----------------------------- */}
-      <TabPanel id="modules" idPrefix="bureau" active={tab}>
-        <Section number={4} ghost="MODULES" title="Modules prévus">
-          <div className="mb-6 flex items-start gap-3 border-2 border-ae2v-black bg-ae2v-black p-5 text-ae2v-offwhite">
-            <ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-ae2v-green" />
-            <p className="text-sm">
-              Démonstration côté navigateur uniquement. Les rôles, la validation des dossiers et les
-              montants seront contrôlés côté serveur (authentification, autorisation, audit).
-            </p>
+      {/* ------------------------------ Messages --------------------------- */}
+      <TabPanel id="messages" idPrefix="bureau" active={tab}>
+        <Section
+          number={4}
+          ghost="INBOX"
+          title="Boîte de réception"
+          intro="Messages reçus via le formulaire de contact. Marquez-les comme lus ou traités."
+        >
+          <div className="mb-6 grid gap-4 sm:grid-cols-3">
+            <Kpi value={String(messages.length)} label="Messages reçus" />
+            <Kpi value={String(msgNew)} label="Non lus" tone="green" />
+            <Kpi
+              value={String(messages.filter((m) => m.status === "TRAITE").length)}
+              label="Traités"
+            />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              "Adhérents",
-              "Équipe & rôles",
-              "Événements & participants",
-              "Scanner QR",
-              "Boutique & stocks",
-              "Commandes",
-              "Partenaires",
-              "Contenu & médias",
-              "Exports & audit",
-            ].map((module) => (
-              <HardCard key={module} interactive={false} title={module}>
-                Module à brancher lors de la phase backend.
-              </HardCard>
-            ))}
+
+          <div className="mb-4">
+            <TableFilter
+              id="filter-messages"
+              label="Statut"
+              value={msgFilter}
+              onChange={setMsgFilter}
+              options={[
+                { value: "TOUS", label: "Tous" },
+                { value: "NOUVEAU", label: "Nouveau" },
+                { value: "LU", label: "Lu" },
+                { value: "TRAITE", label: "Traité" },
+              ]}
+            />
           </div>
+
+          {visibleMessages.length === 0 ? (
+            <EmptyState label="Aucun message" detail="Aucun message ne correspond aux critères sélectionnés." />
+          ) : (
+            <ul className="space-y-3">
+              {visibleMessages.map((msg) => (
+                <MessageCard
+                  key={msg.id}
+                  msg={msg}
+                  onUpdateStatus={updateMessageStatus}
+                />
+              ))}
+            </ul>
+          )}
+        </Section>
+      </TabPanel>
+
+      {/* ------------------------------- Équipe BDE ------------------------- */}
+      <TabPanel id="equipe" idPrefix="bureau" active={tab}>
+        <Section
+          number={5}
+          ghost="ÉQUIPE"
+          title="Gestion de l'équipe"
+          intro="Membres affichés sur la page publique /bde/equipe. Les modifications sont immédiatement visibles."
+        >
+          <TeamManager teamMembers={teamMembers} />
         </Section>
       </TabPanel>
     </>
@@ -515,3 +569,332 @@ function Kpi({
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/* MessageCard — carte de message de contact                                   */
+/* -------------------------------------------------------------------------- */
+
+function MessageCard({
+  msg,
+  onUpdateStatus,
+}: {
+  msg: ContactMessage;
+  onUpdateStatus: (id: string, status: ContactMessageStatus) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const toneMap: Record<ContactMessageStatus, string> = {
+    NOUVEAU: "border-ae2v-red bg-ae2v-red/5",
+    LU: "border-ae2v-black/40 bg-card",
+    TRAITE: "border-ae2v-black/20 bg-muted/30",
+  };
+
+  return (
+    <li className={`border-2 p-4 ${toneMap[msg.status]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-bold">{msg.name}</p>
+            <StatusPill
+              tone={
+                msg.status === "NOUVEAU" ? "red" : msg.status === "LU" ? "neutral" : "black"
+              }
+            >
+              {contactMessageStatusLabels[msg.status]}
+            </StatusPill>
+          </div>
+          <p className="text-xs text-muted-foreground break-all">{msg.email}</p>
+          <p className="mt-1 text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">
+            {msg.sujet} · {msg.sentAt}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            <Eye aria-hidden="true" className="size-3.5" />
+            {expanded ? "Réduire" : "Lire"}
+          </Button>
+          {msg.status === "NOUVEAU" && (
+            <Button
+              size="sm"
+              variant="black"
+              onClick={() => onUpdateStatus(msg.id, "LU")}
+            >
+              <Mail aria-hidden="true" className="size-3.5" />
+              Marquer lu
+            </Button>
+          )}
+          {msg.status !== "TRAITE" && (
+            <Button
+              size="sm"
+              onClick={() => onUpdateStatus(msg.id, "TRAITE")}
+            >
+              <CheckCheck aria-hidden="true" className="size-3.5" />
+              Traité
+            </Button>
+          )}
+          {msg.status === "TRAITE" && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => onUpdateStatus(msg.id, "NOUVEAU")}
+            >
+              <Clock aria-hidden="true" className="size-3.5" />
+              Rouvrir
+            </Button>
+          )}
+        </div>
+      </div>
+      {expanded && (
+        <div className="mt-3 border-l-4 border-ae2v-red bg-ae2v-offwhite p-3 text-sm text-ae2v-black">
+          <p className="whitespace-pre-wrap">{msg.message}</p>
+          <a
+            href={`mailto:${msg.email}?subject=Re: [${msg.sujet}]`}
+            className="mt-3 inline-block text-xs font-bold text-ae2v-red underline"
+          >
+            Répondre par e-mail →
+          </a>
+        </div>
+      )}
+    </li>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TeamManager — gestion de l'équipe bureau depuis le back-office             */
+/* -------------------------------------------------------------------------- */
+
+const inputClass =
+  "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-base text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
+
+function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const [form, setForm] = useState({
+    displayName: "",
+    roleTitle: "",
+    pole: teamPoles[0] as TeamPole,
+    personalAe2vEmail: "",
+    roleEmail: "",
+    isOfficer: false,
+    bio: "",
+    mandate: `${currentYear}–${currentYear + 1}`,
+  });
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.displayName.trim() || !form.roleTitle.trim()) {
+      setFormError("Nom d'affichage et titre de rôle sont obligatoires.");
+      return;
+    }
+    setFormError(null);
+    const current = getDynamicTeamMembers();
+    const newMember: TeamMember = {
+      id: `custom-${Date.now()}`,
+      displayName: form.displayName.trim(),
+      roleTitle: form.roleTitle.trim(),
+      pole: form.pole,
+      personalAe2vEmail: form.personalAe2vEmail.trim() || null,
+      roleEmail: form.roleEmail.trim() || null,
+      isOfficer: form.isOfficer,
+      bio: form.bio.trim() || null,
+      photoUrl: null,
+      mandate: form.mandate.trim() || `${currentYear}–${currentYear + 1}`,
+      isDemo: false,
+      isPlaceholder: false,
+    };
+    saveDynamicTeamMembers([newMember, ...current]);
+    setForm({
+      displayName: "",
+      roleTitle: "",
+      pole: teamPoles[0] as TeamPole,
+      personalAe2vEmail: "",
+      roleEmail: "",
+      isOfficer: false,
+      bio: "",
+      mandate: `${currentYear}–${currentYear + 1}`,
+    });
+    setShowForm(false);
+  }
+
+  function handleDelete(id: string) {
+    const updated = getDynamicTeamMembers().filter((m) => m.id !== id);
+    saveDynamicTeamMembers(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          {teamMembers.length} membre{teamMembers.length > 1 ? "s" : ""} dans l'équipe.
+        </p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus aria-hidden="true" />
+          {showForm ? "Annuler" : "Ajouter un membre"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleAdd}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black"
+        >
+          <p className="text-xs font-bold tracking-[0.14em] uppercase">Nouveau membre</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                Nom d'affichage <span className="text-ae2v-red">*</span>
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Marie Dupont"
+                value={form.displayName}
+                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                Titre du rôle <span className="text-ae2v-red">*</span>
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Secrétaire général"
+                value={form.roleTitle}
+                onChange={(e) => setForm((f) => ({ ...f, roleTitle: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                Pôle <span className="text-ae2v-red">*</span>
+              </label>
+              <select
+                className={`${inputClass} mt-1`}
+                value={form.pole}
+                onChange={(e) => setForm((f) => ({ ...f, pole: e.target.value as TeamPole }))}
+              >
+                {teamPoles.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                E-mail nominatif @ae2v.fr
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="email"
+                placeholder="prenom.nom@ae2v.fr"
+                value={form.personalAe2vEmail}
+                onChange={(e) => setForm((f) => ({ ...f, personalAe2vEmail: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                E-mail de fonction @ae2v.fr
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="email"
+                placeholder="presidence@ae2v.fr"
+                value={form.roleEmail}
+                onChange={(e) => setForm((f) => ({ ...f, roleEmail: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
+                Année de mandat
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="2026–2027"
+                value={form.mandate}
+                onChange={(e) => setForm((f) => ({ ...f, mandate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold tracking-[0.14em] uppercase">Bio</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Courte présentation (optionnel)"
+                value={form.bio}
+                onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center gap-3 sm:col-span-2">
+              <input
+                id="is-officer"
+                type="checkbox"
+                className="size-5 accent-ae2v-red"
+                checked={form.isOfficer}
+                onChange={(e) => setForm((f) => ({ ...f, isOfficer: e.target.checked }))}
+              />
+              <label htmlFor="is-officer" className="text-sm font-bold">
+                Rôle essentiel (officier) — affiché en priorité
+              </label>
+            </div>
+          </div>
+          {formError && (
+            <p className="mt-3 text-sm font-bold text-ae2v-red">✕ {formError}</p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="submit">Ajouter à l'équipe</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {teamMembers.map((member) => (
+          <div
+            key={member.id}
+            className="flex flex-col border-2 border-ae2v-black bg-card p-4"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="font-bold">{member.displayName}</p>
+              <p className="text-xs text-muted-foreground">{member.roleTitle}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <StatusPill tone="neutral">{member.pole}</StatusPill>
+                {member.isOfficer && <StatusPill tone="green">Officier</StatusPill>}
+                {member.isDemo && <StatusPill tone="red">Démo</StatusPill>}
+              </div>
+              {member.personalAe2vEmail && (
+                <p className="mt-1 text-xs text-muted-foreground break-all">
+                  {member.personalAe2vEmail}
+                </p>
+              )}
+              {member.roleEmail && (
+                <p className="mt-0.5 text-xs text-muted-foreground break-all">
+                  {member.roleEmail}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">{member.mandate}</p>
+            </div>
+            <Button
+              className="mt-3 w-full"
+              size="sm"
+              variant="secondary"
+              onClick={() => handleDelete(member.id)}
+            >
+              <Trash2 aria-hidden="true" className="size-3.5" />
+              Supprimer
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+

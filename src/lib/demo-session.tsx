@@ -35,12 +35,13 @@ export type DemoPermission =
   | "dossiers:validate"
   | "candidatures:read"
   | "candidatures:decide"
-  | "events:manage";
+  | "events:manage"
+  | "messages:read";
 
 const PERMISSIONS: Record<DemoRole, DemoPermission[]> = {
   membre: [],
   adherent: [],
-  bureau: ["dossiers:read", "dossiers:edit", "candidatures:read"],
+  bureau: ["dossiers:read", "dossiers:edit", "candidatures:read", "messages:read"],
   bureau_admin: [
     "dossiers:read",
     "dossiers:edit",
@@ -48,6 +49,7 @@ const PERMISSIONS: Record<DemoRole, DemoPermission[]> = {
     "candidatures:read",
     "candidatures:decide",
     "events:manage",
+    "messages:read",
   ],
 };
 
@@ -428,6 +430,58 @@ const initialCandidatures: Candidature[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
+/*  Messages de contact (formulaire → boîte de réception bureau)              */
+/* -------------------------------------------------------------------------- */
+
+export type ContactMessageStatus = "NOUVEAU" | "LU" | "TRAITE";
+
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  sujet: string;
+  message: string;
+  sentAt: string;
+  status: ContactMessageStatus;
+};
+
+export const contactMessageStatusLabels: Record<ContactMessageStatus, string> = {
+  NOUVEAU: "Nouveau",
+  LU: "Lu",
+  TRAITE: "Traité",
+};
+
+const initialMessages: ContactMessage[] = [
+  {
+    id: "MSG-2026-001",
+    name: "Alice Martin",
+    email: "alice.martin@etu.uvsq.fr",
+    sujet: "Adhésion",
+    message: "Bonjour, je souhaite adhérer à l'AE2V mais je ne comprends pas la différence entre adhésion et cotisation. Pouvez-vous m'expliquer ?",
+    sentAt: "04/09/2026",
+    status: "NOUVEAU",
+  },
+  {
+    id: "MSG-2026-002",
+    name: "Lucas Dufour",
+    email: "lucas.dufour@etu.uvsq.fr",
+    sujet: "Événement",
+    message: "Y a-t-il une liste d'attente pour la soirée d'intégration ? Je n'ai pas eu le temps de m'inscrire.",
+    sentAt: "05/09/2026",
+    status: "LU",
+  },
+  {
+    id: "MSG-2026-003",
+    name: "Marine Petit",
+    email: "marine.petit@entreprise.fr",
+    sujet: "Partenariat",
+    message: "Notre entreprise souhaite sponsoriser un événement. Pouvez-vous nous envoyer votre dossier de partenariat ?",
+    sentAt: "06/09/2026",
+    status: "TRAITE",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
 /*  Contexte                                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -435,6 +489,8 @@ type DemoState = {
   accountId: string | null;
   dossiers: Dossier[];
   candidatures: Candidature[];
+  messages: ContactMessage[];
+  customAccounts: DemoAccount[];
 };
 
 const STORAGE_KEY = "ae2v-demo-session-v2";
@@ -443,6 +499,8 @@ const defaultState: DemoState = {
   accountId: null,
   dossiers: initialDossiers,
   candidatures: initialCandidatures,
+  messages: initialMessages,
+  customAccounts: [],
 };
 
 type DemoContextValue = {
@@ -473,6 +531,10 @@ type DemoContextValue = {
   candidatures: Candidature[];
   addCandidature: (input: Omit<Candidature, "id" | "submittedAt" | "status">) => void;
   updateCandidature: (id: string, status: Candidature["status"]) => void;
+  messages: ContactMessage[];
+  addMessage: (input: Omit<ContactMessage, "id" | "sentAt" | "status">) => void;
+  updateMessageStatus: (id: string, status: ContactMessageStatus) => void;
+  addTicket: (ticket: Omit<DemoTicket, "id">) => void;
 };
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -503,11 +565,9 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const account = useMemo(
     () =>
       demoAccounts.find((a) => a.id === state.accountId) ??
-      (state as unknown as { customAccounts?: DemoAccount[] }).customAccounts?.find(
-        (a) => a.id === state.accountId,
-      ) ??
+      state.customAccounts.find((a) => a.id === state.accountId) ??
       null,
-    [state.accountId, state],
+    [state.accountId, state.customAccounts],
   );
 
   const can = useCallback(
@@ -516,16 +576,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     [account],
   );
 
-  const value: DemoContextValue & {
-    signUp: (params: {
-      email: string;
-      password: string;
-      firstName: string;
-      lastName: string;
-      departement: string;
-      niveau: string;
-    }) => { ok: boolean; error?: string };
-  } = {
+  const value: DemoContextValue = {
     ready,
     account,
     role: account?.role ?? null,
@@ -534,10 +585,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     signIn: (accountId) => setState((s) => ({ ...s, accountId })),
     signInWithCredentials: (email, password) => {
       const normalizedEmail = email.trim().toLowerCase();
-      const allAccounts = [
-        ...demoAccounts,
-        ...((state as unknown as { customAccounts?: DemoAccount[] }).customAccounts || []),
-      ];
+      const allAccounts = [...demoAccounts, ...state.customAccounts];
       const found = allAccounts.find(
         (a) => a.email.toLowerCase() === normalizedEmail && a.password === password,
       );
@@ -547,53 +595,70 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     },
     signUp: ({ email, password, firstName, lastName, departement, niveau }) => {
       const normalizedEmail = email.trim().toLowerCase();
-      const allAccounts = [
-        ...demoAccounts,
-        ...((state as unknown as { customAccounts?: DemoAccount[] }).customAccounts || []),
-      ];
+      const allAccounts = [...demoAccounts, ...state.customAccounts];
       if (allAccounts.some((a) => a.email.toLowerCase() === normalizedEmail)) {
         return { ok: false, error: "Un compte existe déjà avec cette adresse e-mail." };
       }
+      const accountId = `acc-user-${Date.now()}`;
+      const cardCode = `AE2V-USER-${Math.floor(1000 + Math.random() * 9000)}`;
+      const today = new Date().toLocaleDateString("fr-FR");
       const newAccount: DemoAccount = {
-        id: `acc-user-${Date.now()}`,
+        id: accountId,
         email: normalizedEmail,
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        role: "adherent",
+        role: "membre",
         departement,
         niveau,
-        contributionCents: 1200,
+        contributionCents: 0,
         schoolYear: "2026-2027",
-        membershipStatus: "VALIDE",
-        contributionStatus: "COTISANT",
-        requestedAt: new Date().toLocaleDateString("fr-FR"),
-        validatedAt: new Date().toLocaleDateString("fr-FR"),
-        memberSince: new Date().toLocaleDateString("fr-FR"),
-        cardCode: `AE2V-USER-${Math.floor(1000 + Math.random() * 9000)}`,
+        membershipStatus: "EN_ATTENTE",
+        contributionStatus: "NON_COTISANT",
+        requestedAt: today,
+        validatedAt: null,
+        memberSince: null,
+        cardCode,
         tickets: [],
         orders: [],
-        emailPrefs: ["Événements", "Boutique"],
+        emailPrefs: [],
+      };
+      // Auto-crée un dossier EN_ATTENTE pour que le bureau le voit
+      const newDossier: Dossier = {
+        id: `ADH-${new Date().getFullYear()}-${String(400 + Math.floor(Math.random() * 100))}`,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: normalizedEmail,
+        phone: "",
+        studentId: "",
+        departement,
+        niveau,
+        contributionCents: 0,
+        contributionStatus: "NON_COTISANT",
+        emailPrefs: [],
+        submittedAt: today,
+        validatedAt: null,
+        memberSince: null,
+        status: "EN_ATTENTE",
+        note: "Compte créé depuis le formulaire d'inscription.",
       };
       setState((s) => ({
         ...s,
         accountId: newAccount.id,
-        customAccounts: [
-          ...((s as unknown as { customAccounts?: DemoAccount[] }).customAccounts || []),
-          newAccount,
-        ],
+        customAccounts: [...s.customAccounts, newAccount],
+        dossiers: [newDossier, ...s.dossiers],
       }));
       return { ok: true };
     },
     signOut: () => setState((s) => ({ ...s, accountId: null })),
     dossiers: state.dossiers,
-    addDossier: (newDossier: Omit<Dossier, "id" | "submittedAt" | "validatedAt" | "memberSince" | "status" | "note">) =>
+    addDossier: (newDossier) =>
       setState((s) => ({
         ...s,
         dossiers: [
           {
             ...newDossier,
-            id: `ADH-2026-${String(315 + s.dossiers.length)}`,
+            id: `ADH-${new Date().getFullYear()}-${String(315 + s.dossiers.length)}`,
             submittedAt: new Date().toLocaleDateString("fr-FR"),
             validatedAt: null,
             memberSince: null,
@@ -615,7 +680,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
         candidatures: [
           {
             ...input,
-            id: `CAN-2026-${String(100 + s.candidatures.length)}`,
+            id: `CAN-${new Date().getFullYear()}-${String(100 + s.candidatures.length)}`,
             submittedAt: new Date().toLocaleDateString("fr-FR"),
             status: "EN_ATTENTE" as const,
           },
@@ -627,6 +692,36 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
         ...s,
         candidatures: s.candidatures.map((c) => (c.id === id ? { ...c, status } : c)),
       })),
+    messages: state.messages,
+    addMessage: (input) =>
+      setState((s) => ({
+        ...s,
+        messages: [
+          {
+            ...input,
+            id: `MSG-${new Date().getFullYear()}-${String(100 + s.messages.length).padStart(3, "0")}`,
+            sentAt: new Date().toLocaleDateString("fr-FR"),
+            status: "NOUVEAU" as const,
+          },
+          ...s.messages,
+        ],
+      })),
+    updateMessageStatus: (id, status) =>
+      setState((s) => ({
+        ...s,
+        messages: s.messages.map((m) => (m.id === id ? { ...m, status } : m)),
+      })),
+    addTicket: (ticket) =>
+      setState((s) => {
+        const newTicket: DemoTicket = {
+          ...ticket,
+          id: `tk-user-${Date.now()}`,
+        };
+        const updatedCustomAccounts = s.customAccounts.map((a) =>
+          a.id === s.accountId ? { ...a, tickets: [...a.tickets, newTicket] } : a,
+        );
+        return { ...s, customAccounts: updatedCustomAccounts };
+      }),
   };
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;

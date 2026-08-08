@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 
 import { GrainOverlay } from "@/components/brand";
@@ -297,6 +298,14 @@ function RegistrationCta({
   connected: boolean;
   audience: Audience;
 }) {
+  const { account, addTicket } = useDemoSession();
+  const [registered, setRegistered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const alreadyHasTicket = account?.tickets.some(
+    (t) => t.eventId === event.id && t.status === "valide",
+  );
+
   if (event.status === "TERMINE") {
     return (
       <p className="border-2 border-dashed border-ae2v-black/40 p-3 text-sm">
@@ -335,15 +344,56 @@ function RegistrationCta({
       </>
     );
   }
+
+  if (alreadyHasTicket || registered) {
+    return (
+      <div className="border-2 border-ae2v-green bg-ae2v-green/10 p-4 text-sm">
+        <p className="font-bold text-ae2v-black">✓ Inscription confirmée</p>
+        <p className="mt-1 text-ae2v-black/80">
+          Ton billet apparaît dans{" "}
+          <Link to="/espace" className="font-bold underline">
+            Mon espace
+          </Link>{" "}
+          avec son QR code.
+        </p>
+      </div>
+    );
+  }
+
+  const myTierLocal = tierForAudience(event, audience);
+
+  function handleRegister() {
+    if (!account || !myTierLocal) return;
+    setError(null);
+    try {
+      addTicket({
+        eventId: event.id,
+        eventTitle: event.title,
+        date: event.date,
+        place: event.place,
+        tier: myTierLocal.label,
+        priceCents: myTierLocal.priceCents,
+        code: `AE2V-TK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        status: "valide",
+      });
+      setRegistered(true);
+    } catch {
+      setError("Une erreur est survenue. Veuillez réessayer.");
+    }
+  }
+
   return (
     <>
-      <Button className="w-full" size="lg">
+      <Button className="w-full" size="lg" onClick={handleRegister}>
         S'inscrire à cet événement
       </Button>
+      {error && (
+        <p className="mt-2 text-xs font-bold text-ae2v-red">{error}</p>
+      )}
       <p className="mt-2 text-xs text-muted-foreground">
         {audience !== "adherent"
           ? "Astuce : cotiser réduit ce tarif pour toute l'année."
-          : "Ton billet apparaîtra dans « Mon espace » avec son QR code."}
+          : "Ton billet apparaître dans « Mon espace » avec son QR code."}
       </p>
     </>
   );

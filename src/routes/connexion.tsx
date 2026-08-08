@@ -38,8 +38,7 @@ const inputClass =
 function ConnexionPage() {
   const navigate = useNavigate();
   const session = useDemoSession();
-  const { account, signIn, signInWithCredentials, signOut } = session;
-  const signUp = (session as unknown as { signUp?: (p: any) => { ok: boolean; error?: string } }).signUp;
+  const { account, signIn, signInWithCredentials, signOut, signUp } = session;
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -70,15 +69,13 @@ function ConnexionPage() {
         setError("Veuillez remplir tous les champs obligatoires.");
         return;
       }
-      if (signUp) {
-        const res = signUp({ email, password, firstName, lastName, departement, niveau });
-        if (!res.ok) {
-          setError(res.error ?? "Erreur lors de l'inscription.");
-          return;
-        }
-        setError(null);
-        void navigate({ to: "/espace" });
+      const res = signUp({ email, password, firstName, lastName, departement, niveau });
+      if (!res.ok) {
+        setError(res.error ?? "Erreur lors de l'inscription.");
+        return;
       }
+      setError(null);
+      void navigate({ to: "/espace" });
     }
   }
 

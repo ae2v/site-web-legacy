@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Check, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useDemoSession } from "@/lib/demo-session";
 
 /* -------------------------------------------------------------------------- */
 /*  Validation                                                                 */
@@ -95,6 +96,7 @@ function FieldShell({
 export function ContactForm() {
   const [sent, setSent] = useState<ContactFormValues | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const { addMessage } = useDemoSession();
 
   const {
     register,
@@ -113,6 +115,12 @@ export function ContactForm() {
       .join(" ") || undefined;
 
   function onSubmit(values: ContactFormValues) {
+    addMessage({
+      name: values.name,
+      email: values.email,
+      sujet: values.sujet,
+      message: values.message,
+    });
     setSent(values);
     requestAnimationFrame(() => statusRef.current?.focus());
   }
