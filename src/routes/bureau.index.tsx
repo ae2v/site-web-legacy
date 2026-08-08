@@ -10,20 +10,23 @@ import {
   Clock,
   QrCode,
   ShoppingBag,
-  Newspaper,
-  Handshake,
   Download,
-  ShieldAlert,
-  FileText,
   CheckCircle2,
   XCircle,
   Send,
+  Upload,
+  Calendar,
+  CreditCard,
+  UserCheck,
+  Layers,
+  Sparkles,
+  Link as LinkIcon,
 } from "lucide-react";
 
 import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
 import { contributionTone, membershipTone, today } from "@/components/bureau/dossier-fiche";
 import { PageHero } from "@/components/layout/page-hero";
-import { HardCard, Section, EmptyState } from "@/components/layout/section";
+import { Section, EmptyState } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,21 +52,18 @@ import {
   saveDynamicEvents,
   getDynamicShopProducts,
   saveDynamicShopProducts,
-  getDynamicNews,
-  saveDynamicNews,
-  getDynamicPartners,
-  saveDynamicPartners,
   getDynamicAuditLogs,
   addAuditLog,
   type TeamMember,
-  type Ae2vNewsArticle,
-  type Ae2vPartner,
   type AuditLogEntry,
 } from "@/lib/dynamic-store";
 import { teamPoles, type TeamPole } from "@/data/team";
 import { eventStatusLabels, type Ae2vEvent, type EventStatus } from "@/data/events";
 import { formatPrice, type ShopProduct } from "@/data/shop";
 import { sendEmailFromBureau, getSiteConfig } from "@/lib/site-config";
+import { processImageFile } from "@/lib/image-utils";
+import { EmailComposerModal } from "@/components/bureau/email-composer-modal";
+import { PersonSheetModal, type UnifiedPerson } from "@/components/bureau/person-sheet-modal";
 
 export const Route = createFileRoute("/bureau/")({
   head: () => ({
@@ -84,6 +84,10 @@ export const Route = createFileRoute("/bureau/")({
   component: BureauPage,
 });
 
+/* -------------------------------------------------------------------------- */
+/* Main Bureau Page                                                           */
+/* -------------------------------------------------------------------------- */
+
 function BureauPage() {
   const {
     account,
@@ -95,43 +99,60 @@ function BureauPage() {
     updateDossier,
     updateMessageStatus,
   } = useDemoSession();
-  const [tab, setTab] = useState("demandes");
+
+  // Navigation principale par Section
+  const [mainSection, setMainSection] = useState<"scanner" | "demandes" | "personnes" | "gestion">(
+    "demandes",
+  );
+
+  // Sous-onglets par section
+  const [demandesTab, setDemandesTab] = useState<
+    "messages" | "adhesions" | "cotisations_attente" | "candidatures"
+  >("messages");
+  const [personnesTab, setPersonnesTab] = useState<"membres_valides" | "equipe_bde">(
+    "membres_valides",
+  );
+  const [gestionTab, setGestionTab] = useState<"evenements" | "boutique" | "commandes">(
+    "evenements",
+  );
+
+  // Filtres de recherche
   const [membershipFilter, setMembershipFilter] = useState("TOUS");
   const [contribFilter, setContribFilter] = useState("TOUS");
   const [candFilter, setCandFilter] = useState("TOUS");
   const [msgFilter, setMsgFilter] = useState("TOUS");
+
+  // Dynamic Stores
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getDynamicTeamMembers());
   const [events, setEvents] = useState<Ae2vEvent[]>(getDynamicEvents());
   const [products, setProducts] = useState<ShopProduct[]>(getDynamicShopProducts());
-  const [newsArticles, setNewsArticles] = useState<Ae2vNewsArticle[]>(getDynamicNews());
-  const [partners, setPartners] = useState<Ae2vPartner[]>(getDynamicPartners());
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(getDynamicAuditLogs());
+
+  // Person Sheet & Global Email Modal State
+  const [selectedPerson, setSelectedPerson] = useState<UnifiedPerson | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailDefaultRecipient, setEmailDefaultRecipient] = useState("");
 
   useEffect(() => {
     const teamHandler = () => setTeamMembers(getDynamicTeamMembers());
     const eventHandler = () => setEvents(getDynamicEvents());
     const shopHandler = () => setProducts(getDynamicShopProducts());
-    const newsHandler = () => setNewsArticles(getDynamicNews());
-    const partnerHandler = () => setPartners(getDynamicPartners());
     const auditHandler = () => setAuditLogs(getDynamicAuditLogs());
 
     window.addEventListener("ae2v_team_changed", teamHandler);
     window.addEventListener("ae2v_events_changed", eventHandler);
     window.addEventListener("ae2v_products_changed", shopHandler);
-    window.addEventListener("ae2v_news_changed", newsHandler);
-    window.addEventListener("ae2v_partners_changed", partnerHandler);
     window.addEventListener("ae2v_audit_changed", auditHandler);
 
     return () => {
       window.removeEventListener("ae2v_team_changed", teamHandler);
       window.removeEventListener("ae2v_events_changed", eventHandler);
       window.removeEventListener("ae2v_products_changed", shopHandler);
-      window.removeEventListener("ae2v_news_changed", newsHandler);
-      window.removeEventListener("ae2v_partners_changed", partnerHandler);
       window.removeEventListener("ae2v_audit_changed", auditHandler);
     };
   }, []);
 
+  // Dossiers de demandes (en attente / à corriger)
   const requests = useMemo(
     () =>
       dossiers.filter(
@@ -142,6 +163,7 @@ function BureauPage() {
     [dossiers, membershipFilter],
   );
 
+  // Membres validés
   const members = useMemo(
     () =>
       dossiers.filter(
@@ -152,9 +174,10 @@ function BureauPage() {
     [dossiers, contribFilter],
   );
 
-  const visibleCandidatures = useMemo(
-    () => candidatures.filter((c) => candFilter === "TOUS" || c.status === candFilter),
-    [candidatures, candFilter],
+  // Cotisations en attente
+  const pendingContributions = useMemo(
+    () => dossiers.filter((d) => d.status === "VALIDE" && d.contributionStatus === "EN_ATTENTE"),
+    [dossiers],
   );
 
   const visibleMessages = useMemo(
@@ -162,1185 +185,519 @@ function BureauPage() {
     [messages, msgFilter],
   );
 
-  if (!account) return null;
-
   const pendingCount = dossiers.filter((d) => d.status === "EN_ATTENTE").length;
   const toFixCount = dossiers.filter((d) => d.status === "A_CORRIGER").length;
   const candPending = candidatures.filter((c) => c.status === "EN_ATTENTE").length;
   const msgNew = messages.filter((m) => m.status === "NOUVEAU").length;
-  const collected = dossiers
-    .filter((d) => d.contributionStatus === "COTISANT")
-    .reduce((sum, d) => sum + d.contributionCents, 0);
 
-  const nameColumn: Column<Dossier> = {
-    key: "name",
-    label: "Nom / Prénom",
-    sortValue: (d) => `${d.lastName} ${d.firstName}`,
-    render: (d) => (
-      <div className="min-w-0">
-        <p className="font-bold">
-          {d.lastName.toUpperCase()} {d.firstName}
-        </p>
-        <p className="text-[0.65rem] tracking-[0.14em] text-muted-foreground uppercase">{d.id}</p>
-      </div>
-    ),
-  };
+  function openPersonModal(dossier: Dossier) {
+    const matchedAccount = demoAccounts.find((a) => a.email === dossier.email);
+    setSelectedPerson({
+      id: dossier.id,
+      firstName: dossier.firstName,
+      lastName: dossier.lastName,
+      email: dossier.email,
+      departement: dossier.departement,
+      niveau: dossier.niveau,
+      status: dossier.status,
+      contributionStatus: dossier.contributionStatus,
+      cardCode: matchedAccount?.cardCode || `AE2V-USER-${dossier.id}`,
+      tickets: matchedAccount?.tickets || [],
+      orders: matchedAccount?.orders || [],
+    });
+  }
 
-  const emailColumn: Column<Dossier> = {
-    key: "email",
-    label: "E-mail",
-    sortValue: (d) => d.email,
-    render: (d) => <span className="text-xs break-words">{d.email}</span>,
-  };
-
-  const contributionColumn: Column<Dossier> = {
-    key: "contribution",
-    label: "Cotisation choisie",
-    className: "min-w-[11rem]",
-    sortValue: (d) => d.contributionCents,
-    render: (d) => (
-      <span className="inline-flex flex-col items-start gap-1">
-        <span className="font-bold">
-          {d.contributionCents > 0 ? formatCents(d.contributionCents) : "Sans cotisation"}
-        </span>
-        <StatusPill tone={contributionTone[d.contributionStatus]}>
-          {contributionStatusLabels[d.contributionStatus]}
-        </StatusPill>
-      </span>
-    ),
-  };
-
-  const openColumn: Column<Dossier> = {
-    key: "open",
-    label: "Fiche",
-    render: (d) => (
-      <Button asChild size="sm" variant="black">
-        <Link to="/bureau/$dossierId" params={{ dossierId: d.id }}>
-          Voir la fiche
-        </Link>
-      </Button>
-    ),
-  };
+  function handleValidateContribution(dossierId: string) {
+    updateDossier(dossierId, { contributionStatus: "PAYEE" });
+    addAuditLog("VALIDATION_COTISATION", `Cotisation validée pour dossier ${dossierId}`);
+  }
 
   return (
     <>
       <PageHero
         eyebrow={roleLabels[account.role]}
-        title="Bureau"
+        title="Bureau BDE AE2V"
         intro={
           can("dossiers:validate")
-            ? "Tu disposes de tous les droits : consultation, correction et validation des dossiers."
-            : "Droits limités : tu peux consulter et corriger les dossiers, mais pas les valider."
+            ? "Outil d'administration unifié : scanner QR, adhésions, membres, billetterie et boutique."
+            : "Droits limités : consultation et correction des demandes."
         }
       />
 
-      <TabsNav
-        tone="red"
-        label="Sections de l'espace bureau"
-        idPrefix="bureau"
-        active={tab}
-        onChange={setTab}
-        tabs={[
-          { id: "demandes", label: "Demandes d'adhésion", badge: pendingCount + toFixCount },
-          { id: "membres", label: "Membres validés", badge: members.length },
-          { id: "candidatures", label: "Candidatures bureau", badge: candPending },
-          { id: "messages", label: "Messages", badge: msgNew },
-          { id: "equipe", label: "Équipe BDE", badge: teamMembers.length },
-          { id: "evenements", label: "Événements", badge: events.length },
-          { id: "boutique", label: "Boutique", badge: products.length },
-          { id: "scanner", label: "Scanner QR" },
-          { id: "commandes", label: "Commandes" },
-          { id: "actualites", label: "Actualités BDE", badge: newsArticles.length },
-          { id: "partenaires", label: "Partenaires", badge: partners.length },
-          { id: "exports", label: "Exports & Audit" },
-        ]}
-      />
+      {/* -------------------------------------------------------------------- */}
+      {/* NAV PRINCIPALE : 4 SECTIONS STRICTES                                 */}
+      {/* -------------------------------------------------------------------- */}
+      <div className="border-y-2 border-ae2v-black bg-ae2v-black p-2 text-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="lg"
+              variant={mainSection === "scanner" ? "default" : "black"}
+              className={mainSection === "scanner" ? "bg-ae2v-red text-white" : ""}
+              onClick={() => setMainSection("scanner")}
+            >
+              <QrCode className="size-5" />
+              1. SCANNER QRCODE
+            </Button>
+            <Button
+              size="lg"
+              variant={mainSection === "demandes" ? "default" : "black"}
+              className={mainSection === "demandes" ? "bg-ae2v-red text-white" : ""}
+              onClick={() => setMainSection("demandes")}
+            >
+              <Mail className="size-5" />
+              2. DEMANDES{" "}
+              {pendingCount + toFixCount + msgNew > 0 && `(${pendingCount + toFixCount + msgNew})`}
+            </Button>
+            <Button
+              size="lg"
+              variant={mainSection === "personnes" ? "default" : "black"}
+              className={mainSection === "personnes" ? "bg-ae2v-red text-white" : ""}
+              onClick={() => setMainSection("personnes")}
+            >
+              <Users className="size-5" />
+              3. PERSONNES ({members.length})
+            </Button>
+            <Button
+              size="lg"
+              variant={mainSection === "gestion" ? "default" : "black"}
+              className={mainSection === "gestion" ? "bg-ae2v-red text-white" : ""}
+              onClick={() => setMainSection("gestion")}
+            >
+              <Layers className="size-5" />
+              4. GESTION
+            </Button>
+          </div>
+        </div>
+      </div>
 
-      {/* ------------------------- Demandes d'adhésion ---------------------- */}
-      <TabPanel id="demandes" idPrefix="bureau" active={tab}>
+      {/* ==================================================================== */}
+      {/* SECTION 1 : SCANNER QRCODE                                            */}
+      {/* ==================================================================== */}
+      {mainSection === "scanner" && (
         <Section
           number={1}
-          ghost="DEMANDES"
-          title="Demandes d'adhésion"
-          intro="Valide ou refuse directement depuis la liste. La modification des données saisies se fait dans la fiche complète."
+          ghost="SCANNER"
+          title="Scanner & Contrôle QR Code"
+          intro="Scanner un QR code de billet ou de carte membre pour afficher directement la fiche personne et exécuter les actions rapides."
         >
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi value={String(dossiers.length)} label="Dossiers au total" />
-            <Kpi value={String(pendingCount)} label="En attente" tone="green" />
-            <Kpi value={String(toFixCount)} label="À corriger" />
-            <Kpi value={formatCents(collected)} label="Cotisations encaissées" />
-          </div>
+          <TicketScanner onOpenPersonSheet={(person) => setSelectedPerson(person)} />
+        </Section>
+      )}
 
-          <DataTable<Dossier>
-            idPrefix="requests"
-            caption="Liste des demandes d'adhésion en attente, à corriger ou refusées"
-            rows={requests}
-            searchable={(d) => `${d.firstName} ${d.lastName} ${d.email} ${d.studentId} ${d.id}`}
-            emptyLabel="Aucune demande ne correspond à ces critères."
-            filters={
-              <TableFilter
-                id="filter-membership"
-                label="Statut d'adhésion"
-                value={membershipFilter}
-                onChange={setMembershipFilter}
-                options={[
-                  { value: "TOUS", label: "Tous" },
-                  { value: "EN_ATTENTE", label: "En attente" },
-                  { value: "A_CORRIGER", label: "Correction demandée" },
-                  { value: "REFUSE", label: "Refusé" },
+      {/* ==================================================================== */}
+      {/* SECTION 2 : DEMANDES (DÉFAUT)                                         */}
+      {/* ==================================================================== */}
+      {mainSection === "demandes" && (
+        <>
+          <TabsNav
+            tone="red"
+            label="Sous-sections des demandes"
+            idPrefix="demandes"
+            active={demandesTab}
+            onChange={(t) => setDemandesTab(t as typeof demandesTab)}
+            tabs={[
+              { id: "messages", label: "Messages (Formulaire contact)", badge: msgNew },
+              { id: "adhesions", label: "Adhésions", badge: pendingCount + toFixCount },
+              {
+                id: "cotisations_attente",
+                label: "Cotisations en attente",
+                badge: pendingContributions.length,
+              },
+              { id: "candidatures", label: "Candidatures bureau", badge: candPending },
+            ]}
+          />
+
+          {/* Sub-tab 1: Messages (Défaut) */}
+          <TabPanel id="messages" idPrefix="demandes" active={demandesTab}>
+            <Section
+              number={2}
+              ghost="MESSAGES"
+              title="Boîte de réception des messages"
+              intro="Consultez les messages reçus et répondez directement par e-mail au sein de l'application."
+            >
+              <div className="mb-4">
+                <TableFilter
+                  id="filter-messages"
+                  label="Statut"
+                  value={msgFilter}
+                  onChange={setMsgFilter}
+                  options={[
+                    { value: "TOUS", label: "Tous" },
+                    { value: "NOUVEAU", label: "Nouveau" },
+                    { value: "LU", label: "Lu" },
+                    { value: "TRAITE", label: "Traité" },
+                  ]}
+                />
+              </div>
+
+              {visibleMessages.length === 0 ? (
+                <EmptyState label="Aucun message" detail="Aucun message ne correspond au filtre." />
+              ) : (
+                <ul className="space-y-3">
+                  {visibleMessages.map((msg) => (
+                    <MessageCard key={msg.id} msg={msg} onUpdateStatus={updateMessageStatus} />
+                  ))}
+                </ul>
+              )}
+            </Section>
+          </TabPanel>
+
+          {/* Sub-tab 2: Adhésions */}
+          <TabPanel id="adhesions" idPrefix="demandes" active={demandesTab}>
+            <Section
+              number={2}
+              ghost="ADHÉSIONS"
+              title="Demandes d'adhésion"
+              intro="Validez ou demandez des corrections sur les dossiers étudiants soumis."
+            >
+              <DataTable
+                data={requests}
+                columns={[
+                  {
+                    key: "id",
+                    label: "N° Dossier",
+                    render: (d) => <span className="font-mono font-bold text-xs">{d.id}</span>,
+                  },
+                  {
+                    key: "name",
+                    label: "Étudiant",
+                    render: (d) => (
+                      <button
+                        onClick={() => openPersonModal(d)}
+                        className="font-bold underline text-left"
+                      >
+                        {d.firstName} {d.lastName}
+                      </button>
+                    ),
+                  },
+                  {
+                    key: "email",
+                    label: "E-mail",
+                    render: (d) => <span className="text-xs break-all">{d.email}</span>,
+                  },
+                  {
+                    key: "departement",
+                    label: "Filière",
+                    render: (d) => `${d.departement} (${d.niveau})`,
+                  },
+                  {
+                    key: "status",
+                    label: "Statut",
+                    render: (d) => (
+                      <StatusPill tone={membershipTone(d.status)}>
+                        {membershipStatusLabels[d.status]}
+                      </StatusPill>
+                    ),
+                  },
+                  {
+                    key: "actions",
+                    label: "Action",
+                    render: (d) => (
+                      <Button size="sm" variant="black" onClick={() => openPersonModal(d)}>
+                        Examiner la fiche
+                      </Button>
+                    ),
+                  },
                 ]}
               />
-            }
-            columns={[
-              nameColumn,
-              {
-                key: "submitted",
-                label: "Déposé le",
-                sortValue: (d) => d.submittedAt.split("/").reverse().join(""),
-                render: (d) => d.submittedAt,
-              },
-              {
-                key: "contact",
-                label: "E-mail / N° étudiant",
-                sortValue: (d) => d.email,
-                render: (d) => (
-                  <div className="min-w-0">
-                    <p className="text-xs break-words">{d.email}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{d.studentId}</p>
-                  </div>
-                ),
-              },
-              {
-                key: "formation",
-                label: "Année / Filière",
-                sortValue: (d) => `${d.niveau} ${d.departement}`,
-                render: (d) => (
-                  <div className="min-w-0">
-                    <p className="font-bold">{d.niveau}</p>
-                    <p className="text-xs text-muted-foreground">{d.departement}</p>
-                  </div>
-                ),
-              },
-              contributionColumn,
-              {
-                key: "status",
-                label: "Adhésion",
-                className: "min-w-[9rem]",
-                sortValue: (d) => membershipStatusLabels[d.status],
-                render: (d) => (
-                  <StatusPill tone={membershipTone[d.status]}>
-                    {membershipStatusLabels[d.status]}
-                  </StatusPill>
-                ),
-              },
-              {
-                key: "actions",
-                label: "Actions",
-                className: "min-w-[13rem]",
-                render: (d) => (
-                  <div className="flex flex-col items-stretch gap-2">
-                    <Button asChild size="sm" variant="black" className="w-full">
-                      <Link to="/bureau/$dossierId" params={{ dossierId: d.id }}>
-                        Voir la demande
-                      </Link>
-                    </Button>
-                    {can("dossiers:validate") && (
-                      <div className="grid grid-cols-2 gap-2">
+            </Section>
+          </TabPanel>
+
+          {/* Sub-tab 3: Cotisations en attente */}
+          <TabPanel id="cotisations_attente" idPrefix="demandes" active={demandesTab}>
+            <Section
+              number={2}
+              ghost="COTISATIONS"
+              title="Cotisations en attente de règlement"
+              intro="Liste des membres validés dont le paiement de la cotisation BDE (12 €) doit être encaissé."
+            >
+              {pendingContributions.length === 0 ? (
+                <EmptyState
+                  label="Toutes les cotisations sont à jour"
+                  detail="Aucun membre en attente de paiement."
+                />
+              ) : (
+                <DataTable
+                  data={pendingContributions}
+                  columns={[
+                    {
+                      key: "id",
+                      label: "Dossier",
+                      render: (d) => <span className="font-mono text-xs">{d.id}</span>,
+                    },
+                    {
+                      key: "name",
+                      label: "Nom & Prénom",
+                      render: (d) => (
+                        <button
+                          onClick={() => openPersonModal(d)}
+                          className="font-bold underline text-left"
+                        >
+                          {d.firstName} {d.lastName}
+                        </button>
+                      ),
+                    },
+                    { key: "email", label: "E-mail", render: (d) => d.email },
+                    { key: "filiere", label: "Filière", render: (d) => d.departement },
+                    {
+                      key: "action",
+                      label: "Action rapide",
+                      render: (d) => (
+                        <Button size="sm" onClick={() => handleValidateContribution(d.id)}>
+                          <CreditCard className="size-3.5" />
+                          Valider la cotisation (12 €)
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            </Section>
+          </TabPanel>
+
+          {/* Sub-tab 4: Candidatures Bureau */}
+          <TabPanel id="candidatures" idPrefix="demandes" active={demandesTab}>
+            <Section
+              number={2}
+              ghost="RECRUTEMENT"
+              title="Candidatures pour intégrer le bureau BDE"
+              intro="Étudiants ayant postulé pour s'investir dans l'un des 5 pôles de l'association."
+            >
+              <DataTable
+                data={candidatures}
+                columns={[
+                  {
+                    key: "candidateName",
+                    label: "Candidat",
+                    render: (c) => <span className="font-bold">{c.candidateName}</span>,
+                  },
+                  { key: "email", label: "Contact", render: (c) => c.email },
+                  {
+                    key: "pole",
+                    label: "Pôle demandé",
+                    render: (c) => <StatusPill tone="neutral">{c.pole}</StatusPill>,
+                  },
+                  {
+                    key: "motivation",
+                    label: "Motivation",
+                    render: (c) => <p className="text-xs max-w-xs truncate">{c.motivation}</p>,
+                  },
+                  {
+                    key: "status",
+                    label: "Statut",
+                    render: (c) => candidatureStatusLabels[c.status],
+                  },
+                  {
+                    key: "actions",
+                    label: "Décision",
+                    render: (c) => (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          onClick={() => updateCandidature(c.id, "ACCEPTEE")}
+                          disabled={c.status === "ACCEPTEE"}
+                        >
+                          Accepter
+                        </Button>
                         <Button
                           size="sm"
                           variant="secondary"
-                          disabled={d.status === "REFUSE"}
-                          onClick={() => updateDossier(d.id, { status: "REFUSE" })}
+                          onClick={() => updateCandidature(c.id, "REFUSEE")}
+                          disabled={c.status === "REFUSEE"}
                         >
                           Refuser
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            updateDossier(d.id, {
-                              status: "VALIDE",
-                              validatedAt: d.validatedAt ?? today(),
-                              memberSince: d.memberSince ?? today(),
-                            })
-                          }
-                        >
-                          Valider
-                        </Button>
                       </div>
-                    )}
-                  </div>
-                ),
-              },
-            ]}
-          />
-        </Section>
-      </TabPanel>
-
-      {/* --------------------------- Membres validés ------------------------ */}
-      <TabPanel id="membres" idPrefix="bureau" active={tab}>
-        <Section
-          number={2}
-          ghost="MEMBRES"
-          title="Membres validés"
-          intro="Adhésion validée : ces personnes sont membres, qu'elles cotisent ou non. Seule une cotisation confirmée ouvre les réductions."
-        >
-          <DataTable<Dossier>
-            idPrefix="members"
-            caption="Liste des membres dont l'adhésion est validée"
-            rows={members}
-            searchable={(d) => `${d.firstName} ${d.lastName} ${d.email} ${d.studentId} ${d.id}`}
-            emptyLabel="Aucun membre validé ne correspond à ces critères."
-            filters={
-              <TableFilter
-                id="filter-contribution"
-                label="Statut de cotisation"
-                value={contribFilter}
-                onChange={setContribFilter}
-                options={[
-                  { value: "TOUS", label: "Tous" },
-                  { value: "COTISANT", label: "Cotisant" },
-                  { value: "PAIEMENT_EN_ATTENTE", label: "Paiement en attente" },
-                  { value: "NON_COTISANT", label: "Non cotisant" },
+                    ),
+                  },
                 ]}
               />
-            }
-            columns={[
-              nameColumn,
-              emailColumn,
-              {
-                key: "formation",
-                label: "Formation",
-                sortValue: (d) => `${d.departement} ${d.niveau}`,
-                render: (d) => (
-                  <span>
-                    {d.departement}
-                    <span className="block text-xs text-muted-foreground">{d.niveau}</span>
-                  </span>
-                ),
-              },
-              {
-                key: "since",
-                label: "Membre depuis",
-                sortValue: (d) => (d.memberSince ?? "").split("/").reverse().join(""),
-                render: (d) => d.memberSince ?? "—",
-              },
-              contributionColumn,
-              openColumn,
+            </Section>
+          </TabPanel>
+        </>
+      )}
+
+      {/* ==================================================================== */}
+      {/* SECTION 3 : PERSONNES                                                 */}
+      {/* ==================================================================== */}
+      {mainSection === "personnes" && (
+        <>
+          <TabsNav
+            tone="red"
+            label="Sous-sections personnes"
+            idPrefix="personnes"
+            active={personnesTab}
+            onChange={(t) => setPersonnesTab(t as typeof personnesTab)}
+            tabs={[
+              { id: "membres_valides", label: "Membres validés", badge: members.length },
+              { id: "equipe_bde", label: "Équipe BDE (Pôles & Rôles)", badge: teamMembers.length },
             ]}
           />
-        </Section>
-      </TabPanel>
 
-      {/* ------------------------ Candidatures bureau ----------------------- */}
-      <TabPanel id="candidatures" idPrefix="bureau" active={tab}>
-        <Section
-          number={3}
-          ghost="ÉQUIPE"
-          title="Candidatures au bureau"
-          intro="Demandes des membres souhaitant rejoindre un pôle, participer aux votes et à l'organisation."
-        >
-          <DataTable<Candidature>
-            idPrefix="candidatures"
-            caption="Liste des candidatures pour rejoindre le bureau"
-            rows={visibleCandidatures}
-            searchable={(c) => `${c.name} ${c.email} ${c.pole}`}
-            searchPlaceholder="Nom, e-mail, pôle…"
-            emptyLabel="Aucune candidature ne correspond à ces critères."
-            filters={
-              <TableFilter
-                id="filter-candidature"
-                label="Statut"
-                value={candFilter}
-                onChange={setCandFilter}
-                options={[
-                  { value: "TOUS", label: "Tous" },
-                  { value: "EN_ATTENTE", label: "En attente" },
-                  { value: "ENTRETIEN", label: "Entretien proposé" },
-                  { value: "ACCEPTEE", label: "Acceptée" },
-                  { value: "REFUSEE", label: "Refusée" },
+          {/* Sub-tab 1: Membres validés */}
+          <TabPanel id="membres_valides" idPrefix="personnes" active={personnesTab}>
+            <Section
+              number={3}
+              ghost="ANNUAIRE"
+              title="Annuaire des Membres Validés"
+              intro="Les données d'identité des membres sont verrouillées par sécurité. Cliquez sur une ligne pour ouvrir le profil unifié."
+            >
+              <DataTable
+                data={members}
+                columns={[
+                  {
+                    key: "id",
+                    label: "N° Carte",
+                    render: (d) => <span className="font-mono text-xs">AE2V-USER-{d.id}</span>,
+                  },
+                  {
+                    key: "name",
+                    label: "Nom & Prénom",
+                    render: (d) => (
+                      <button
+                        onClick={() => openPersonModal(d)}
+                        className="font-bold underline text-left"
+                      >
+                        {d.firstName} {d.lastName}
+                      </button>
+                    ),
+                  },
+                  { key: "email", label: "E-mail", render: (d) => d.email },
+                  {
+                    key: "departement",
+                    label: "Filière",
+                    render: (d) => `${d.departement} (${d.niveau})`,
+                  },
+                  {
+                    key: "cotisation",
+                    label: "Cotisation",
+                    render: (d) => (
+                      <StatusPill tone={d.contributionStatus === "PAYEE" ? "green" : "neutral"}>
+                        {d.contributionStatus === "PAYEE" ? "PAYÉE (12 €)" : "EN ATTENTE"}
+                      </StatusPill>
+                    ),
+                  },
+                  {
+                    key: "fiche",
+                    label: "Profil",
+                    render: (d) => (
+                      <Button size="sm" variant="black" onClick={() => openPersonModal(d)}>
+                        Voir profil unifié
+                      </Button>
+                    ),
+                  },
                 ]}
               />
-            }
-            columns={[
-              {
-                key: "name",
-                label: "Candidat",
-                sortValue: (c) => c.name,
-                render: (c) => (
-                  <div className="min-w-0">
-                    <p className="font-bold">{c.name}</p>
-                    <p className="text-xs break-words text-muted-foreground">{c.email}</p>
-                  </div>
-                ),
-              },
-              { key: "pole", label: "Pôle", sortValue: (c) => c.pole, render: (c) => c.pole },
-              {
-                key: "submitted",
-                label: "Déposée le",
-                sortValue: (c) => c.submittedAt.split("/").reverse().join(""),
-                render: (c) => c.submittedAt,
-              },
-              {
-                key: "status",
-                label: "Statut",
-                sortValue: (c) => candidatureStatusLabels[c.status],
-                render: (c) => (
-                  <StatusPill
-                    tone={
-                      c.status === "ACCEPTEE"
-                        ? "green"
-                        : c.status === "REFUSEE"
-                          ? "black"
-                          : "neutral"
-                    }
-                  >
-                    {candidatureStatusLabels[c.status]}
-                  </StatusPill>
-                ),
-              },
+            </Section>
+          </TabPanel>
+
+          {/* Sub-tab 2: Équipe BDE */}
+          <TabPanel id="equipe_bde" idPrefix="personnes" active={personnesTab}>
+            <Section
+              number={3}
+              ghost="ÉQUIPE"
+              title="Gestion de l'Équipe BDE"
+              intro="Définissez les rôles, pôles et adresses de fonction @ae2v.fr affichés sur la page publique /bde/equipe."
+            >
+              <TeamManager teamMembers={teamMembers} />
+            </Section>
+          </TabPanel>
+        </>
+      )}
+
+      {/* ==================================================================== */}
+      {/* SECTION 4 : GESTION                                                   */}
+      {/* ==================================================================== */}
+      {mainSection === "gestion" && (
+        <>
+          <TabsNav
+            tone="red"
+            label="Sous-sections gestion"
+            idPrefix="gestion"
+            active={gestionTab}
+            onChange={(t) => setGestionTab(t as typeof gestionTab)}
+            tabs={[
+              { id: "evenements", label: "Événements", badge: events.length },
+              { id: "boutique", label: "Boutique", badge: products.length },
+              { id: "commandes", label: "Commandes HelloAsso" },
             ]}
-            renderDetails={(c) => (
-              <div className="border-2 border-ae2v-black bg-card p-4">
-                <p className="text-sm">{c.motivation}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Disponibilités : {c.availability}
-                </p>
-                {can("candidatures:decide") ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <CandidatureButton
-                      c={c}
-                      status="ENTRETIEN"
-                      label="Proposer un entretien"
-                      onClick={updateCandidature}
-                    />
-                    <CandidatureButton
-                      c={c}
-                      status="ACCEPTEE"
-                      label="Accepter"
-                      onClick={updateCandidature}
-                    />
-                    <CandidatureButton
-                      c={c}
-                      status="REFUSEE"
-                      label="Refuser"
-                      onClick={updateCandidature}
-                    />
-                  </div>
-                ) : (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    Lecture seule : la décision revient au bureau habilité.
-                  </p>
-                )}
-              </div>
-            )}
           />
-        </Section>
-      </TabPanel>
 
-      {/* ------------------------------ Messages --------------------------- */}
-      <TabPanel id="messages" idPrefix="bureau" active={tab}>
-        <Section
-          number={4}
-          ghost="INBOX"
-          title="Boîte de réception"
-          intro="Messages reçus via le formulaire de contact. Marquez-les comme lus ou traités."
-        >
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
-            <Kpi value={String(messages.length)} label="Messages reçus" />
-            <Kpi value={String(msgNew)} label="Non lus" tone="green" />
-            <Kpi
-              value={String(messages.filter((m) => m.status === "TRAITE").length)}
-              label="Traités"
-            />
-          </div>
+          {/* Sub-tab 1: Événements */}
+          <TabPanel id="evenements" idPrefix="gestion" active={gestionTab}>
+            <Section
+              number={4}
+              ghost="AGENDA"
+              title="Gestion des événements & billetterie"
+              intro="Formulaire d'ajout/édition avec recadrage d'image 16:9 et preview sous le tableau."
+            >
+              <EventManager events={events} />
+            </Section>
+          </TabPanel>
 
-          <div className="mb-4">
-            <TableFilter
-              id="filter-messages"
-              label="Statut"
-              value={msgFilter}
-              onChange={setMsgFilter}
-              options={[
-                { value: "TOUS", label: "Tous" },
-                { value: "NOUVEAU", label: "Nouveau" },
-                { value: "LU", label: "Lu" },
-                { value: "TRAITE", label: "Traité" },
-              ]}
-            />
-          </div>
+          {/* Sub-tab 2: Boutique */}
+          <TabPanel id="boutique" idPrefix="gestion" active={gestionTab}>
+            <Section
+              number={4}
+              ghost="CATALOGUE"
+              title="Gestion de la Boutique & produits"
+              intro="Ajout/suppression et personnalisation d'articles avec drop et découpe d'images (1:1)."
+            >
+              <ShopManager products={products} />
+            </Section>
+          </TabPanel>
 
-          {visibleMessages.length === 0 ? (
-            <EmptyState
-              label="Aucun message"
-              detail="Aucun message ne correspond aux critères sélectionnés."
-            />
-          ) : (
-            <ul className="space-y-3">
-              {visibleMessages.map((msg) => (
-                <MessageCard key={msg.id} msg={msg} onUpdateStatus={updateMessageStatus} />
-              ))}
-            </ul>
-          )}
-        </Section>
-      </TabPanel>
+          {/* Sub-tab 3: Commandes HelloAsso */}
+          <TabPanel id="commandes" idPrefix="gestion" active={gestionTab}>
+            <Section
+              number={4}
+              ghost="COMMANDES"
+              title="Commandes Boutique & HelloAsso"
+              intro="Enregistrez une commande HelloAsso, associez-la à un membre et gérez les statuts de retrait."
+            >
+              <OrdersManager dossiers={dossiers} />
+            </Section>
+          </TabPanel>
+        </>
+      )}
 
-      {/* ------------------------------- Événements ------------------------- */}
-      <TabPanel id="evenements" idPrefix="bureau" active={tab}>
-        <Section
-          number={6}
-          ghost="AGENDA"
-          title="Gestion des événements & billetterie"
-          intro="Modifiez les jauges, statuts, dates ou ajoutez de nouveaux événements au calendrier."
-        >
-          <EventManager events={events} />
-        </Section>
-      </TabPanel>
+      {/* Modals Transversales */}
+      <PersonSheetModal
+        isOpen={!!selectedPerson}
+        onClose={() => setSelectedPerson(null)}
+        person={selectedPerson}
+        onUpdateContribution={handleValidateContribution}
+      />
 
-      {/* -------------------------------- Scanner QR ------------------------ */}
-      <TabPanel id="scanner" idPrefix="bureau" active={tab}>
-        <Section
-          number={8}
-          ghost="SCANNER"
-          title="Scanner & contrôle d'accès QR"
-          intro="Saisissez ou scannez un code de billet (ex: AE2V-TK-...) ou de carte membre pour vérifier la validité."
-        >
-          <TicketScanner />
-        </Section>
-      </TabPanel>
-
-      {/* -------------------------------- Commandes ------------------------- */}
-      <TabPanel id="commandes" idPrefix="bureau" active={tab}>
-        <Section
-          number={9}
-          ghost="COMMANDES"
-          title="Gestion des commandes boutique"
-          intro="Suivez l'état des commandes passées par les étudiants et modifiez les statuts de retrait."
-        >
-          <OrdersManager />
-        </Section>
-      </TabPanel>
-
-      {/* ------------------------------- Actualités ------------------------- */}
-      <TabPanel id="actualites" idPrefix="bureau" active={tab}>
-        <Section
-          number={10}
-          ghost="ACTUS"
-          title="Publication d'actualités"
-          intro="Publiez des annonces ou communiqués sur le fil d'actualités public."
-        >
-          <NewsManager newsArticles={newsArticles} />
-        </Section>
-      </TabPanel>
-
-      {/* ------------------------------- Partenaires ------------------------ */}
-      <TabPanel id="partenaires" idPrefix="bureau" active={tab}>
-        <Section
-          number={11}
-          ghost="OFFRES"
-          title="Gestion des partenaires & réductions"
-          intro="Gérez les offres partenaires négociées pour les membres cotisants."
-        >
-          <PartnersManager partners={partners} />
-        </Section>
-      </TabPanel>
-
-      {/* ---------------------------- Exports & Audit ---------------------- */}
-      <TabPanel id="exports" idPrefix="bureau" active={tab}>
-        <Section
-          number={12}
-          ghost="EXPORT"
-          title="Exports CSV & Journal d'audit"
-          intro="Téléchargez les récapitulatifs au format CSV et consultez l'historique des actions admin."
-        >
-          <ExportsManager dossiers={dossiers} auditLogs={auditLogs} />
-        </Section>
-      </TabPanel>
+      <EmailComposerModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        defaultRecipient={emailDefaultRecipient}
+      />
     </>
   );
 }
 
-function CandidatureButton({
-  c,
-  status,
-  label,
-  onClick,
-}: {
-  c: Candidature;
-  status: Candidature["status"];
-  label: string;
-  onClick: (id: string, status: Candidature["status"]) => void;
-}) {
-  return (
-    <Button
-      size="sm"
-      variant={status === "REFUSEE" ? "secondary" : "default"}
-      disabled={c.status === status}
-      onClick={() => onClick(c.id, status)}
-    >
-      {label}
-    </Button>
-  );
-}
-
-function Kpi({ value, label, tone }: { value: string; label: string; tone?: "green" | undefined }) {
-  return (
-    <div
-      className={`border-2 border-ae2v-black p-5 ${tone === "green" ? "bg-ae2v-green text-ae2v-black" : "bg-card"}`}
-    >
-      <p className="ae2v-headline text-[clamp(1.8rem,4.5vw,2.6rem)]">{value}</p>
-      <p className="mt-1 text-xs font-bold tracking-[0.14em] uppercase">{label}</p>
-    </div>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-/* MessageCard — carte de message de contact avec réponse e-mail intégrée    */
+/* TicketScanner Component                                                    */
 /* -------------------------------------------------------------------------- */
 
-function MessageCard({
-  msg,
-  onUpdateStatus,
-}: {
-  msg: ContactMessage;
-  onUpdateStatus: (id: string, status: ContactMessageStatus) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [replying, setReplying] = useState(false);
-  const [subject, setSubject] = useState(`Re: [${msg.sujet}]`);
-  const [body, setBody] = useState(
-    `Bonjour ${msg.name},\n\nMerci pour ton message. \n\nCordialement,\nLe bureau AE2V`,
-  );
-  const [sending, setSending] = useState(false);
-  const [sentNotice, setSentNotice] = useState<string | null>(null);
-
-  const toneMap: Record<ContactMessageStatus, string> = {
-    NOUVEAU: "border-ae2v-red bg-ae2v-red/5",
-    LU: "border-ae2v-black/40 bg-card",
-    TRAITE: "border-ae2v-black/20 bg-muted/30",
-  };
-
-  const senderEmail = getSiteConfig().smtp.senderEmail || "contact@ae2v.fr";
-
-  async function handleSendReply(e: React.FormEvent) {
-    e.preventDefault();
-    if (!subject.trim() || !body.trim()) return;
-
-    setSending(true);
-    try {
-      const res = await sendEmailFromBureau(msg.email, subject.trim(), body.trim());
-      setSending(false);
-      setSentNotice(`✓ E-mail envoyé avec succès à ${msg.email} à ${res.timestamp}`);
-      onUpdateStatus(msg.id, "TRAITE");
-      addAuditLog("REPONSE_EMAIL", `Réponse envoyée par mail à ${msg.email} (${subject})`);
-      setReplying(false);
-    } catch {
-      setSending(false);
-      setSentNotice("✕ Erreur lors de l'envoi de l'e-mail.");
-    }
-  }
-
-  return (
-    <li className={`border-2 p-4 ${toneMap[msg.status]}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold">{msg.name}</p>
-            <StatusPill
-              tone={msg.status === "NOUVEAU" ? "red" : msg.status === "LU" ? "neutral" : "black"}
-            >
-              {contactMessageStatusLabels[msg.status]}
-            </StatusPill>
-          </div>
-          <p className="text-xs text-muted-foreground break-all">{msg.email}</p>
-          <p className="mt-1 text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">
-            {msg.sujet} · {msg.sentAt}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setExpanded((v) => !v)}>
-            <Eye aria-hidden="true" className="size-3.5" />
-            {expanded ? "Réduire" : "Lire"}
-          </Button>
-
-          <Button
-            size="sm"
-            variant="black"
-            onClick={() => {
-              setExpanded(true);
-              setReplying((v) => !v);
-            }}
-          >
-            <Send aria-hidden="true" className="size-3.5" />
-            Répondre dans l'app
-          </Button>
-
-          {msg.status === "NOUVEAU" && (
-            <Button size="sm" variant="secondary" onClick={() => onUpdateStatus(msg.id, "LU")}>
-              <Mail aria-hidden="true" className="size-3.5" />
-              Marquer lu
-            </Button>
-          )}
-          {msg.status !== "TRAITE" && (
-            <Button size="sm" onClick={() => onUpdateStatus(msg.id, "TRAITE")}>
-              <CheckCheck aria-hidden="true" className="size-3.5" />
-              Traité
-            </Button>
-          )}
-          {msg.status === "TRAITE" && (
-            <Button size="sm" variant="secondary" onClick={() => onUpdateStatus(msg.id, "NOUVEAU")}>
-              <Clock aria-hidden="true" className="size-3.5" />
-              Rouvrir
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {sentNotice && (
-        <div className="mt-3 border-2 border-ae2v-green bg-ae2v-green/10 p-3 text-xs font-bold text-ae2v-black">
-          {sentNotice}
-        </div>
-      )}
-
-      {expanded && (
-        <div className="mt-3 space-y-4 border-l-4 border-ae2v-red bg-ae2v-offwhite p-4 text-sm text-ae2v-black">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Message reçu :
-            </p>
-            <p className="mt-1 whitespace-pre-wrap">{msg.message}</p>
-          </div>
-
-          {replying ? (
-            <form
-              onSubmit={handleSendReply}
-              className="mt-4 border-t-2 border-ae2v-black/20 pt-4 space-y-3"
-            >
-              <p className="font-impact text-base uppercase text-ae2v-red">
-                Rédiger une réponse e-mail
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2 text-xs">
-                <div>
-                  <label className="block font-bold uppercase">Expéditeur (SMTP BDE)</label>
-                  <input
-                    className={`${inputClass} mt-1 text-xs`}
-                    value={`${senderEmail}`}
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold uppercase">Destinataire</label>
-                  <input className={`${inputClass} mt-1 text-xs`} value={msg.email} disabled />
-                </div>
-              </div>
-              <div className="text-xs">
-                <label className="block font-bold uppercase">Objet de l'e-mail</label>
-                <input
-                  className={`${inputClass} mt-1 text-xs`}
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="text-xs">
-                <label className="block font-bold uppercase">Corps du message</label>
-                <textarea
-                  className={`${inputClass} mt-1 min-h-[120px] text-xs font-sans`}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button type="submit" disabled={sending}>
-                  <Send className="size-3.5" />
-                  {sending ? "Envoi en cours..." : "Envoyer l'e-mail"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setReplying(false)}
-                  disabled={sending}
-                >
-                  Annuler
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <div className="border-t border-ae2v-black/10 pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                className="text-xs font-bold text-ae2v-red underline hover:text-ae2v-black"
-                onClick={() => setReplying(true)}
-              >
-                ✉ Ouvrir l'éditeur de réponse intégrée →
-              </button>
-              <a
-                href={`mailto:${msg.email}?subject=Re: [${msg.sujet}]`}
-                className="text-xs text-muted-foreground underline"
-              >
-                (ou ouvrir votre client mail externe)
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-    </li>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* TeamManager — gestion de l'équipe bureau depuis le back-office             */
-/* -------------------------------------------------------------------------- */
-
-const inputClass =
-  "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-base text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
-
-function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
-  const [showForm, setShowForm] = useState(false);
-  const currentYear = new Date().getFullYear();
-  const [form, setForm] = useState({
-    displayName: "",
-    roleTitle: "",
-    pole: teamPoles[0] as TeamPole,
-    personalAe2vEmail: "",
-    roleEmail: "",
-    isOfficer: false,
-    bio: "",
-    mandate: `${currentYear}–${currentYear + 1}`,
-  });
-  const [formError, setFormError] = useState<string | null>(null);
-
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.displayName.trim() || !form.roleTitle.trim()) {
-      setFormError("Nom d'affichage et titre de rôle sont obligatoires.");
-      return;
-    }
-    setFormError(null);
-    const current = getDynamicTeamMembers();
-    const newMember: TeamMember = {
-      id: `custom-${Date.now()}`,
-      displayName: form.displayName.trim(),
-      roleTitle: form.roleTitle.trim(),
-      pole: form.pole,
-      personalAe2vEmail: form.personalAe2vEmail.trim() || null,
-      roleEmail: form.roleEmail.trim() || null,
-      isOfficer: form.isOfficer,
-      bio: form.bio.trim() || null,
-      photoUrl: null,
-      mandate: form.mandate.trim() || `${currentYear}–${currentYear + 1}`,
-      isDemo: false,
-      isPlaceholder: false,
-    };
-    saveDynamicTeamMembers([newMember, ...current]);
-    setForm({
-      displayName: "",
-      roleTitle: "",
-      pole: teamPoles[0] as TeamPole,
-      personalAe2vEmail: "",
-      roleEmail: "",
-      isOfficer: false,
-      bio: "",
-      mandate: `${currentYear}–${currentYear + 1}`,
-    });
-    setShowForm(false);
-  }
-
-  function handleDelete(id: string) {
-    const updated = getDynamicTeamMembers().filter((m) => m.id !== id);
-    saveDynamicTeamMembers(updated);
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          {teamMembers.length} membre{teamMembers.length > 1 ? "s" : ""} dans l'équipe.
-        </p>
-        <Button
-          size="sm"
-          onClick={() => setShowForm((v) => !v)}
-          variant={showForm ? "secondary" : "default"}
-        >
-          <Plus aria-hidden="true" />
-          {showForm ? "Annuler" : "Ajouter un membre"}
-        </Button>
-      </div>
-
-      {showForm && (
-        <form
-          onSubmit={handleAdd}
-          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black"
-        >
-          <p className="text-xs font-bold tracking-[0.14em] uppercase">Nouveau membre</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                Nom d'affichage <span className="text-ae2v-red">*</span>
-              </label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. Marie Dupont"
-                value={form.displayName}
-                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                Titre du rôle <span className="text-ae2v-red">*</span>
-              </label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. Secrétaire général"
-                value={form.roleTitle}
-                onChange={(e) => setForm((f) => ({ ...f, roleTitle: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                Pôle <span className="text-ae2v-red">*</span>
-              </label>
-              <select
-                className={`${inputClass} mt-1`}
-                value={form.pole}
-                onChange={(e) => setForm((f) => ({ ...f, pole: e.target.value as TeamPole }))}
-              >
-                {teamPoles.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                E-mail nominatif @ae2v.fr
-              </label>
-              <input
-                className={`${inputClass} mt-1`}
-                type="email"
-                placeholder="prenom.nom@ae2v.fr"
-                value={form.personalAe2vEmail}
-                onChange={(e) => setForm((f) => ({ ...f, personalAe2vEmail: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                E-mail de fonction @ae2v.fr
-              </label>
-              <input
-                className={`${inputClass} mt-1`}
-                type="email"
-                placeholder="presidence@ae2v.fr"
-                value={form.roleEmail}
-                onChange={(e) => setForm((f) => ({ ...f, roleEmail: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                Année de mandat
-              </label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="2026–2027"
-                value={form.mandate}
-                onChange={(e) => setForm((f) => ({ ...f, mandate: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold tracking-[0.14em] uppercase">Bio</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Courte présentation (optionnel)"
-                value={form.bio}
-                onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-              />
-            </div>
-            <div className="flex items-center gap-3 sm:col-span-2">
-              <input
-                id="is-officer"
-                type="checkbox"
-                className="size-5 accent-ae2v-red"
-                checked={form.isOfficer}
-                onChange={(e) => setForm((f) => ({ ...f, isOfficer: e.target.checked }))}
-              />
-              <label htmlFor="is-officer" className="text-sm font-bold">
-                Rôle essentiel (officier) — affiché en priorité
-              </label>
-            </div>
-          </div>
-          {formError && <p className="mt-3 text-sm font-bold text-ae2v-red">✕ {formError}</p>}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="submit">Ajouter à l'équipe</Button>
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
-              Annuler
-            </Button>
-          </div>
-        </form>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {teamMembers.map((member) => (
-          <div key={member.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-bold">{member.displayName}</p>
-              <p className="text-xs text-muted-foreground">{member.roleTitle}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <StatusPill tone="neutral">{member.pole}</StatusPill>
-                {member.isOfficer && <StatusPill tone="green">Officier</StatusPill>}
-                {member.isDemo && <StatusPill tone="red">Démo</StatusPill>}
-              </div>
-              {member.personalAe2vEmail && (
-                <p className="mt-1 text-xs text-muted-foreground break-all">
-                  {member.personalAe2vEmail}
-                </p>
-              )}
-              {member.roleEmail && (
-                <p className="mt-0.5 text-xs text-muted-foreground break-all">{member.roleEmail}</p>
-              )}
-              <p className="mt-1 text-xs text-muted-foreground">{member.mandate}</p>
-            </div>
-            <Button
-              className="mt-3 w-full"
-              size="sm"
-              variant="secondary"
-              onClick={() => handleDelete(member.id)}
-            >
-              <Trash2 aria-hidden="true" className="size-3.5" />
-              Supprimer
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* EventManager — gestion des événements bureau                               */
-/* -------------------------------------------------------------------------- */
-
-function EventManager({ events }: { events: Ae2vEvent[] }) {
-  function handleUpdateStatus(id: string, status: EventStatus) {
-    const updated = events.map((e) => (e.id === id ? { ...e, status } : e));
-    saveDynamicEvents(updated);
-  }
-
-  function handleUpdateCapacity(id: string, delta: number) {
-    const updated = events.map((e) => {
-      if (e.id === id) {
-        const newCap = Math.max(10, e.capacity + delta);
-        return {
-          ...e,
-          capacity: newCap,
-          status: e.registered >= newCap ? ("COMPLET" as const) : e.status,
-        };
-      }
-      return e;
-    });
-    saveDynamicEvents(updated);
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {events.map((event) => (
-          <div key={event.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
-            <div className="flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-ae2v-red">
-                  {event.kind}
-                </span>
-                <StatusPill
-                  tone={
-                    event.status === "OUVERT"
-                      ? "green"
-                      : event.status === "COMPLET"
-                        ? "red"
-                        : "black"
-                  }
-                >
-                  {eventStatusLabels[event.status]}
-                </StatusPill>
-              </div>
-              <h3 className="mt-2 font-bold text-base">{event.title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {event.date} · {event.place}
-              </p>
-
-              <div className="mt-4 border-t-2 border-ae2v-black/10 pt-3">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Inscrits / Jauge :</span>
-                  <span>
-                    {event.registered} / {event.capacity}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-2.5 w-full border border-ae2v-black bg-ae2v-offwhite">
-                  <div
-                    className={
-                      event.registered >= event.capacity
-                        ? "h-full bg-ae2v-red"
-                        : "h-full bg-ae2v-green"
-                    }
-                    style={{
-                      width: `${Math.min(100, Math.round((event.registered / event.capacity) * 100))}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2 border-t-2 border-ae2v-black/10 pt-3">
-              <p className="w-full text-[0.65rem] font-bold uppercase text-muted-foreground">
-                Changer le statut :
-              </p>
-              {(["OUVERT", "BIENTOT", "COMPLET", "TERMINE"] as EventStatus[]).map((st) => (
-                <Button
-                  key={st}
-                  size="sm"
-                  variant={event.status === st ? "default" : "secondary"}
-                  className="px-2 py-1 text-xs"
-                  onClick={() => handleUpdateStatus(event.id, st)}
-                >
-                  {st}
-                </Button>
-              ))}
-              <div className="mt-2 flex w-full items-center justify-between gap-2">
-                <span className="text-xs font-bold text-muted-foreground">Ajuster jauge :</span>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleUpdateCapacity(event.id, -10)}
-                  >
-                    -10
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleUpdateCapacity(event.id, 10)}
-                  >
-                    +10
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* ShopManager — gestion boutique & produits bureau                          */
-/* -------------------------------------------------------------------------- */
-
-function ShopManager({ products }: { products: ShopProduct[] }) {
-  function handleToggleBadge(id: string) {
-    const updated = products.map((p) => {
-      if (p.id === id) {
-        return { ...p, badge: p.badge ? null : "NOUVEAU" };
-      }
-      return p;
-    });
-    saveDynamicShopProducts(updated);
-  }
-
-  function handleUpdatePrice(id: string, deltaCents: number) {
-    const updated = products.map((p) => {
-      if (p.id === id) {
-        return {
-          ...p,
-          priceMember: Math.max(100, p.priceMember + deltaCents),
-          pricePublic: Math.max(100, p.pricePublic + deltaCents),
-        };
-      }
-      return p;
-    });
-    saveDynamicShopProducts(updated);
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {products.map((prod) => (
-          <div key={prod.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
-            <div className="flex-1">
-              <div className="flex items-center justify-between gap-2">
-                {prod.badge ? (
-                  <StatusPill tone="green">{prod.badge}</StatusPill>
-                ) : (
-                  <StatusPill tone="neutral">Standard</StatusPill>
-                )}
-                <span className="text-xs text-muted-foreground font-mono">{prod.id}</span>
-              </div>
-              <h3 className="mt-2 font-bold text-base">{prod.name}</h3>
-              <p className="mt-1 text-xs text-muted-foreground leading-snug">{prod.tagline}</p>
-
-              <div className="mt-3 border-t-2 border-ae2v-black/10 pt-2 text-xs">
-                <p className="font-bold text-ae2v-red">
-                  Adhérent : {formatPrice(prod.priceMember)}
-                </p>
-                <p className="text-muted-foreground">Public : {formatPrice(prod.pricePublic)}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2 border-t-2 border-ae2v-black/10 pt-3">
-              <Button
-                size="sm"
-                variant={prod.badge ? "secondary" : "default"}
-                className="w-full text-xs"
-                onClick={() => handleToggleBadge(prod.id)}
-              >
-                {prod.badge ? "Retirer le badge NOUVEAU" : "Mettre badge NOUVEAU"}
-              </Button>
-              <div className="flex w-full items-center justify-between gap-2">
-                <span className="text-xs font-bold text-muted-foreground">Prix :</span>
-                <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleUpdatePrice(prod.id, -100)}
-                  >
-                    -1€
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleUpdatePrice(prod.id, 100)}
-                  >
-                    +1€
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* TicketScanner — scanner & contrôle d'accès QR                              */
-/* -------------------------------------------------------------------------- */
-
-function TicketScanner() {
+function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPerson) => void }) {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<{
     type: "ticket" | "card";
     owner: string;
+    email: string;
     details: string;
     status: string;
     valid: boolean;
+    matchedDossier?: Dossier;
     ticketObj?: DemoTicket;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const { dossiers } = useDemoSession();
 
   function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -1349,48 +706,51 @@ function TicketScanner() {
     const cleaned = code.trim().toUpperCase();
     if (!cleaned) return;
 
-    // Check custom and demo accounts
-    const allAccs = demoAccounts;
     let foundTicket: DemoTicket | null = null;
     let ticketOwner = "";
+    let matchedEmail = "";
 
-    for (const acc of allAccs) {
+    for (const acc of demoAccounts) {
       const matchTk = acc.tickets.find((t) => t.code.toUpperCase() === cleaned);
       if (matchTk) {
         foundTicket = matchTk;
-        ticketOwner = `${acc.firstName} ${acc.lastName} (${acc.email})`;
+        ticketOwner = `${acc.firstName} ${acc.lastName}`;
+        matchedEmail = acc.email;
         break;
       }
       if (acc.cardCode.toUpperCase() === cleaned) {
+        const dossier = dossiers.find((d) => d.email === acc.email);
         setResult({
           type: "card",
           owner: `${acc.firstName} ${acc.lastName}`,
+          email: acc.email,
           details: `Carte de membre · Filière ${acc.departement} (${acc.niveau})`,
           status: acc.membershipStatus === "VALIDE" ? "Valide (Adhérent cotisant)" : "En attente",
           valid: acc.membershipStatus === "VALIDE",
+          matchedDossier: dossier,
         });
-        addAuditLog(
-          "SCAN_CARTE",
-          `Carte membre scannée: ${acc.cardCode} (${acc.firstName} ${acc.lastName})`,
-        );
+        addAuditLog("SCAN_CARTE", `Carte membre scannée: ${acc.cardCode}`);
         return;
       }
     }
 
     if (foundTicket) {
+      const dossier = dossiers.find((d) => d.email === matchedEmail);
       setResult({
         type: "ticket",
         owner: ticketOwner,
+        email: matchedEmail,
         details: `${foundTicket.eventTitle} · Tarif: ${foundTicket.tier}`,
         status: foundTicket.status === "valide" ? "VALIDE (Prêt pour contrôle)" : "DÉJÀ UTILISÉ",
         valid: foundTicket.status === "valide",
+        matchedDossier: dossier,
         ticketObj: foundTicket,
       });
       addAuditLog("SCAN_BILLET", `Billet scanné: ${foundTicket.code} (${foundTicket.eventTitle})`);
       return;
     }
 
-    setError("Code invalide ou introuvable. Vérifiez la saisie.");
+    setError("Code invalide ou introuvable dans la base.");
   }
 
   return (
@@ -1400,12 +760,12 @@ function TicketScanner() {
           Saisir ou scanner un QR Code
         </label>
         <p className="mt-1 text-xs text-muted-foreground">
-          Exemples de codes billets : AE2V-TK-..., ou carte membre : AE2V-USER-...
+          Ex. billet : AE2V-TK-..., carte membre : AE2V-USER-...
         </p>
         <div className="mt-4 flex gap-2">
           <input
             id="scanner-input"
-            className={`${inputClass} flex-1 font-mono uppercase`}
+            className="min-h-[44px] flex-1 border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 font-mono text-sm uppercase outline-none focus:border-ae2v-red"
             placeholder="AE2V-TK-XXXX-YYYY"
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -1439,8 +799,8 @@ function TicketScanner() {
           <h3 className="mt-3 font-impact text-2xl uppercase text-ae2v-black">{result.owner}</h3>
           <p className="mt-1 text-sm font-bold text-ae2v-black/80">{result.details}</p>
 
-          {result.valid && result.type === "ticket" && (
-            <div className="mt-5 border-t-2 border-ae2v-black/20 pt-4">
+          <div className="mt-5 border-t-2 border-ae2v-black/20 pt-4 flex flex-wrap gap-2">
+            {result.valid && result.type === "ticket" && (
               <Button
                 variant="black"
                 onClick={() => {
@@ -1455,10 +815,30 @@ function TicketScanner() {
                 }}
               >
                 <CheckCircle2 className="size-4" />
-                Valider l'entrée (Composter le billet)
+                Valider l'entrée (Composter)
               </Button>
-            </div>
-          )}
+            )}
+            {result.matchedDossier && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  onOpenPersonSheet({
+                    id: result.matchedDossier!.id,
+                    firstName: result.matchedDossier!.firstName,
+                    lastName: result.matchedDossier!.lastName,
+                    email: result.matchedDossier!.email,
+                    departement: result.matchedDossier!.departement,
+                    niveau: result.matchedDossier!.niveau,
+                    status: result.matchedDossier!.status,
+                    contributionStatus: result.matchedDossier!.contributionStatus,
+                  });
+                }}
+              >
+                <UserCheck className="size-4" />
+                Voir la fiche complète
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1466,12 +846,828 @@ function TicketScanner() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* OrdersManager — gestion des commandes boutique                             */
+/* MessageCard Component with In-App Mail Reply                               */
 /* -------------------------------------------------------------------------- */
 
-function OrdersManager() {
-  const [ordersFilter, setOrdersFilter] = useState("TOUS");
-  const allOrders = useMemo(() => {
+function MessageCard({
+  msg,
+  onUpdateStatus,
+}: {
+  msg: ContactMessage;
+  onUpdateStatus: (id: string, status: ContactMessageStatus) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const [subject, setSubject] = useState(`Re: [${msg.sujet}]`);
+  const [body, setBody] = useState(
+    `Bonjour ${msg.name},\n\nMerci pour ton message. \n\nCordialement,\nLe bureau AE2V`,
+  );
+  const [sending, setSending] = useState(false);
+  const [sentNotice, setSentNotice] = useState<string | null>(null);
+
+  const senderEmail = getSiteConfig().smtp.senderEmail || "contact@ae2v.fr";
+
+  async function handleSendReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!subject.trim() || !body.trim()) return;
+
+    setSending(true);
+    try {
+      const res = await sendEmailFromBureau(msg.email, subject.trim(), body.trim());
+      setSending(false);
+      setSentNotice(`✓ E-mail envoyé avec succès à ${msg.email} à ${res.timestamp}`);
+      onUpdateStatus(msg.id, "TRAITE");
+      addAuditLog("REPONSE_EMAIL", `Réponse envoyée à ${msg.email} (${subject})`);
+      setReplying(false);
+    } catch {
+      setSending(false);
+      setSentNotice("✕ Erreur d'envoi e-mail.");
+    }
+  }
+
+  const inputClass =
+    "min-h-[40px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-xs text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
+
+  return (
+    <li
+      className={`border-2 p-4 ${msg.status === "NOUVEAU" ? "border-ae2v-red bg-ae2v-red/5" : "border-ae2v-black/30 bg-card"}`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-bold">{msg.name}</p>
+            <StatusPill tone={msg.status === "NOUVEAU" ? "red" : "neutral"}>
+              {contactMessageStatusLabels[msg.status]}
+            </StatusPill>
+          </div>
+          <p className="text-xs text-muted-foreground break-all">{msg.email}</p>
+          <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {msg.sujet} · {msg.sentAt}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" onClick={() => setExpanded((v) => !v)}>
+            <Eye className="size-3.5" />
+            {expanded ? "Réduire" : "Lire"}
+          </Button>
+          <Button
+            size="sm"
+            variant="black"
+            onClick={() => {
+              setExpanded(true);
+              setReplying((v) => !v);
+            }}
+          >
+            <Send className="size-3.5" />
+            Répondre dans l'app
+          </Button>
+          {msg.status !== "TRAITE" && (
+            <Button size="sm" onClick={() => onUpdateStatus(msg.id, "TRAITE")}>
+              <CheckCheck className="size-3.5" />
+              Traité
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {sentNotice && (
+        <div className="mt-3 border-2 border-ae2v-green bg-ae2v-green/10 p-3 text-xs font-bold text-ae2v-black">
+          {sentNotice}
+        </div>
+      )}
+
+      {expanded && (
+        <div className="mt-3 space-y-4 border-l-4 border-ae2v-red bg-ae2v-offwhite p-4 text-sm text-ae2v-black">
+          <div>
+            <p className="text-xs font-bold uppercase text-muted-foreground">Message reçu :</p>
+            <p className="mt-1 whitespace-pre-wrap">{msg.message}</p>
+          </div>
+
+          {replying && (
+            <form
+              onSubmit={handleSendReply}
+              className="mt-4 border-t-2 border-ae2v-black/20 pt-4 space-y-3"
+            >
+              <p className="font-impact text-base uppercase text-ae2v-red">
+                Rédiger une réponse e-mail
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                <div>
+                  <label className="block font-bold uppercase">Expéditeur (SMTP AE2V)</label>
+                  <input className={`${inputClass} opacity-75`} value={senderEmail} disabled />
+                </div>
+                <div>
+                  <label className="block font-bold uppercase">Destinataire</label>
+                  <input className={`${inputClass} opacity-75`} value={msg.email} disabled />
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold uppercase text-xs">Objet</label>
+                <input
+                  className={inputClass}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-bold uppercase text-xs">Message</label>
+                <textarea
+                  className={`${inputClass} min-h-[120px]`}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={sending}>
+                  <Send className="size-3.5" />
+                  {sending ? "Envoi..." : "Envoyer l'e-mail"}
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => setReplying(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TeamManager Component                                                      */
+/* -------------------------------------------------------------------------- */
+
+const inputClass =
+  "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-base text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
+
+function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const [form, setForm] = useState({
+    displayName: "",
+    roleTitle: "",
+    pole: teamPoles[0] as TeamPole,
+    personalAe2vEmail: "",
+    roleEmail: "",
+    isOfficer: false,
+    bio: "",
+    mandate: `${currentYear}–${currentYear + 1}`,
+  });
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.displayName.trim() || !form.roleTitle.trim()) return;
+
+    const newMember: TeamMember = {
+      id: `custom-${Date.now()}`,
+      displayName: form.displayName.trim(),
+      roleTitle: form.roleTitle.trim(),
+      pole: form.pole,
+      personalAe2vEmail: form.personalAe2vEmail.trim() || null,
+      roleEmail: form.roleEmail.trim() || null,
+      isOfficer: form.isOfficer,
+      bio: form.bio.trim() || null,
+      photoUrl: null,
+      mandate: form.mandate.trim() || `${currentYear}–${currentYear + 1}`,
+      isDemo: false,
+      isPlaceholder: false,
+    };
+    saveDynamicTeamMembers([newMember, ...getDynamicTeamMembers()]);
+    addAuditLog("AJOUT_EQUIPE", `Nouveau membre équipe ajouté: ${newMember.displayName}`);
+    setShowForm(false);
+  }
+
+  function handleDelete(id: string) {
+    const updated = getDynamicTeamMembers().filter((m) => m.id !== id);
+    saveDynamicTeamMembers(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {teamMembers.length} membres dans l'équipe BDE.
+        </p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus className="size-4" />
+          {showForm ? "Annuler" : "Ajouter un membre"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleAdd}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider">Nouveau membre de l'équipe</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Nom d'affichage *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Marie Dupont"
+                value={form.displayName}
+                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Titre du rôle *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Secrétaire général"
+                value={form.roleTitle}
+                onChange={(e) => setForm((f) => ({ ...f, roleTitle: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Pôle *</label>
+              <select
+                className={`${inputClass} mt-1`}
+                value={form.pole}
+                onChange={(e) => setForm((f) => ({ ...f, pole: e.target.value as TeamPole }))}
+              >
+                {teamPoles.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">E-mail nominatif @ae2v.fr</label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="email"
+                placeholder="prenom.nom@ae2v.fr"
+                value={form.personalAe2vEmail}
+                onChange={(e) => setForm((f) => ({ ...f, personalAe2vEmail: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">
+                E-mail de fonction @ae2v.fr
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="email"
+                placeholder="presidence@ae2v.fr"
+                value={form.roleEmail}
+                onChange={(e) => setForm((f) => ({ ...f, roleEmail: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit">Ajouter à l'équipe BDE</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {teamMembers.map((member) => (
+          <div key={member.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
+            <div className="flex-1">
+              <p className="font-bold">{member.displayName}</p>
+              <p className="text-xs text-muted-foreground">{member.roleTitle}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <StatusPill tone="neutral">{member.pole}</StatusPill>
+                {member.isOfficer && <StatusPill tone="green">Officier</StatusPill>}
+              </div>
+              {member.personalAe2vEmail && (
+                <p className="mt-1 text-xs text-muted-foreground break-all">
+                  {member.personalAe2vEmail}
+                </p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-3 w-full"
+              onClick={() => handleDelete(member.id)}
+            >
+              <Trash2 className="size-3.5" />
+              Supprimer
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* EventManager Component with Image Crop (16:9) & Live Preview               */
+/* -------------------------------------------------------------------------- */
+
+function EventManager({ events }: { events: Ae2vEvent[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [title, setTitle] = useState("");
+  const [kind, setKind] = useState("Soirée");
+  const [date, setDate] = useState("");
+  const [place, setPlace] = useState("Campus Vélizy");
+  const [capacity, setCapacity] = useState(150);
+  const [status, setStatus] = useState<EventStatus>("OUVERT");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+
+  async function handleImageDrop(file: File) {
+    try {
+      const croppedDataUrl = await processImageFile(file, "16:9", 800);
+      setImagePreview(croppedDataUrl);
+    } catch {
+      alert("Impossible d'importer l'image");
+    }
+  }
+
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !date.trim()) return;
+
+    if (editingId) {
+      const updated = events.map((ev) =>
+        ev.id === editingId
+          ? {
+              ...ev,
+              title: title.trim(),
+              kind: kind.trim(),
+              date: date.trim(),
+              place: place.trim(),
+              capacity: Number(capacity),
+              status,
+              description: description.trim() || ev.description,
+            }
+          : ev,
+      );
+      saveDynamicEvents(updated);
+      addAuditLog("EDIT_EVENEMENT", `Événement modifié: ${title}`);
+    } else {
+      const newEvent: Ae2vEvent = {
+        id: `event-${Date.now()}`,
+        slug: title.toLowerCase().replace(/\s+/g, "-"),
+        title: title.trim(),
+        subtitle: "Événement officiel BDE",
+        kind: kind.trim(),
+        date: date.trim(),
+        place: place.trim(),
+        capacity: Number(capacity),
+        registered: 0,
+        status,
+        waitlist: true,
+        registrationOpensAt: "Immédiat",
+        description: description.trim() || "Soirée et animation organisée par le BDE AE2V.",
+        pricePublicCents: 800,
+        priceMemberCents: 500,
+        isDemo: false,
+      };
+      saveDynamicEvents([newEvent, ...events]);
+      addAuditLog("CREATION_EVENEMENT", `Nouvel événement créé: ${newEvent.title}`);
+    }
+
+    resetForm();
+  }
+
+  function resetForm() {
+    setTitle("");
+    setDate("");
+    setCapacity(150);
+    setImagePreview(null);
+    setDescription("");
+    setEditingId(null);
+    setShowForm(false);
+  }
+
+  function handleStartEdit(event: Ae2vEvent) {
+    setEditingId(event.id);
+    setTitle(event.title);
+    setKind(event.kind);
+    setDate(event.date);
+    setPlace(event.place);
+    setCapacity(event.capacity);
+    setStatus(event.status);
+    setDescription(event.description);
+    setShowForm(true);
+  }
+
+  function handleUpdateStatus(id: string, newStatus: EventStatus) {
+    const updated = events.map((e) => (e.id === id ? { ...e, status: newStatus } : e));
+    saveDynamicEvents(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{events.length} événements enregistrés.</p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus className="size-4" />
+          {showForm ? "Annuler" : "Créer un événement"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleSave}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider">
+            {editingId ? "Éditer l'événement" : "Nouveau formulaire événement"}
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Titre de l'événement *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Soirée d'Intégration AE2V"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Catégorie / Type *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Soirée, Gala, Tournoi"
+                value={kind}
+                onChange={(e) => setKind(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Date & Heure *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Vendredi 15 Octobre 2026 à 21h00"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Lieu *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Le Wunderbar / Campus Vélizy"
+                value={place}
+                onChange={(e) => setPlace(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Jauge (Capacité max) *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="number"
+                min="10"
+                value={capacity}
+                onChange={(e) => setCapacity(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Visuel Bannière (Upload & Recadrage 16:9 Auto)
+              </label>
+              <div
+                className="border-2 border-dashed border-ae2v-black/40 p-6 text-center bg-card hover:bg-ae2v-offwhite cursor-pointer"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files[0]) handleImageDrop(e.dataTransfer.files[0]);
+                }}
+              >
+                <Upload className="size-6 mx-auto text-muted-foreground" />
+                <p className="mt-2 text-xs font-bold">
+                  Glissez une image ici ou cliquez pour choisir
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="event-img-upload"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) handleImageDrop(e.target.files[0]);
+                  }}
+                />
+                <label
+                  htmlFor="event-img-upload"
+                  className="mt-2 inline-block text-xs underline font-bold text-ae2v-red cursor-pointer"
+                >
+                  Sélectionner un fichier image
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Aperçu en temps réel (Preview) */}
+          {(title || imagePreview) && (
+            <div className="mt-4 border-2 border-ae2v-black bg-card p-4">
+              <p className="text-[0.65rem] font-bold uppercase tracking-widest text-ae2v-red mb-2">
+                Aperçu visuel de la fiche (Live Preview)
+              </p>
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full aspect-[16/9] object-cover border-2 border-ae2v-black mb-3"
+                />
+              )}
+              <h4 className="font-impact text-xl uppercase">{title || "Titre de l'événement"}</h4>
+              <p className="text-xs text-muted-foreground">
+                {date || "Date"} · {place || "Lieu"}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button type="submit">
+              {editingId ? "Enregistrer les modifications" : "Publier l'événement"}
+            </Button>
+            <Button type="button" variant="secondary" onClick={resetForm}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Tableau Simple en Lignes des Événements */}
+      <div className="border-2 border-ae2v-black bg-card">
+        <div className="border-b-2 border-ae2v-black bg-ae2v-black px-4 py-3 text-white font-impact text-sm uppercase tracking-wide">
+          Tableau des événements
+        </div>
+        <div className="divide-y-2 divide-ae2v-black/10">
+          {events.map((event) => (
+            <div key={event.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">{event.title}</span>
+                  <StatusPill
+                    tone={
+                      event.status === "OUVERT"
+                        ? "green"
+                        : event.status === "COMPLET"
+                          ? "red"
+                          : "black"
+                    }
+                  >
+                    {eventStatusLabels[event.status]}
+                  </StatusPill>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {event.date} · {event.place} · Jauge : {event.registered} / {event.capacity}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => handleStartEdit(event)}>
+                  Éditer & Preview
+                </Button>
+                <Button
+                  size="sm"
+                  variant={event.status === "OUVERT" ? "default" : "secondary"}
+                  onClick={() =>
+                    handleUpdateStatus(event.id, event.status === "OUVERT" ? "COMPLET" : "OUVERT")
+                  }
+                >
+                  {event.status === "OUVERT" ? "Marquer complet" : "Ouvrir inscriptions"}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ShopManager Component with Canvas Image Crop (1:1 Square)                   */
+/* -------------------------------------------------------------------------- */
+
+function ShopManager({ products }: { products: ShopProduct[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [priceMember, setPriceMember] = useState(2500);
+  const [pricePublic, setPricePublic] = useState(3000);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  async function handleImageDrop(file: File) {
+    try {
+      const croppedDataUrl = await processImageFile(file, "1:1", 600);
+      setImagePreview(croppedDataUrl);
+    } catch {
+      alert("Erreur lors de la conversion de l'image produit.");
+    }
+  }
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const newProd: ShopProduct = {
+      id: `prod-${Date.now()}`,
+      name: name.trim(),
+      tagline: tagline.trim() || "Textile officiel AE2V",
+      priceMemberCents: Number(priceMember),
+      pricePublicCents: Number(pricePublic),
+      priceMember: Number(priceMember),
+      pricePublic: Number(pricePublic),
+      badge: "NOUVEAU",
+      sizes: ["S", "M", "L", "XL"],
+      image: imagePreview || "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600",
+      description: "Textile et goodies aux couleurs de l'AE2V.",
+    };
+
+    saveDynamicShopProducts([newProd, ...products]);
+    addAuditLog("CREATION_PRODUIT", `Nouveau produit ajouté: ${newProd.name}`);
+    setName("");
+    setTagline("");
+    setImagePreview(null);
+    setShowForm(false);
+  }
+
+  function handleToggleBadge(id: string) {
+    const updated = products.map((p) =>
+      p.id === id ? { ...p, badge: p.badge ? null : "NOUVEAU" } : p,
+    );
+    saveDynamicShopProducts(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{products.length} articles au catalogue.</p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus className="size-4" />
+          {showForm ? "Annuler" : "Ajouter un produit"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleAdd}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider">Nouveau produit boutique</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold uppercase">Nom de l'article *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Sweat Capuche AE2V 2026"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Slogan / Tagline</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Broderie haute qualité"
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">
+                Prix Adhérent (en centimes) *
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="number"
+                step="100"
+                value={priceMember}
+                onChange={(e) => setPriceMember(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">
+                Prix Public (en centimes) *
+              </label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="number"
+                step="100"
+                value={pricePublic}
+                onChange={(e) => setPricePublic(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Image Produit (Upload & Crop 1:1 Carré)
+              </label>
+              <div
+                className="border-2 border-dashed border-ae2v-black/40 p-6 text-center bg-card hover:bg-ae2v-offwhite cursor-pointer"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files[0]) handleImageDrop(e.dataTransfer.files[0]);
+                }}
+              >
+                <Upload className="size-6 mx-auto text-muted-foreground" />
+                <p className="mt-2 text-xs font-bold">
+                  Glissez l'image produit ici (Conversion & Découpe 1:1)
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  id="prod-img-upload"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) handleImageDrop(e.target.files[0]);
+                  }}
+                />
+                <label
+                  htmlFor="prod-img-upload"
+                  className="mt-2 inline-block text-xs underline font-bold text-ae2v-red cursor-pointer"
+                >
+                  Sélectionner l'image
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="submit">Ajouter au catalogue</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {products.map((prod) => (
+          <div key={prod.id} className="flex flex-col border-2 border-ae2v-black bg-card p-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2">
+                {prod.badge ? (
+                  <StatusPill tone="green">{prod.badge}</StatusPill>
+                ) : (
+                  <StatusPill tone="neutral">Standard</StatusPill>
+                )}
+                <span className="text-xs text-muted-foreground font-mono">{prod.id}</span>
+              </div>
+              <h3 className="mt-2 font-bold text-base">{prod.name}</h3>
+              <p className="mt-1 text-xs text-muted-foreground leading-snug">{prod.tagline}</p>
+              <div className="mt-3 border-t-2 border-ae2v-black/10 pt-2 text-xs">
+                <p className="font-bold text-ae2v-red">
+                  Adhérent : {formatPrice(prod.priceMember)}
+                </p>
+                <p className="text-muted-foreground">Public : {formatPrice(prod.pricePublic)}</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant={prod.badge ? "secondary" : "default"}
+              className="mt-4 w-full text-xs"
+              onClick={() => handleToggleBadge(prod.id)}
+            >
+              {prod.badge ? "Retirer badge NOUVEAU" : "Mettre badge NOUVEAU"}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* OrdersManager Component (With HelloAsso Order Addition & Customer Binding) */
+/* -------------------------------------------------------------------------- */
+
+function OrdersManager({ dossiers }: { dossiers: Dossier[] }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedStudentEmail, setSelectedStudentEmail] = useState("");
+  const [helloAssoRef, setHelloAssoRef] = useState("");
+  const [itemName, setItemName] = useState("Sweat Capuche AE2V 2026");
+  const [priceCents, setPriceCents] = useState(2500);
+
+  const initialOrders = useMemo(() => {
     const list: (DemoOrder & { customer: string })[] = [];
     demoAccounts.forEach((acc) => {
       acc.orders.forEach((ord) => {
@@ -1481,215 +1677,119 @@ function OrdersManager() {
     return list;
   }, []);
 
-  const [orders, setOrders] = useState(allOrders);
+  const [orders, setOrders] = useState(initialOrders);
+
+  function handleCreateHelloAssoOrder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedStudentEmail || !helloAssoRef.trim()) return;
+
+    const matchedDossier = dossiers.find((d) => d.email === selectedStudentEmail);
+    const newOrd: DemoOrder & { customer: string } = {
+      id: `HA-${helloAssoRef.trim().toUpperCase()}`,
+      date: today(),
+      totalCents: Number(priceCents),
+      status: "En préparation",
+      customer: matchedDossier
+        ? `${matchedDossier.firstName} ${matchedDossier.lastName} (${matchedDossier.email})`
+        : selectedStudentEmail,
+      lines: [
+        {
+          name: itemName,
+          variant: "Taille M",
+          qty: 1,
+          priceCents: Number(priceCents),
+        },
+      ],
+    };
+
+    setOrders([newOrd, ...orders]);
+    addAuditLog(
+      "COMMANDE_HELLOASSO",
+      `Commande HelloAsso rattachée: ${newOrd.id} à ${newOrd.customer}`,
+    );
+    setHelloAssoRef("");
+    setShowAddForm(false);
+  }
 
   function handleUpdateStatus(orderId: string, status: DemoOrder["status"]) {
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
     addAuditLog("STATUT_COMMANDE", `Commande ${orderId} passée au statut: ${status}`);
   }
 
-  const filtered = orders.filter((o) => ordersFilter === "TOUS" || o.status === ordersFilter);
-
-  return (
-    <div className="space-y-6">
-      <div className="mb-4">
-        <TableFilter
-          id="filter-orders"
-          label="Statut"
-          value={ordersFilter}
-          onChange={setOrdersFilter}
-          options={[
-            { value: "TOUS", label: "Toutes" },
-            { value: "En préparation", label: "En préparation" },
-            { value: "Prête", label: "Prête" },
-            { value: "Retirée", label: "Retirée" },
-          ]}
-        />
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState label="Aucune commande" detail="Aucune commande boutique pour l'instant." />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {filtered.map((ord) => (
-            <div key={ord.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-impact text-lg uppercase text-ae2v-red">{ord.id}</span>
-                <StatusPill tone={ord.status === "Retirée" ? "green" : "neutral"}>
-                  {ord.status}
-                </StatusPill>
-              </div>
-              <p className="mt-2 text-xs font-bold text-muted-foreground">{ord.customer}</p>
-              <p className="text-xs text-muted-foreground">{ord.date}</p>
-
-              <div className="mt-3 flex-1 border-t border-ae2v-black/10 pt-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Articles :
-                </p>
-                <ul className="space-y-1 text-xs">
-                  {ord.lines.map((line, idx) => (
-                    <li key={idx} className="flex justify-between font-bold">
-                      <span>
-                        {line.qty}× {line.name} ({line.variant})
-                      </span>
-                      <span>{formatCents(line.priceCents)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-4 border-t border-ae2v-black/10 pt-3 flex flex-wrap gap-2">
-                <span className="w-full text-[0.65rem] font-bold uppercase text-muted-foreground">
-                  Changer statut :
-                </span>
-                <Button
-                  size="sm"
-                  variant={ord.status === "En préparation" ? "default" : "secondary"}
-                  onClick={() => handleUpdateStatus(ord.id, "En préparation")}
-                >
-                  En préparation
-                </Button>
-                <Button
-                  size="sm"
-                  variant={ord.status === "Prête" ? "default" : "secondary"}
-                  onClick={() => handleUpdateStatus(ord.id, "Prête")}
-                >
-                  Prête au retrait
-                </Button>
-                <Button
-                  size="sm"
-                  variant={ord.status === "Retirée" ? "default" : "secondary"}
-                  onClick={() => handleUpdateStatus(ord.id, "Retirée")}
-                >
-                  Marquer retirée
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* NewsManager — publication des actualités BDE                               */
-/* -------------------------------------------------------------------------- */
-
-function NewsManager({ newsArticles }: { newsArticles: Ae2vNewsArticle[] }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    category: "Annonce",
-    summary: "",
-    content: "",
-    author: "Bureau AE2V",
-  });
-
-  function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.title.trim() || !form.summary.trim()) return;
-
-    const newArticle: Ae2vNewsArticle = {
-      id: `news-${Date.now()}`,
-      title: form.title.trim(),
-      category: form.category,
-      date: new Date().toLocaleDateString("fr-FR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      summary: form.summary.trim(),
-      content: form.content.trim() || form.summary.trim(),
-      author: form.author.trim() || "Bureau AE2V",
-    };
-
-    saveDynamicNews([newArticle, ...newsArticles]);
-    addAuditLog("PUBLICATION_ACTU", `Nouvel article publié: "${newArticle.title}"`);
-    setForm({ title: "", category: "Annonce", summary: "", content: "", author: "Bureau AE2V" });
-    setShowForm(false);
-  }
-
-  function handleDelete(id: string) {
-    const updated = newsArticles.filter((n) => n.id !== id);
-    saveDynamicNews(updated);
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{newsArticles.length} article(s) publiés.</p>
+        <p className="text-sm text-muted-foreground">{orders.length} commande(s) répertoriée(s).</p>
         <Button
           size="sm"
-          onClick={() => setShowForm((v) => !v)}
-          variant={showForm ? "secondary" : "default"}
+          onClick={() => setShowAddForm((v) => !v)}
+          variant={showAddForm ? "secondary" : "default"}
         >
           <Plus className="size-4" />
-          {showForm ? "Annuler" : "Nouvel article"}
+          {showAddForm ? "Annuler" : "Ajouter une commande HelloAsso"}
         </Button>
       </div>
 
-      {showForm && (
+      {showAddForm && (
         <form
-          onSubmit={handleCreate}
+          onSubmit={handleCreateHelloAssoOrder}
           className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
         >
-          <p className="text-xs font-bold uppercase tracking-wider">Créer une actualité</p>
+          <p className="text-xs font-bold uppercase tracking-wider">
+            Associer un paiement HelloAsso à un membre
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase">Titre de l'article *</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. Résultats du tournoi E-sport"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                required
-              />
-            </div>
             <div>
-              <label className="block text-xs font-bold uppercase">Catégorie</label>
+              <label className="block text-xs font-bold uppercase">
+                Sélectionner l'étudiant / Membre *
+              </label>
               <select
-                className={`${inputClass} mt-1`}
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className={`${inputClass} mt-1 text-xs`}
+                value={selectedStudentEmail}
+                onChange={(e) => setSelectedStudentEmail(e.target.value)}
+                required
               >
-                <option value="Annonce">Annonce</option>
-                <option value="Événement">Événement</option>
-                <option value="Vie étudiante">Vie étudiante</option>
-                <option value="Partenariat">Partenariat</option>
+                <option value="">-- Choisir un étudiant --</option>
+                {dossiers.map((d) => (
+                  <option key={d.id} value={d.email}>
+                    {d.firstName} {d.lastName} ({d.email})
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase">Auteur</label>
+              <label className="block text-xs font-bold uppercase">N° Référence HelloAsso *</label>
               <input
                 className={`${inputClass} mt-1`}
-                value={form.author}
-                onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase">Résumé *</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Description courte affichée dans la carte"
-                value={form.summary}
-                onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
+                placeholder="Ex. HA-98210"
+                value={helloAssoRef}
+                onChange={(e) => setHelloAssoRef(e.target.value)}
                 required
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase">Contenu complet</label>
-              <textarea
-                className={`${inputClass} mt-1 min-h-[100px]`}
-                placeholder="Texte complet du communiqué..."
-                value={form.content}
-                onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+            <div>
+              <label className="block text-xs font-bold uppercase">Nom du Produit *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Montant (en centimes) *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                type="number"
+                value={priceCents}
+                onChange={(e) => setPriceCents(Number(e.target.value))}
+                required
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit">Publier sur le site</Button>
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+            <Button type="submit">Enregistrer la commande</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>
               Annuler
             </Button>
           </div>
@@ -1697,244 +1797,55 @@ function NewsManager({ newsArticles }: { newsArticles: Ae2vNewsArticle[] }) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {newsArticles.map((art) => (
-          <div key={art.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
-            <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase">
-              <span className="text-ae2v-red">{art.category}</span>
-              <span>{art.date}</span>
-            </div>
-            <h3 className="mt-2 font-impact text-xl uppercase">{art.title}</h3>
-            <p className="mt-1 text-xs text-muted-foreground flex-1">{art.summary}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="mt-4 w-full"
-              onClick={() => handleDelete(art.id)}
-            >
-              <Trash2 className="size-3.5" />
-              Supprimer l'article
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* PartnersManager — gestion des partenaires BDE                             */
-/* -------------------------------------------------------------------------- */
-
-function PartnersManager({ partners }: { partners: Ae2vPartner[] }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    category: "Restauration",
-    discount: "",
-    description: "",
-    website: "",
-  });
-
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name.trim() || !form.discount.trim()) return;
-
-    const newPartner: Ae2vPartner = {
-      id: `part-${Date.now()}`,
-      name: form.name.trim(),
-      category: form.category.trim(),
-      discount: form.discount.trim(),
-      description: form.description.trim(),
-      website: form.website.trim() || undefined,
-      active: true,
-    };
-
-    saveDynamicPartners([newPartner, ...partners]);
-    addAuditLog("Nouveau Partenaire", `Partenaire ajouté: ${newPartner.name}`);
-    setForm({ name: "", category: "Restauration", discount: "", description: "", website: "" });
-    setShowForm(false);
-  }
-
-  function handleToggleActive(id: string) {
-    const updated = partners.map((p) => (p.id === id ? { ...p, active: !p.active } : p));
-    saveDynamicPartners(updated);
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {partners.length} partenaire(s) enregistrés.
-        </p>
-        <Button
-          size="sm"
-          onClick={() => setShowForm((v) => !v)}
-          variant={showForm ? "secondary" : "default"}
-        >
-          <Plus className="size-4" />
-          {showForm ? "Annuler" : "Ajouter un partenaire"}
-        </Button>
-      </div>
-
-      {showForm && (
-        <form
-          onSubmit={handleAdd}
-          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
-        >
-          <p className="text-xs font-bold uppercase tracking-wider">Nouveau partenaire</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-bold uppercase">Nom du partenaire *</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. Fitness Park Vélizy"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase">Catégorie</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. Sport, Restauration..."
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase">Avantage / Réduction *</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Ex. -20% sur l'abonnement annuel"
-                value={form.discount}
-                onChange={(e) => setForm((f) => ({ ...f, discount: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase">Description</label>
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="Conditions d'obtention de la remise..."
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit">Ajouter le partenaire</Button>
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
-              Annuler
-            </Button>
-          </div>
-        </form>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        {partners.map((p) => (
-          <div key={p.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-widest text-ae2v-red">
-                {p.category}
-              </span>
-              <StatusPill tone={p.active ? "green" : "red"}>
-                {p.active ? "Actif" : "Inactif"}
+        {orders.map((ord) => (
+          <div key={ord.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-impact text-lg uppercase text-ae2v-red">{ord.id}</span>
+              <StatusPill tone={ord.status === "Retirée" ? "green" : "neutral"}>
+                {ord.status}
               </StatusPill>
             </div>
-            <h3 className="mt-2 font-impact text-xl uppercase">{p.name}</h3>
-            <p className="mt-1 text-xs font-bold text-ae2v-black">{p.discount}</p>
-            <p className="mt-1 text-xs text-muted-foreground flex-1">{p.description}</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="mt-4 w-full"
-              onClick={() => handleToggleActive(p.id)}
-            >
-              {p.active ? "Désactiver" : "Activer"}
-            </Button>
+            <p className="mt-2 text-xs font-bold text-muted-foreground">{ord.customer}</p>
+            <p className="text-xs text-muted-foreground">{ord.date}</p>
+
+            <div className="mt-3 flex-1 border-t border-ae2v-black/10 pt-3">
+              <ul className="space-y-1 text-xs">
+                {ord.lines.map((line, idx) => (
+                  <li key={idx} className="flex justify-between font-bold">
+                    <span>
+                      {line.qty}× {line.name} ({line.variant})
+                    </span>
+                    <span>{formatCents(line.priceCents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="mt-4 border-t border-ae2v-black/10 pt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={ord.status === "En préparation" ? "default" : "secondary"}
+                onClick={() => handleUpdateStatus(ord.id, "En préparation")}
+              >
+                En préparation
+              </Button>
+              <Button
+                size="sm"
+                variant={ord.status === "Prête" ? "default" : "secondary"}
+                onClick={() => handleUpdateStatus(ord.id, "Prête")}
+              >
+                Prête au retrait
+              </Button>
+              <Button
+                size="sm"
+                variant={ord.status === "Retirée" ? "default" : "secondary"}
+                onClick={() => handleUpdateStatus(ord.id, "Retirée")}
+              >
+                Marquer retirée
+              </Button>
+            </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* ExportsManager — exports CSV & journal d'audit                             */
-/* -------------------------------------------------------------------------- */
-
-function ExportsManager({
-  dossiers,
-  auditLogs,
-}: {
-  dossiers: Dossier[];
-  auditLogs: AuditLogEntry[];
-}) {
-  function downloadCsv(filename: string, content: string) {
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-    addAuditLog("EXPORT_CSV", `Export réalisé: ${filename}`);
-  }
-
-  function exportDossiersCsv() {
-    let csv = "ID,Nom,Prenom,Email,Filiere,Niveau,StatutAdhesion,StatutCotisation,SubmittedAt\n";
-    dossiers.forEach((d) => {
-      csv += `"${d.id}","${d.lastName}","${d.firstName}","${d.email}","${d.departement}","${d.niveau}","${d.status}","${d.contributionStatus}","${d.submittedAt}"\n`;
-    });
-    downloadCsv(`ae2v-dossiers-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-  }
-
-  return (
-    <div className="space-y-8">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="border-2 border-ae2v-black bg-card p-5">
-          <h3 className="font-impact text-xl uppercase">Exports de données</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Téléchargez les données archivées pour l'administration et la comptabilité du BDE.
-          </p>
-          <div className="mt-4 space-y-2">
-            <Button className="w-full" onClick={exportDossiersCsv}>
-              <Download className="size-4" />
-              Exporter les dossiers adhérents (CSV)
-            </Button>
-          </div>
-        </div>
-
-        <div className="border-2 border-ae2v-black bg-card p-5">
-          <h3 className="font-impact text-xl uppercase">Sécurité & conformité</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Conforme RGPD : données conservées uniquement pour l'année universitaire en cours.
-          </p>
-          <div className="mt-4 border-l-2 border-ae2v-green bg-ae2v-green/10 p-3 text-xs">
-            <p className="font-bold">✓ Sauvegarde automatique activée</p>
-            <p className="mt-0.5 text-muted-foreground">
-              Données synchronisées dans le stockage sécurisé du navigateur.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-2 border-ae2v-black bg-card p-5">
-        <h3 className="font-impact text-xl uppercase mb-3">Journal d'Audit des Actions Admin</h3>
-        <div className="space-y-2">
-          {auditLogs.map((log) => (
-            <div
-              key={log.id}
-              className="flex flex-wrap items-center justify-between gap-2 border-2 border-ae2v-black/10 bg-ae2v-offwhite p-3 text-xs"
-            >
-              <span className="font-mono text-muted-foreground">{log.timestamp}</span>
-              <span className="font-bold text-ae2v-red uppercase tracking-wider">{log.action}</span>
-              <span className="font-bold text-ae2v-black">{log.details}</span>
-              <span className="text-muted-foreground">par {log.user}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
