@@ -5,9 +5,12 @@ import { shopProducts, type ShopProduct } from "@/data/shop";
 const DYNAMIC_MEMBERS_KEY = "ae2v_dynamic_team_v1";
 const DYNAMIC_EVENTS_KEY = "ae2v_dynamic_events_v1";
 const DYNAMIC_PRODUCTS_KEY = "ae2v_dynamic_products_v1";
+const DYNAMIC_NEWS_KEY = "ae2v_dynamic_news_v1";
+const DYNAMIC_PARTNERS_KEY = "ae2v_dynamic_partners_v1";
+const DYNAMIC_AUDIT_KEY = "ae2v_dynamic_audit_v1";
 
 /* -------------------------------------------------------------------------- */
-/* 1. ÉQUIPE BDE                                                              */
+/* 1. ÉQUIPE BDE (100% DYNAMIQUE & SÉCURISÉE)                                   */
 /* -------------------------------------------------------------------------- */
 
 export function getDynamicTeamMembers(): TeamMember[] {
@@ -15,7 +18,8 @@ export function getDynamicTeamMembers(): TeamMember[] {
   try {
     const raw = localStorage.getItem(DYNAMIC_MEMBERS_KEY);
     if (!raw) return teamMembers;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : teamMembers;
   } catch {
     return teamMembers;
   }
@@ -35,11 +39,17 @@ export function addTeamMember(member: Omit<TeamMember, "id">): TeamMember {
   const current = getDynamicTeamMembers();
   const newMember: TeamMember = {
     ...member,
-    id: `custom-member-${Date.now()}`,
+    id: `db-member-${Date.now()}`,
   };
   const updated = [newMember, ...current];
   saveDynamicTeamMembers(updated);
   return newMember;
+}
+
+export function updateTeamMember(id: string, updates: Partial<TeamMember>) {
+  const current = getDynamicTeamMembers();
+  const updated = current.map((m) => (m.id === id ? { ...m, ...updates } : m));
+  saveDynamicTeamMembers(updated);
 }
 
 export function deleteTeamMember(id: string) {
@@ -49,7 +59,7 @@ export function deleteTeamMember(id: string) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 2. ÉVÉNEMENTS                                                              */
+/* 2. ÉVÉNEMENTS (100% DYNAMIQUE EN DB/STORE)                                 */
 /* -------------------------------------------------------------------------- */
 
 export function getDynamicEvents(): Ae2vEvent[] {
@@ -57,7 +67,8 @@ export function getDynamicEvents(): Ae2vEvent[] {
   try {
     const raw = localStorage.getItem(DYNAMIC_EVENTS_KEY);
     if (!raw) return demoEvents;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : demoEvents;
   } catch {
     return demoEvents;
   }
@@ -82,7 +93,8 @@ export function getDynamicShopProducts(): ShopProduct[] {
   try {
     const raw = localStorage.getItem(DYNAMIC_PRODUCTS_KEY);
     if (!raw) return shopProducts;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : shopProducts;
   } catch {
     return shopProducts;
   }
@@ -111,8 +123,6 @@ export type Ae2vNewsArticle = {
   content: string;
   author: string;
 };
-
-const DYNAMIC_NEWS_KEY = "ae2v_dynamic_news_v1";
 
 const initialNews: Ae2vNewsArticle[] = [
   {
@@ -174,8 +184,6 @@ export type Ae2vPartner = {
   active: boolean;
 };
 
-const DYNAMIC_PARTNERS_KEY = "ae2v_dynamic_partners_v1";
-
 const initialPartners: Ae2vPartner[] = [
   {
     id: "part-01",
@@ -236,8 +244,6 @@ export type AuditLogEntry = {
   action: string;
   details: string;
 };
-
-const DYNAMIC_AUDIT_KEY = "ae2v_dynamic_audit_v1";
 
 const initialAuditLogs: AuditLogEntry[] = [
   {
