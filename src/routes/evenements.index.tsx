@@ -1,10 +1,11 @@
+import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { EventCard } from "@/components/evenements/event-card";
 import { PageHero } from "@/components/layout/page-hero";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
-import { demoEvents } from "@/data/events";
+import { getDynamicEvents } from "@/lib/dynamic-store";
 import { hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
 import type { Audience } from "@/lib/event-pricing";
 
@@ -32,13 +33,21 @@ export const Route = createFileRoute("/evenements/")({
 
 function EvenementsPage() {
   const { account } = useDemoSession();
+  const [events, setEvents] = useState(getDynamicEvents());
+
+  useEffect(() => {
+    const handleChanged = () => setEvents(getDynamicEvents());
+    window.addEventListener("ae2v_events_changed", handleChanged);
+    return () => window.removeEventListener("ae2v_events_changed", handleChanged);
+  }, []);
+
   const audience: Audience = hasDiscount(account)
     ? "adherent"
     : isMember(account)
       ? "membre"
       : "public";
-  const upcoming = demoEvents.filter((e) => e.status !== "TERMINE");
-  const past = demoEvents.filter((e) => e.status === "TERMINE");
+  const upcoming = events.filter((e) => e.status !== "TERMINE");
+  const past = events.filter((e) => e.status === "TERMINE");
 
   return (
     <>

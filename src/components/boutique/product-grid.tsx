@@ -1,13 +1,23 @@
+import { useState, useEffect } from "react";
 import { ArrowUpRight } from "lucide-react";
 
 import { TapeLabel } from "@/components/brand";
-import { HELLOASSO_SHOP_URL, formatPrice, shopProducts } from "@/data/shop";
+import { HELLOASSO_SHOP_URL, formatPrice } from "@/data/shop";
+import { getDynamicShopProducts } from "@/lib/dynamic-store";
 
 export function ProductGrid() {
+  const [products, setProducts] = useState(getDynamicShopProducts());
+
+  useEffect(() => {
+    const handleChanged = () => setProducts(getDynamicShopProducts());
+    window.addEventListener("ae2v_products_changed", handleChanged);
+    return () => window.removeEventListener("ae2v_products_changed", handleChanged);
+  }, []);
+
   return (
     <div>
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {shopProducts.map((product) => (
+        {products.map((product) => (
           <li key={product.id} className="group relative">
             <article className="flex h-full flex-col border-2 border-ae2v-black bg-ae2v-offwhite transition-transform duration-200 group-hover:-translate-y-1 group-focus-within:-translate-y-1">
               <div className="relative overflow-hidden border-b-2 border-ae2v-black bg-white">
