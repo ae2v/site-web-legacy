@@ -1,6 +1,23 @@
 import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Mail, Users, Trash2, Plus, Eye, CheckCheck, Clock } from "lucide-react";
+import {
+  Mail,
+  Users,
+  Trash2,
+  Plus,
+  Eye,
+  CheckCheck,
+  Clock,
+  QrCode,
+  ShoppingBag,
+  Newspaper,
+  Handshake,
+  Download,
+  ShieldAlert,
+  FileText,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 
 import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
 import { contributionTone, membershipTone, today } from "@/components/bureau/dossier-fiche";
@@ -16,10 +33,13 @@ import {
   membershipStatusLabels,
   roleLabels,
   useDemoSession,
+  demoAccounts,
   type Candidature,
   type ContactMessage,
   type ContactMessageStatus,
   type Dossier,
+  type DemoOrder,
+  type DemoTicket,
 } from "@/lib/demo-session";
 import {
   getDynamicTeamMembers,
@@ -28,7 +48,16 @@ import {
   saveDynamicEvents,
   getDynamicShopProducts,
   saveDynamicShopProducts,
+  getDynamicNews,
+  saveDynamicNews,
+  getDynamicPartners,
+  saveDynamicPartners,
+  getDynamicAuditLogs,
+  addAuditLog,
   type TeamMember,
+  type Ae2vNewsArticle,
+  type Ae2vPartner,
+  type AuditLogEntry,
 } from "@/lib/dynamic-store";
 import { teamPoles, type TeamPole } from "@/data/team";
 import { eventStatusLabels, type Ae2vEvent, type EventStatus } from "@/data/events";
@@ -72,20 +101,32 @@ function BureauPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getDynamicTeamMembers());
   const [events, setEvents] = useState<Ae2vEvent[]>(getDynamicEvents());
   const [products, setProducts] = useState<ShopProduct[]>(getDynamicShopProducts());
+  const [newsArticles, setNewsArticles] = useState<Ae2vNewsArticle[]>(getDynamicNews());
+  const [partners, setPartners] = useState<Ae2vPartner[]>(getDynamicPartners());
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(getDynamicAuditLogs());
 
   useEffect(() => {
     const teamHandler = () => setTeamMembers(getDynamicTeamMembers());
     const eventHandler = () => setEvents(getDynamicEvents());
     const shopHandler = () => setProducts(getDynamicShopProducts());
+    const newsHandler = () => setNewsArticles(getDynamicNews());
+    const partnerHandler = () => setPartners(getDynamicPartners());
+    const auditHandler = () => setAuditLogs(getDynamicAuditLogs());
 
     window.addEventListener("ae2v_team_changed", teamHandler);
     window.addEventListener("ae2v_events_changed", eventHandler);
     window.addEventListener("ae2v_products_changed", shopHandler);
+    window.addEventListener("ae2v_news_changed", newsHandler);
+    window.addEventListener("ae2v_partners_changed", partnerHandler);
+    window.addEventListener("ae2v_audit_changed", auditHandler);
 
     return () => {
       window.removeEventListener("ae2v_team_changed", teamHandler);
       window.removeEventListener("ae2v_events_changed", eventHandler);
       window.removeEventListener("ae2v_products_changed", shopHandler);
+      window.removeEventListener("ae2v_news_changed", newsHandler);
+      window.removeEventListener("ae2v_partners_changed", partnerHandler);
+      window.removeEventListener("ae2v_audit_changed", auditHandler);
     };
   }, []);
 
@@ -205,6 +246,11 @@ function BureauPage() {
           { id: "equipe", label: "Équipe BDE", badge: teamMembers.length },
           { id: "evenements", label: "Événements", badge: events.length },
           { id: "boutique", label: "Boutique", badge: products.length },
+          { id: "scanner", label: "Scanner QR" },
+          { id: "commandes", label: "Commandes" },
+          { id: "actualites", label: "Actualités BDE", badge: newsArticles.length },
+          { id: "partenaires", label: "Partenaires", badge: partners.length },
+          { id: "exports", label: "Exports & Audit" },
         ]}
       />
 
@@ -548,15 +594,63 @@ function BureauPage() {
         </Section>
       </TabPanel>
 
-      {/* -------------------------------- Boutique -------------------------- */}
-      <TabPanel id="boutique" idPrefix="bureau" active={tab}>
+      {/* -------------------------------- Scanner QR ------------------------ */}
+      <TabPanel id="scanner" idPrefix="bureau" active={tab}>
         <Section
-          number={7}
-          ghost="BOUTIQUE"
-          title="Gestion de la boutique & produits"
-          intro="Modifiez les tarifs, disponibiltés ou basculez la visibilité des produits du catalogue."
+          number={8}
+          ghost="SCANNER"
+          title="Scanner & contrôle d'accès QR"
+          intro="Saisissez ou scannez un code de billet (ex: AE2V-TK-...) ou de carte membre pour vérifier la validité."
         >
-          <ShopManager products={products} />
+          <TicketScanner />
+        </Section>
+      </TabPanel>
+
+      {/* -------------------------------- Commandes ------------------------- */}
+      <TabPanel id="commandes" idPrefix="bureau" active={tab}>
+        <Section
+          number={9}
+          ghost="COMMANDES"
+          title="Gestion des commandes boutique"
+          intro="Suivez l'état des commandes passées par les étudiants et modifiez les statuts de retrait."
+        >
+          <OrdersManager />
+        </Section>
+      </TabPanel>
+
+      {/* ------------------------------- Actualités ------------------------- */}
+      <TabPanel id="actualites" idPrefix="bureau" active={tab}>
+        <Section
+          number={10}
+          ghost="ACTUS"
+          title="Publication d'actualités"
+          intro="Publiez des annonces ou communiqués sur le fil d'actualités public."
+        >
+          <NewsManager newsArticles={newsArticles} />
+        </Section>
+      </TabPanel>
+
+      {/* ------------------------------- Partenaires ------------------------ */}
+      <TabPanel id="partenaires" idPrefix="bureau" active={tab}>
+        <Section
+          number={11}
+          ghost="OFFRES"
+          title="Gestion des partenaires & réductions"
+          intro="Gérez les offres partenaires négociées pour les membres cotisants."
+        >
+          <PartnersManager partners={partners} />
+        </Section>
+      </TabPanel>
+
+      {/* ---------------------------- Exports & Audit ---------------------- */}
+      <TabPanel id="exports" idPrefix="bureau" active={tab}>
+        <Section
+          number={12}
+          ghost="EXPORT"
+          title="Exports CSV & Journal d'audit"
+          intro="Téléchargez les récapitulatifs au format CSV et consultez l'historique des actions admin."
+        >
+          <ExportsManager dossiers={dossiers} auditLogs={auditLogs} />
         </Section>
       </TabPanel>
     </>
@@ -1103,6 +1197,620 @@ function ShopManager({ products }: { products: ShopProduct[] }) {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* TicketScanner — scanner & contrôle d'accès QR                              */
+/* -------------------------------------------------------------------------- */
+
+function TicketScanner() {
+  const [code, setCode] = useState("");
+  const [result, setResult] = useState<{
+    type: "ticket" | "card";
+    owner: string;
+    details: string;
+    status: string;
+    valid: boolean;
+    ticketObj?: DemoTicket;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setResult(null);
+    const cleaned = code.trim().toUpperCase();
+    if (!cleaned) return;
+
+    // Check custom and demo accounts
+    const allAccs = demoAccounts;
+    let foundTicket: DemoTicket | null = null;
+    let ticketOwner = "";
+
+    for (const acc of allAccs) {
+      const matchTk = acc.tickets.find((t) => t.code.toUpperCase() === cleaned);
+      if (matchTk) {
+        foundTicket = matchTk;
+        ticketOwner = `${acc.firstName} ${acc.lastName} (${acc.email})`;
+        break;
+      }
+      if (acc.cardCode.toUpperCase() === cleaned) {
+        setResult({
+          type: "card",
+          owner: `${acc.firstName} ${acc.lastName}`,
+          details: `Carte de membre · Filière ${acc.departement} (${acc.niveau})`,
+          status: acc.membershipStatus === "VALIDE" ? "Valide (Adhérent cotisant)" : "En attente",
+          valid: acc.membershipStatus === "VALIDE",
+        });
+        addAuditLog(
+          "SCAN_CARTE",
+          `Carte membre scannée: ${acc.cardCode} (${acc.firstName} ${acc.lastName})`,
+        );
+        return;
+      }
+    }
+
+    if (foundTicket) {
+      setResult({
+        type: "ticket",
+        owner: ticketOwner,
+        details: `${foundTicket.eventTitle} · Tarif: ${foundTicket.tier}`,
+        status: foundTicket.status === "valide" ? "VALIDE (Prêt pour contrôle)" : "DÉJÀ UTILISÉ",
+        valid: foundTicket.status === "valide",
+        ticketObj: foundTicket,
+      });
+      addAuditLog("SCAN_BILLET", `Billet scanné: ${foundTicket.code} (${foundTicket.eventTitle})`);
+      return;
+    }
+
+    setError("Code invalide ou introuvable. Vérifiez la saisie.");
+  }
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <form onSubmit={handleVerify} className="border-2 border-ae2v-black bg-card p-6">
+        <label htmlFor="scanner-input" className="block font-impact text-lg uppercase">
+          Saisir ou scanner un QR Code
+        </label>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Exemples de codes billets : AE2V-TK-..., ou carte membre : AE2V-USER-...
+        </p>
+        <div className="mt-4 flex gap-2">
+          <input
+            id="scanner-input"
+            className={`${inputClass} flex-1 font-mono uppercase`}
+            placeholder="AE2V-TK-XXXX-YYYY"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+          <Button type="submit">
+            <QrCode className="size-4" />
+            Vérifier
+          </Button>
+        </div>
+      </form>
+
+      {error && (
+        <div className="flex items-center gap-3 border-2 border-ae2v-red bg-ae2v-red/10 p-4 text-ae2v-red">
+          <XCircle className="size-5 shrink-0" />
+          <p className="text-sm font-bold">{error}</p>
+        </div>
+      )}
+
+      {result && (
+        <div
+          className={`border-2 p-6 ${
+            result.valid ? "border-ae2v-green bg-ae2v-green/10" : "border-ae2v-red bg-ae2v-red/10"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-widest text-ae2v-black">
+              {result.type === "ticket" ? "Billet Événement" : "Carte Membre"}
+            </span>
+            <StatusPill tone={result.valid ? "green" : "red"}>{result.status}</StatusPill>
+          </div>
+          <h3 className="mt-3 font-impact text-2xl uppercase text-ae2v-black">{result.owner}</h3>
+          <p className="mt-1 text-sm font-bold text-ae2v-black/80">{result.details}</p>
+
+          {result.valid && result.type === "ticket" && (
+            <div className="mt-5 border-t-2 border-ae2v-black/20 pt-4">
+              <Button
+                variant="black"
+                onClick={() => {
+                  if (result.ticketObj) {
+                    result.ticketObj.status = "utilise";
+                    setResult({ ...result, status: "DÉJÀ UTILISÉ", valid: false });
+                    addAuditLog(
+                      "VALIDER_ENTREE",
+                      `Entrée validée pour le billet ${result.ticketObj.code}`,
+                    );
+                  }
+                }}
+              >
+                <CheckCircle2 className="size-4" />
+                Valider l'entrée (Composter le billet)
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* OrdersManager — gestion des commandes boutique                             */
+/* -------------------------------------------------------------------------- */
+
+function OrdersManager() {
+  const [ordersFilter, setOrdersFilter] = useState("TOUS");
+  const allOrders = useMemo(() => {
+    const list: (DemoOrder & { customer: string })[] = [];
+    demoAccounts.forEach((acc) => {
+      acc.orders.forEach((ord) => {
+        list.push({ ...ord, customer: `${acc.firstName} ${acc.lastName} (${acc.email})` });
+      });
+    });
+    return list;
+  }, []);
+
+  const [orders, setOrders] = useState(allOrders);
+
+  function handleUpdateStatus(orderId: string, status: DemoOrder["status"]) {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+    addAuditLog("STATUT_COMMANDE", `Commande ${orderId} passée au statut: ${status}`);
+  }
+
+  const filtered = orders.filter((o) => ordersFilter === "TOUS" || o.status === ordersFilter);
+
+  return (
+    <div className="space-y-6">
+      <div className="mb-4">
+        <TableFilter
+          id="filter-orders"
+          label="Statut"
+          value={ordersFilter}
+          onChange={setOrdersFilter}
+          options={[
+            { value: "TOUS", label: "Toutes" },
+            { value: "En préparation", label: "En préparation" },
+            { value: "Prête", label: "Prête" },
+            { value: "Retirée", label: "Retirée" },
+          ]}
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState label="Aucune commande" detail="Aucune commande boutique pour l'instant." />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {filtered.map((ord) => (
+            <div key={ord.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-impact text-lg uppercase text-ae2v-red">{ord.id}</span>
+                <StatusPill tone={ord.status === "Retirée" ? "green" : "neutral"}>
+                  {ord.status}
+                </StatusPill>
+              </div>
+              <p className="mt-2 text-xs font-bold text-muted-foreground">{ord.customer}</p>
+              <p className="text-xs text-muted-foreground">{ord.date}</p>
+
+              <div className="mt-3 flex-1 border-t border-ae2v-black/10 pt-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Articles :
+                </p>
+                <ul className="space-y-1 text-xs">
+                  {ord.lines.map((line, idx) => (
+                    <li key={idx} className="flex justify-between font-bold">
+                      <span>
+                        {line.qty}× {line.name} ({line.variant})
+                      </span>
+                      <span>{formatCents(line.priceCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-4 border-t border-ae2v-black/10 pt-3 flex flex-wrap gap-2">
+                <span className="w-full text-[0.65rem] font-bold uppercase text-muted-foreground">
+                  Changer statut :
+                </span>
+                <Button
+                  size="sm"
+                  variant={ord.status === "En préparation" ? "default" : "secondary"}
+                  onClick={() => handleUpdateStatus(ord.id, "En préparation")}
+                >
+                  En préparation
+                </Button>
+                <Button
+                  size="sm"
+                  variant={ord.status === "Prête" ? "default" : "secondary"}
+                  onClick={() => handleUpdateStatus(ord.id, "Prête")}
+                >
+                  Prête au retrait
+                </Button>
+                <Button
+                  size="sm"
+                  variant={ord.status === "Retirée" ? "default" : "secondary"}
+                  onClick={() => handleUpdateStatus(ord.id, "Retirée")}
+                >
+                  Marquer retirée
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* NewsManager — publication des actualités BDE                               */
+/* -------------------------------------------------------------------------- */
+
+function NewsManager({ newsArticles }: { newsArticles: Ae2vNewsArticle[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    category: "Annonce",
+    summary: "",
+    content: "",
+    author: "Bureau AE2V",
+  });
+
+  function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim() || !form.summary.trim()) return;
+
+    const newArticle: Ae2vNewsArticle = {
+      id: `news-${Date.now()}`,
+      title: form.title.trim(),
+      category: form.category,
+      date: new Date().toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+      summary: form.summary.trim(),
+      content: form.content.trim() || form.summary.trim(),
+      author: form.author.trim() || "Bureau AE2V",
+    };
+
+    saveDynamicNews([newArticle, ...newsArticles]);
+    addAuditLog("PUBLICATION_ACTU", `Nouvel article publié: "${newArticle.title}"`);
+    setForm({ title: "", category: "Annonce", summary: "", content: "", author: "Bureau AE2V" });
+    setShowForm(false);
+  }
+
+  function handleDelete(id: string) {
+    const updated = newsArticles.filter((n) => n.id !== id);
+    saveDynamicNews(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{newsArticles.length} article(s) publiés.</p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus className="size-4" />
+          {showForm ? "Annuler" : "Nouvel article"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleCreate}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider">Créer une actualité</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Titre de l'article *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Résultats du tournoi E-sport"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Catégorie</label>
+              <select
+                className={`${inputClass} mt-1`}
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              >
+                <option value="Annonce">Annonce</option>
+                <option value="Événement">Événement</option>
+                <option value="Vie étudiante">Vie étudiante</option>
+                <option value="Partenariat">Partenariat</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Auteur</label>
+              <input
+                className={`${inputClass} mt-1`}
+                value={form.author}
+                onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Résumé *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Description courte affichée dans la carte"
+                value={form.summary}
+                onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Contenu complet</label>
+              <textarea
+                className={`${inputClass} mt-1 min-h-[100px]`}
+                placeholder="Texte complet du communiqué..."
+                value={form.content}
+                onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit">Publier sur le site</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {newsArticles.map((art) => (
+          <div key={art.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
+            <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase">
+              <span className="text-ae2v-red">{art.category}</span>
+              <span>{art.date}</span>
+            </div>
+            <h3 className="mt-2 font-impact text-xl uppercase">{art.title}</h3>
+            <p className="mt-1 text-xs text-muted-foreground flex-1">{art.summary}</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-4 w-full"
+              onClick={() => handleDelete(art.id)}
+            >
+              <Trash2 className="size-3.5" />
+              Supprimer l'article
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* PartnersManager — gestion des partenaires BDE                             */
+/* -------------------------------------------------------------------------- */
+
+function PartnersManager({ partners }: { partners: Ae2vPartner[] }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    category: "Restauration",
+    discount: "",
+    description: "",
+    website: "",
+  });
+
+  function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.discount.trim()) return;
+
+    const newPartner: Ae2vPartner = {
+      id: `part-${Date.now()}`,
+      name: form.name.trim(),
+      category: form.category.trim(),
+      discount: form.discount.trim(),
+      description: form.description.trim(),
+      website: form.website.trim() || undefined,
+      active: true,
+    };
+
+    saveDynamicPartners([newPartner, ...partners]);
+    addAuditLog("Nouveau Partenaire", `Partenaire ajouté: ${newPartner.name}`);
+    setForm({ name: "", category: "Restauration", discount: "", description: "", website: "" });
+    setShowForm(false);
+  }
+
+  function handleToggleActive(id: string) {
+    const updated = partners.map((p) => (p.id === id ? { ...p, active: !p.active } : p));
+    saveDynamicPartners(updated);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {partners.length} partenaire(s) enregistrés.
+        </p>
+        <Button
+          size="sm"
+          onClick={() => setShowForm((v) => !v)}
+          variant={showForm ? "secondary" : "default"}
+        >
+          <Plus className="size-4" />
+          {showForm ? "Annuler" : "Ajouter un partenaire"}
+        </Button>
+      </div>
+
+      {showForm && (
+        <form
+          onSubmit={handleAdd}
+          className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wider">Nouveau partenaire</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold uppercase">Nom du partenaire *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Fitness Park Vélizy"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase">Catégorie</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. Sport, Restauration..."
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Avantage / Réduction *</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ex. -20% sur l'abonnement annuel"
+                value={form.discount}
+                onChange={(e) => setForm((f) => ({ ...f, discount: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase">Description</label>
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Conditions d'obtention de la remise..."
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit">Ajouter le partenaire</Button>
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {partners.map((p) => (
+          <div key={p.id} className="flex flex-col border-2 border-ae2v-black bg-card p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest text-ae2v-red">
+                {p.category}
+              </span>
+              <StatusPill tone={p.active ? "green" : "red"}>
+                {p.active ? "Actif" : "Inactif"}
+              </StatusPill>
+            </div>
+            <h3 className="mt-2 font-impact text-xl uppercase">{p.name}</h3>
+            <p className="mt-1 text-xs font-bold text-ae2v-black">{p.discount}</p>
+            <p className="mt-1 text-xs text-muted-foreground flex-1">{p.description}</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-4 w-full"
+              onClick={() => handleToggleActive(p.id)}
+            >
+              {p.active ? "Désactiver" : "Activer"}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* ExportsManager — exports CSV & journal d'audit                             */
+/* -------------------------------------------------------------------------- */
+
+function ExportsManager({
+  dossiers,
+  auditLogs,
+}: {
+  dossiers: Dossier[];
+  auditLogs: AuditLogEntry[];
+}) {
+  function downloadCsv(filename: string, content: string) {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    addAuditLog("EXPORT_CSV", `Export réalisé: ${filename}`);
+  }
+
+  function exportDossiersCsv() {
+    let csv = "ID,Nom,Prenom,Email,Filiere,Niveau,StatutAdhesion,StatutCotisation,SubmittedAt\n";
+    dossiers.forEach((d) => {
+      csv += `"${d.id}","${d.lastName}","${d.firstName}","${d.email}","${d.departement}","${d.niveau}","${d.status}","${d.contributionStatus}","${d.submittedAt}"\n`;
+    });
+    downloadCsv(`ae2v-dossiers-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="border-2 border-ae2v-black bg-card p-5">
+          <h3 className="font-impact text-xl uppercase">Exports de données</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Téléchargez les données archivées pour l'administration et la comptabilité du BDE.
+          </p>
+          <div className="mt-4 space-y-2">
+            <Button className="w-full" onClick={exportDossiersCsv}>
+              <Download className="size-4" />
+              Exporter les dossiers adhérents (CSV)
+            </Button>
+          </div>
+        </div>
+
+        <div className="border-2 border-ae2v-black bg-card p-5">
+          <h3 className="font-impact text-xl uppercase">Sécurité & conformité</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Conforme RGPD : données conservées uniquement pour l'année universitaire en cours.
+          </p>
+          <div className="mt-4 border-l-2 border-ae2v-green bg-ae2v-green/10 p-3 text-xs">
+            <p className="font-bold">✓ Sauvegarde automatique activée</p>
+            <p className="mt-0.5 text-muted-foreground">
+              Données synchronisées dans le stockage sécurisé du navigateur.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-2 border-ae2v-black bg-card p-5">
+        <h3 className="font-impact text-xl uppercase mb-3">Journal d'Audit des Actions Admin</h3>
+        <div className="space-y-2">
+          {auditLogs.map((log) => (
+            <div
+              key={log.id}
+              className="flex flex-wrap items-center justify-between gap-2 border-2 border-ae2v-black/10 bg-ae2v-offwhite p-3 text-xs"
+            >
+              <span className="font-mono text-muted-foreground">{log.timestamp}</span>
+              <span className="font-bold text-ae2v-red uppercase tracking-wider">{log.action}</span>
+              <span className="font-bold text-ae2v-black">{log.details}</span>
+              <span className="text-muted-foreground">par {log.user}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
