@@ -8,6 +8,7 @@ import { demoEvents, eventStatusLabels, findEvent, type Ae2vEvent } from "@/data
 import { formatCents, hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
 import { fillPercent, remainingSeats, tierForAudience, type Audience } from "@/lib/event-pricing";
 import { getDynamicEvents, saveDynamicEvents } from "@/lib/dynamic-store";
+import { generateRandom2026Code } from "@/lib/id-generator";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/evenements/$eventId")({
@@ -366,7 +367,7 @@ function RegistrationCta({
         place: event.place,
         tier: myTierLocal.label,
         priceCents: myTierLocal.priceCents,
-        code: `AE2V-TK-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        code: generateRandom2026Code("TK"),
         status: "valide",
       });
 

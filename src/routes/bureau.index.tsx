@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Mail,
   Users,
@@ -7,24 +7,28 @@ import {
   Plus,
   Eye,
   CheckCheck,
-  Clock,
   QrCode,
   ShoppingBag,
-  Download,
   CheckCircle2,
   XCircle,
   Send,
   Upload,
-  Calendar,
   CreditCard,
   UserCheck,
   Layers,
-  Sparkles,
-  Link as LinkIcon,
+  Receipt,
+  Copy,
+  RotateCcw,
+  Calendar,
+  ListFilter,
+  DollarSign,
+  Clock,
+  Printer,
+  X,
 } from "lucide-react";
 
-import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
-import { contributionTone, membershipTone, today } from "@/components/bureau/dossier-fiche";
+import { DataTable, StatusPill, TableFilter } from "@/components/bureau/data-table";
+import { contributionTone, membershipTone } from "@/components/bureau/dossier-fiche";
 import { PageHero } from "@/components/layout/page-hero";
 import { Section, EmptyState } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
@@ -32,13 +36,11 @@ import { Button } from "@/components/ui/button";
 import {
   candidatureStatusLabels,
   contactMessageStatusLabels,
-  contributionStatusLabels,
   formatCents,
   membershipStatusLabels,
   roleLabels,
   useDemoSession,
   demoAccounts,
-  type Candidature,
   type ContactMessage,
   type ContactMessageStatus,
   type Dossier,
@@ -58,12 +60,20 @@ import {
   type AuditLogEntry,
 } from "@/lib/dynamic-store";
 import { teamPoles, type TeamPole } from "@/data/team";
-import { eventStatusLabels, type Ae2vEvent, type EventStatus } from "@/data/events";
+import { eventStatusLabels, type Ae2vEvent, type EventStatus, type EventTier } from "@/data/events";
 import { formatPrice, type ShopProduct } from "@/data/shop";
 import { sendEmailFromBureau, getSiteConfig } from "@/lib/site-config";
 import { processImageFile } from "@/lib/image-utils";
+import { generateRandom2026Code } from "@/lib/id-generator";
+import {
+  getDynamicInvoices,
+  saveDynamicInvoices,
+  type Invoice,
+  type PaymentMethod,
+} from "@/lib/invoices-store";
 import { EmailComposerModal } from "@/components/bureau/email-composer-modal";
 import { PersonSheetModal, type UnifiedPerson } from "@/components/bureau/person-sheet-modal";
+import { PaymentModal } from "@/components/bureau/payment-modal";
 
 export const Route = createFileRoute("/bureau/")({
   head: () => ({
@@ -112,42 +122,52 @@ function BureauPage() {
   const [personnesTab, setPersonnesTab] = useState<"membres_valides" | "equipe_bde">(
     "membres_valides",
   );
-  const [gestionTab, setGestionTab] = useState<"evenements" | "boutique" | "commandes">(
-    "evenements",
-  );
+  const [gestionTab, setGestionTab] = useState<
+    "evenements" | "boutique" | "commandes" | "factures"
+  >("evenements");
 
   // Filtres de recherche
   const [membershipFilter, setMembershipFilter] = useState("TOUS");
   const [contribFilter, setContribFilter] = useState("TOUS");
-  const [candFilter, setCandFilter] = useState("TOUS");
   const [msgFilter, setMsgFilter] = useState("TOUS");
 
   // Dynamic Stores
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(getDynamicTeamMembers());
   const [events, setEvents] = useState<Ae2vEvent[]>(getDynamicEvents());
   const [products, setProducts] = useState<ShopProduct[]>(getDynamicShopProducts());
+  const [invoices, setInvoices] = useState<Invoice[]>(getDynamicInvoices());
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(getDynamicAuditLogs());
 
-  // Person Sheet & Global Email Modal State
+  // Person Sheet, Payment & Global Email Modal State
   const [selectedPerson, setSelectedPerson] = useState<UnifiedPerson | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailDefaultRecipient, setEmailDefaultRecipient] = useState("");
+  const [payModalConfig, setPayModalConfig] = useState<{
+    customerName: string;
+    customerEmail: string;
+    description: string;
+    priceCents: number;
+    onSuccessPay?: (inv: Invoice) => void;
+  } | null>(null);
 
   useEffect(() => {
     const teamHandler = () => setTeamMembers(getDynamicTeamMembers());
     const eventHandler = () => setEvents(getDynamicEvents());
     const shopHandler = () => setProducts(getDynamicShopProducts());
+    const invoiceHandler = () => setInvoices(getDynamicInvoices());
     const auditHandler = () => setAuditLogs(getDynamicAuditLogs());
 
     window.addEventListener("ae2v_team_changed", teamHandler);
     window.addEventListener("ae2v_events_changed", eventHandler);
     window.addEventListener("ae2v_products_changed", shopHandler);
+    window.addEventListener("ae2v_invoices_changed", invoiceHandler);
     window.addEventListener("ae2v_audit_changed", auditHandler);
 
     return () => {
       window.removeEventListener("ae2v_team_changed", teamHandler);
       window.removeEventListener("ae2v_events_changed", eventHandler);
       window.removeEventListener("ae2v_products_changed", shopHandler);
+      window.removeEventListener("ae2v_invoices_changed", invoiceHandler);
       window.removeEventListener("ae2v_audit_changed", auditHandler);
     };
   }, []);
@@ -201,15 +221,22 @@ function BureauPage() {
       niveau: dossier.niveau,
       status: dossier.status,
       contributionStatus: dossier.contributionStatus,
-      cardCode: matchedAccount?.cardCode || `AE2V-USER-${dossier.id}`,
+      cardCode: matchedAccount?.cardCode || generateRandom2026Code("USR"),
       tickets: matchedAccount?.tickets || [],
       orders: matchedAccount?.orders || [],
     });
   }
 
-  function handleValidateContribution(dossierId: string) {
-    updateDossier(dossierId, { contributionStatus: "PAYEE" });
-    addAuditLog("VALIDATION_COTISATION", `Cotisation validée pour dossier ${dossierId}`);
+  function handleOpenPayModalForContribution(dossier: Dossier) {
+    setPayModalConfig({
+      customerName: `${dossier.firstName} ${dossier.lastName}`,
+      customerEmail: dossier.email,
+      description: "Cotisation Annuelle Adhérent BDE AE2V 2026-2027",
+      priceCents: 1200,
+      onSuccessPay: () => {
+        updateDossier(dossier.id, { contributionStatus: "PAYEE" });
+      },
+    });
   }
 
   return (
@@ -219,14 +246,12 @@ function BureauPage() {
         title="Bureau BDE AE2V"
         intro={
           can("dossiers:validate")
-            ? "Outil d'administration unifié : scanner QR, adhésions, membres, billetterie et boutique."
+            ? "Outil d'administration unifié : scanner QR 2026, adhésions, membres, billetterie, boutique et facturation."
             : "Droits limités : consultation et correction des demandes."
         }
       />
 
-      {/* -------------------------------------------------------------------- */}
-      {/* NAV PRINCIPALE : 4 SECTIONS STRICTES                                 */}
-      {/* -------------------------------------------------------------------- */}
+      {/* NAV PRINCIPALE : 4 SECTIONS STRICTES */}
       <div className="border-y-2 border-ae2v-black bg-ae2v-black p-2 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2">
           <div className="flex flex-wrap gap-2">
@@ -271,23 +296,22 @@ function BureauPage() {
         </div>
       </div>
 
-      {/* ==================================================================== */}
-      {/* SECTION 1 : SCANNER QRCODE                                            */}
-      {/* ==================================================================== */}
+      {/* SECTION 1 : SCANNER QRCODE */}
       {mainSection === "scanner" && (
         <Section
           number={1}
           ghost="SCANNER"
-          title="Scanner & Contrôle QR Code"
-          intro="Scanner un QR code de billet ou de carte membre pour afficher directement la fiche personne et exécuter les actions rapides."
+          title="Scanner & Contrôle QR Code 2026"
+          intro="Scannez un code billet ou membre pour afficher en priorité ses paiements et cotisations en attente avec encaissement direct."
         >
-          <TicketScanner onOpenPersonSheet={(person) => setSelectedPerson(person)} />
+          <TicketScanner
+            onOpenPersonSheet={(person) => setSelectedPerson(person)}
+            onOpenPaymentModal={(config) => setPayModalConfig(config)}
+          />
         </Section>
       )}
 
-      {/* ==================================================================== */}
-      {/* SECTION 2 : DEMANDES (DÉFAUT)                                         */}
-      {/* ==================================================================== */}
+      {/* SECTION 2 : DEMANDES (DÉFAUT) */}
       {mainSection === "demandes" && (
         <>
           <TabsNav
@@ -410,7 +434,7 @@ function BureauPage() {
               number={2}
               ghost="COTISATIONS"
               title="Cotisations en attente de règlement"
-              intro="Liste des membres validés dont le paiement de la cotisation BDE (12 €) doit être encaissé."
+              intro="Encaissez les cotisations BDE (12 €) avec sélection du mode de paiement et émission de facture."
             >
               {pendingContributions.length === 0 ? (
                 <EmptyState
@@ -442,11 +466,11 @@ function BureauPage() {
                     { key: "filiere", label: "Filière", render: (d) => d.departement },
                     {
                       key: "action",
-                      label: "Action rapide",
+                      label: "Encaissement",
                       render: (d) => (
-                        <Button size="sm" onClick={() => handleValidateContribution(d.id)}>
+                        <Button size="sm" onClick={() => handleOpenPayModalForContribution(d)}>
                           <CreditCard className="size-3.5" />
-                          Valider la cotisation (12 €)
+                          Encaisser Cotisation (12 €)
                         </Button>
                       ),
                     },
@@ -518,9 +542,7 @@ function BureauPage() {
         </>
       )}
 
-      {/* ==================================================================== */}
-      {/* SECTION 3 : PERSONNES                                                 */}
-      {/* ==================================================================== */}
+      {/* SECTION 3 : PERSONNES */}
       {mainSection === "personnes" && (
         <>
           <TabsNav
@@ -541,7 +563,7 @@ function BureauPage() {
               number={3}
               ghost="ANNUAIRE"
               title="Annuaire des Membres Validés"
-              intro="Les données d'identité des membres sont verrouillées par sécurité. Cliquez sur une ligne pour ouvrir le profil unifié."
+              intro="Données verrouillées par sécurité. Cliquez sur un membre pour ouvrir sa fiche unifiée."
             >
               <DataTable
                 data={members}
@@ -549,7 +571,7 @@ function BureauPage() {
                   {
                     key: "id",
                     label: "N° Carte",
-                    render: (d) => <span className="font-mono text-xs">AE2V-USER-{d.id}</span>,
+                    render: (d) => <span className="font-mono text-xs">AE2V-2026-USR-{d.id}</span>,
                   },
                   {
                     key: "name",
@@ -598,7 +620,7 @@ function BureauPage() {
               number={3}
               ghost="ÉQUIPE"
               title="Gestion de l'Équipe BDE"
-              intro="Définissez les rôles, pôles et adresses de fonction @ae2v.fr affichés sur la page publique /bde/equipe."
+              intro="Définissez les rôles, pôles et adresses de fonction @ae2v.fr affichés sur /bde/equipe."
             >
               <TeamManager teamMembers={teamMembers} />
             </Section>
@@ -606,9 +628,7 @@ function BureauPage() {
         </>
       )}
 
-      {/* ==================================================================== */}
-      {/* SECTION 4 : GESTION                                                   */}
-      {/* ==================================================================== */}
+      {/* SECTION 4 : GESTION */}
       {mainSection === "gestion" && (
         <>
           <TabsNav
@@ -618,9 +638,10 @@ function BureauPage() {
             active={gestionTab}
             onChange={(t) => setGestionTab(t as typeof gestionTab)}
             tabs={[
-              { id: "evenements", label: "Événements", badge: events.length },
-              { id: "boutique", label: "Boutique", badge: products.length },
+              { id: "evenements", label: "Événements & Billetterie", badge: events.length },
+              { id: "boutique", label: "Boutique & Catalogue", badge: products.length },
               { id: "commandes", label: "Commandes HelloAsso" },
+              { id: "factures", label: "Factures & Reçus", badge: invoices.length },
             ]}
           />
 
@@ -629,10 +650,13 @@ function BureauPage() {
             <Section
               number={4}
               ghost="AGENDA"
-              title="Gestion des événements & billetterie"
-              intro="Formulaire d'ajout/édition avec recadrage d'image 16:9 et preview sous le tableau."
+              title="Gestion Avancée des Événements"
+              intro="Statuts complets (Brouillon, Ouvert, Complet, Terminé -> Republier), duplication, tarifs dynamiques & liste d'inscrits."
             >
-              <EventManager events={events} />
+              <EventManager
+                events={events}
+                onOpenPayModal={(config) => setPayModalConfig(config)}
+              />
             </Section>
           </TabPanel>
 
@@ -659,6 +683,18 @@ function BureauPage() {
               <OrdersManager dossiers={dossiers} />
             </Section>
           </TabPanel>
+
+          {/* Sub-tab 4: Factures & Reçus */}
+          <TabPanel id="factures" idPrefix="gestion" active={gestionTab}>
+            <Section
+              number={4}
+              ghost="COMPTA"
+              title="Registre des Factures & Reçus de Règlement"
+              intro="Historique de tous les encaissements effectués par l'association avec mode de paiement et détail des lignes."
+            >
+              <InvoicesManager invoices={invoices} />
+            </Section>
+          </TabPanel>
         </>
       )}
 
@@ -667,7 +703,10 @@ function BureauPage() {
         isOpen={!!selectedPerson}
         onClose={() => setSelectedPerson(null)}
         person={selectedPerson}
-        onUpdateContribution={handleValidateContribution}
+        onUpdateContribution={(id) => {
+          const dossier = dossiers.find((d) => d.id === id);
+          if (dossier) handleOpenPayModalForContribution(dossier);
+        }}
       />
 
       <EmailComposerModal
@@ -675,15 +714,41 @@ function BureauPage() {
         onClose={() => setEmailModalOpen(false)}
         defaultRecipient={emailDefaultRecipient}
       />
+
+      {payModalConfig && (
+        <PaymentModal
+          isOpen={!!payModalConfig}
+          onClose={() => setPayModalConfig(null)}
+          customerName={payModalConfig.customerName}
+          customerEmail={payModalConfig.customerEmail}
+          defaultDescription={payModalConfig.description}
+          defaultPriceCents={payModalConfig.priceCents}
+          onSuccessPay={(inv) => {
+            if (payModalConfig.onSuccessPay) payModalConfig.onSuccessPay(inv);
+          }}
+        />
+      )}
     </>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* TicketScanner Component                                                    */
+/* TicketScanner Component with Priority Pending Payments                     */
 /* -------------------------------------------------------------------------- */
 
-function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPerson) => void }) {
+function TicketScanner({
+  onOpenPersonSheet,
+  onOpenPaymentModal,
+}: {
+  onOpenPersonSheet: (p: UnifiedPerson) => void;
+  onOpenPaymentModal: (config: {
+    customerName: string;
+    customerEmail: string;
+    description: string;
+    priceCents: number;
+    onSuccessPay?: (inv: Invoice) => void;
+  }) => void;
+}) {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<{
     type: "ticket" | "card";
@@ -750,23 +815,23 @@ function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPe
       return;
     }
 
-    setError("Code invalide ou introuvable dans la base.");
+    setError("Code 2026 invalide ou introuvable dans la base.");
   }
 
   return (
     <div className="max-w-2xl space-y-6">
       <form onSubmit={handleVerify} className="border-2 border-ae2v-black bg-card p-6">
         <label htmlFor="scanner-input" className="block font-impact text-lg uppercase">
-          Saisir ou scanner un QR Code
+          Saisir ou scanner un QR Code 2026
         </label>
         <p className="mt-1 text-xs text-muted-foreground">
-          Ex. billet : AE2V-TK-..., carte membre : AE2V-USER-...
+          Format imprévisible ex : AE2V-2026-TK-X7K9P2M4 ou AE2V-2026-USR-3R8W1L9V
         </p>
         <div className="mt-4 flex gap-2">
           <input
             id="scanner-input"
             className="min-h-[44px] flex-1 border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 font-mono text-sm uppercase outline-none focus:border-ae2v-red"
-            placeholder="AE2V-TK-XXXX-YYYY"
+            placeholder="AE2V-2026-TK-XXXXXXXX"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
@@ -786,7 +851,7 @@ function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPe
 
       {result && (
         <div
-          className={`border-2 p-6 ${
+          className={`border-2 p-6 space-y-4 ${
             result.valid ? "border-ae2v-green bg-ae2v-green/10" : "border-ae2v-red bg-ae2v-red/10"
           }`}
         >
@@ -796,10 +861,41 @@ function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPe
             </span>
             <StatusPill tone={result.valid ? "green" : "red"}>{result.status}</StatusPill>
           </div>
-          <h3 className="mt-3 font-impact text-2xl uppercase text-ae2v-black">{result.owner}</h3>
-          <p className="mt-1 text-sm font-bold text-ae2v-black/80">{result.details}</p>
 
-          <div className="mt-5 border-t-2 border-ae2v-black/20 pt-4 flex flex-wrap gap-2">
+          <div>
+            <h3 className="font-impact text-2xl uppercase text-ae2v-black">{result.owner}</h3>
+            <p className="text-xs text-muted-foreground">{result.email}</p>
+            <p className="mt-1 text-sm font-bold text-ae2v-black/80">{result.details}</p>
+          </div>
+
+          {/* Affichage Prioritaire des Paiements en Attente */}
+          {result.matchedDossier && result.matchedDossier.contributionStatus === "EN_ATTENTE" && (
+            <div className="border-2 border-ae2v-red bg-card p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase text-ae2v-red flex items-center gap-1">
+                  ⚠️ Cotisation BDE en Attente de Règlement
+                </p>
+                <span className="font-impact text-base text-ae2v-black">12,00 €</span>
+              </div>
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  onOpenPaymentModal({
+                    customerName: result.owner,
+                    customerEmail: result.email,
+                    description: "Cotisation Annuelle Adhérent BDE AE2V 2026-2027",
+                    priceCents: 1200,
+                  });
+                }}
+              >
+                <CreditCard className="size-4" />
+                Encaisser Cotisation & Générer Facture (12 €)
+              </Button>
+            </div>
+          )}
+
+          <div className="border-t-2 border-ae2v-black/20 pt-4 flex flex-wrap gap-2">
             {result.valid && result.type === "ticket" && (
               <Button
                 variant="black"
@@ -849,6 +945,9 @@ function TicketScanner({ onOpenPersonSheet }: { onOpenPersonSheet: (p: UnifiedPe
 /* MessageCard Component with In-App Mail Reply                               */
 /* -------------------------------------------------------------------------- */
 
+const inputClass =
+  "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-sm text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
+
 function MessageCard({
   msg,
   onUpdateStatus,
@@ -884,9 +983,6 @@ function MessageCard({
       setSentNotice("✕ Erreur d'envoi e-mail.");
     }
   }
-
-  const inputClass =
-    "min-h-[40px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-xs text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
 
   return (
     <li
@@ -999,9 +1095,6 @@ function MessageCard({
 /* -------------------------------------------------------------------------- */
 /* TeamManager Component                                                      */
 /* -------------------------------------------------------------------------- */
-
-const inputClass =
-  "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-base text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
 
 function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
   const [showForm, setShowForm] = useState(false);
@@ -1167,12 +1260,25 @@ function TeamManager({ teamMembers }: { teamMembers: TeamMember[] }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* EventManager Component with Image Crop (16:9) & Live Preview               */
+/* EventManager Component with Duplication, Multi-Tiers & Attendees List      */
 /* -------------------------------------------------------------------------- */
 
-function EventManager({ events }: { events: Ae2vEvent[] }) {
+function EventManager({
+  events,
+  onOpenPayModal,
+}: {
+  events: Ae2vEvent[];
+  onOpenPayModal: (config: {
+    customerName: string;
+    customerEmail: string;
+    description: string;
+    priceCents: number;
+    onSuccessPay?: (inv: Invoice) => void;
+  }) => void;
+}) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewAttendeesId, setViewAttendeesId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("Soirée");
@@ -1183,6 +1289,16 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [description, setDescription] = useState("");
 
+  // Paliers de tarifs configurables
+  const [tiers, setTiers] = useState<EventTier[]>([
+    { id: "adh", label: "Tarif Adhérent Cotisant", priceCents: 500, audience: "adherent" },
+    { id: "membre", label: "Tarif Membre Non-Cotisant", priceCents: 800, audience: "membre" },
+    { id: "pub", label: "Tarif Public Extérieur", priceCents: 1000, audience: "public" },
+  ]);
+
+  const [customTierLabel, setCustomTierLabel] = useState("");
+  const [customTierPrice, setCustomTierPrice] = useState(1200);
+
   async function handleImageDrop(file: File) {
     try {
       const croppedDataUrl = await processImageFile(file, "16:9", 800);
@@ -1190,6 +1306,22 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
     } catch {
       alert("Impossible d'importer l'image");
     }
+  }
+
+  function handleAddCustomTier() {
+    if (!customTierLabel.trim()) return;
+    const newTier: EventTier = {
+      id: `custom-${Date.now()}`,
+      label: customTierLabel.trim(),
+      priceCents: Number(customTierPrice),
+      audience: "public",
+    };
+    setTiers([...tiers, newTier]);
+    setCustomTierLabel("");
+  }
+
+  function handleRemoveTier(id: string) {
+    setTiers(tiers.filter((t) => t.id !== id));
   }
 
   function handleSave(e: React.FormEvent) {
@@ -1208,11 +1340,12 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
               capacity: Number(capacity),
               status,
               description: description.trim() || ev.description,
+              tiers,
             }
           : ev,
       );
       saveDynamicEvents(updated);
-      addAuditLog("EDIT_EVENEMENT", `Événement modifié: ${title}`);
+      addAuditLog("EDIT_EVENEMENT", `Événement édité: ${title}`);
     } else {
       const newEvent: Ae2vEvent = {
         id: `event-${Date.now()}`,
@@ -1221,22 +1354,42 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
         subtitle: "Événement officiel BDE",
         kind: kind.trim(),
         date: date.trim(),
+        isoDate: new Date().toISOString(),
+        doors: "20h00",
         place: place.trim(),
+        address: "Campus Vélizy",
+        summary: title.trim(),
+        description: description.trim() || "Événement BDE AE2V.",
+        image: imagePreview || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800",
+        program: [],
+        access: "Campus Vélizy",
+        practical: ["Billet nominatif", "Pièce d'identité obligatoire"],
         capacity: Number(capacity),
         registered: 0,
+        registrationOpensAt: "Immédiat",
+        registrationClosesAt: "Veille de l'événement",
         status,
         waitlist: true,
-        registrationOpensAt: "Immédiat",
-        description: description.trim() || "Soirée et animation organisée par le BDE AE2V.",
-        pricePublicCents: 800,
-        priceMemberCents: 500,
-        isDemo: false,
+        tiers,
+        isDemo: true,
       };
       saveDynamicEvents([newEvent, ...events]);
-      addAuditLog("CREATION_EVENEMENT", `Nouvel événement créé: ${newEvent.title}`);
+      addAuditLog("CREATION_EVENEMENT", `Événement créé: ${newEvent.title}`);
     }
 
     resetForm();
+  }
+
+  function handleDuplicate(event: Ae2vEvent) {
+    const clone: Ae2vEvent = {
+      ...event,
+      id: `event-${Date.now()}`,
+      title: `${event.title} [COPIE]`,
+      registered: 0,
+      status: "NON_PUBLIE",
+    };
+    saveDynamicEvents([clone, ...events]);
+    addAuditLog("DUPLIQUER_EVENEMENT", `Événement dupliqué: ${event.title}`);
   }
 
   function resetForm() {
@@ -1258,18 +1411,22 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
     setCapacity(event.capacity);
     setStatus(event.status);
     setDescription(event.description);
+    setTiers(event.tiers || []);
     setShowForm(true);
   }
 
   function handleUpdateStatus(id: string, newStatus: EventStatus) {
     const updated = events.map((e) => (e.id === id ? { ...e, status: newStatus } : e));
     saveDynamicEvents(updated);
+    addAuditLog("STATUT_EVENEMENT", `Statut événement ${id} changé pour : ${newStatus}`);
   }
+
+  const selectedAttendeesEvent = events.find((e) => e.id === viewAttendeesId);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{events.length} événements enregistrés.</p>
+        <p className="text-sm text-muted-foreground">{events.length} événements répertoriés.</p>
         <Button
           size="sm"
           onClick={() => setShowForm((v) => !v)}
@@ -1286,7 +1443,7 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
           className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 text-ae2v-black space-y-4"
         >
           <p className="text-xs font-bold uppercase tracking-wider">
-            {editingId ? "Éditer l'événement" : "Nouveau formulaire événement"}
+            {editingId ? "Éditer l'événement & Grille tarifaire" : "Créer un nouvel événement"}
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1301,7 +1458,7 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase">Catégorie / Type *</label>
+              <label className="block text-xs font-bold uppercase">Catégorie *</label>
               <input
                 className={`${inputClass} mt-1`}
                 placeholder="Ex. Soirée, Gala, Tournoi"
@@ -1314,7 +1471,7 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
               <label className="block text-xs font-bold uppercase">Date & Heure *</label>
               <input
                 className={`${inputClass} mt-1`}
-                placeholder="Ex. Vendredi 15 Octobre 2026 à 21h00"
+                placeholder="Ex. Jeudi 24 Octobre 2026 à 21h00"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
@@ -1341,9 +1498,76 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
                 required
               />
             </div>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold uppercase mb-1">
-                Visuel Bannière (Upload & Recadrage 16:9 Auto)
+                Statut initial de l'événement
+              </label>
+              <select
+                className={`${inputClass} font-bold`}
+                value={status}
+                onChange={(e) => setStatus(e.target.value as EventStatus)}
+              >
+                <option value="NON_PUBLIE">Brouillon / Non publié</option>
+                <option value="OUVERT">Inscriptions ouvertes</option>
+                <option value="BIENTOT">Bientôt disponible</option>
+                <option value="COMPLET">Complet</option>
+                <option value="TERMINE">Terminé / Archivé</option>
+              </select>
+            </div>
+
+            {/* Grille Tarifaire Dynamique */}
+            <div className="sm:col-span-2 border-2 border-ae2v-black bg-card p-4 space-y-3">
+              <p className="text-xs font-bold uppercase text-ae2v-red">
+                Grille Tarifaire Multi-Paliers
+              </p>
+              <div className="space-y-2">
+                {tiers.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between border-2 border-ae2v-black/10 bg-ae2v-offwhite p-2 text-xs"
+                  >
+                    <span className="font-bold">{t.label}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-sm">
+                        {formatCents(t.priceCents)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTier(t.id)}
+                        className="text-ae2v-red font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 pt-2 text-xs">
+                <input
+                  className={`${inputClass} flex-1 text-xs`}
+                  placeholder="Nom du tarif custom"
+                  value={customTierLabel}
+                  onChange={(e) => setCustomTierLabel(e.target.value)}
+                />
+                <input
+                  className={`${inputClass} w-28 text-xs`}
+                  type="number"
+                  step="50"
+                  placeholder="Prix (cts)"
+                  value={customTierPrice}
+                  onChange={(e) => setCustomTierPrice(Number(e.target.value))}
+                />
+                <Button type="button" size="sm" variant="secondary" onClick={handleAddCustomTier}>
+                  + Ajouter tarif
+                </Button>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold uppercase mb-1">
+                Bannière (Upload & Recadrage 16:9 Auto)
               </label>
               <div
                 className="border-2 border-dashed border-ae2v-black/40 p-6 text-center bg-card hover:bg-ae2v-offwhite cursor-pointer"
@@ -1370,17 +1594,17 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
                   htmlFor="event-img-upload"
                   className="mt-2 inline-block text-xs underline font-bold text-ae2v-red cursor-pointer"
                 >
-                  Sélectionner un fichier image
+                  Sélectionner un fichier
                 </label>
               </div>
             </div>
           </div>
 
-          {/* Aperçu en temps réel (Preview) */}
+          {/* Live Preview */}
           {(title || imagePreview) && (
             <div className="mt-4 border-2 border-ae2v-black bg-card p-4">
               <p className="text-[0.65rem] font-bold uppercase tracking-widest text-ae2v-red mb-2">
-                Aperçu visuel de la fiche (Live Preview)
+                Aperçu en temps réel (Live Preview)
               </p>
               {imagePreview && (
                 <img
@@ -1397,9 +1621,7 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
           )}
 
           <div className="flex gap-2">
-            <Button type="submit">
-              {editingId ? "Enregistrer les modifications" : "Publier l'événement"}
-            </Button>
+            <Button type="submit">{editingId ? "Enregistrer" : "Créer l'événement"}</Button>
             <Button type="button" variant="secondary" onClick={resetForm}>
               Annuler
             </Button>
@@ -1407,16 +1629,16 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
         </form>
       )}
 
-      {/* Tableau Simple en Lignes des Événements */}
+      {/* Tableau des Événements avec Statuts Complexe & Duplication */}
       <div className="border-2 border-ae2v-black bg-card">
         <div className="border-b-2 border-ae2v-black bg-ae2v-black px-4 py-3 text-white font-impact text-sm uppercase tracking-wide">
-          Tableau des événements
+          Tableau de gestion des événements
         </div>
         <div className="divide-y-2 divide-ae2v-black/10">
           {events.map((event) => (
             <div key={event.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-bold text-sm">{event.title}</span>
                   <StatusPill
                     tone={
@@ -1434,24 +1656,164 @@ function EventManager({ events }: { events: Ae2vEvent[] }) {
                   {event.date} · {event.place} · Jauge : {event.registered} / {event.capacity}
                 </p>
               </div>
+
+              {/* Actions flexibles de statuts */}
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={() => handleStartEdit(event)}>
-                  Éditer & Preview
-                </Button>
                 <Button
                   size="sm"
-                  variant={event.status === "OUVERT" ? "default" : "secondary"}
-                  onClick={() =>
-                    handleUpdateStatus(event.id, event.status === "OUVERT" ? "COMPLET" : "OUVERT")
-                  }
+                  variant="secondary"
+                  onClick={() => handleDuplicate(event)}
+                  title="Dupliquer"
                 >
-                  {event.status === "OUVERT" ? "Marquer complet" : "Ouvrir inscriptions"}
+                  <Copy className="size-3.5" />
+                  Dupliquer
                 </Button>
+
+                <Button size="sm" variant="secondary" onClick={() => setViewAttendeesId(event.id)}>
+                  <Users className="size-3.5" />
+                  Inscrits & Paiements
+                </Button>
+
+                <Button size="sm" variant="secondary" onClick={() => handleStartEdit(event)}>
+                  Éditer
+                </Button>
+
+                {event.status === "TERMINE" ? (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleUpdateStatus(event.id, "OUVERT")}
+                  >
+                    <RotateCcw className="size-3.5" />
+                    Republier
+                  </Button>
+                ) : (
+                  <>
+                    {event.status === "NON_PUBLIE" && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleUpdateStatus(event.id, "OUVERT")}
+                      >
+                        Publier
+                      </Button>
+                    )}
+                    {event.status === "OUVERT" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleUpdateStatus(event.id, "COMPLET")}
+                        >
+                          Marquer complet
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="black"
+                          onClick={() => handleUpdateStatus(event.id, "TERMINE")}
+                        >
+                          Terminer / Archiver
+                        </Button>
+                      </>
+                    )}
+                    {event.status === "COMPLET" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleUpdateStatus(event.id, "OUVERT")}
+                        >
+                          Réouvrir
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="black"
+                          onClick={() => handleUpdateStatus(event.id, "TERMINE")}
+                        >
+                          Terminer
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Modal Liste des Inscrits par Événement */}
+      {selectedAttendeesEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ae2v-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-3xl max-h-[85vh] overflow-y-auto border-2 border-ae2v-black bg-card shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b-2 border-ae2v-black pb-3">
+              <h3 className="font-impact text-xl uppercase">
+                Inscrits & Paiements — {selectedAttendeesEvent.title}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setViewAttendeesId(null)}
+                className="p-1 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Jauge actuelle :{" "}
+              <strong>
+                {selectedAttendeesEvent.registered} / {selectedAttendeesEvent.capacity}
+              </strong>{" "}
+              inscrits.
+            </p>
+
+            <div className="space-y-2">
+              {demoAccounts
+                .filter((a) => a.tickets.some((t) => t.eventId === selectedAttendeesEvent.id))
+                .map((acc) => {
+                  const tk = acc.tickets.find((t) => t.eventId === selectedAttendeesEvent.id);
+                  return (
+                    <div
+                      key={acc.id}
+                      className="flex items-center justify-between border-2 border-ae2v-black/10 bg-ae2v-offwhite p-3 text-xs"
+                    >
+                      <div>
+                        <p className="font-bold">
+                          {acc.firstName} {acc.lastName}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {acc.email} · Billet N°{" "}
+                          <span className="font-mono font-bold">{tk?.code}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusPill tone={tk?.status === "valide" ? "green" : "neutral"}>
+                          {tk?.status}
+                        </StatusPill>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            onOpenPayModal({
+                              customerName: `${acc.firstName} ${acc.lastName}`,
+                              customerEmail: acc.email,
+                              description: `Billet : ${selectedAttendeesEvent.title} (${tk?.tier})`,
+                              priceCents: tk?.priceCents || 800,
+                            });
+                          }}
+                        >
+                          Encaisser & Facture
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <Button className="w-full" variant="secondary" onClick={() => setViewAttendeesId(null)}>
+              Fermer
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1657,7 +2019,7 @@ function ShopManager({ products }: { products: ShopProduct[] }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* OrdersManager Component (With HelloAsso Order Addition & Customer Binding) */
+/* OrdersManager Component                                                    */
 /* -------------------------------------------------------------------------- */
 
 function OrdersManager({ dossiers }: { dossiers: Dossier[] }) {
@@ -1686,7 +2048,7 @@ function OrdersManager({ dossiers }: { dossiers: Dossier[] }) {
     const matchedDossier = dossiers.find((d) => d.email === selectedStudentEmail);
     const newOrd: DemoOrder & { customer: string } = {
       id: `HA-${helloAssoRef.trim().toUpperCase()}`,
-      date: today(),
+      date: new Date().toLocaleDateString("fr-FR"),
       totalCents: Number(priceCents),
       status: "En préparation",
       customer: matchedDossier
@@ -1847,6 +2209,132 @@ function OrdersManager({ dossiers }: { dossiers: Dossier[] }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* InvoicesManager Component (Factures & Reçus AE2V)                          */
+/* -------------------------------------------------------------------------- */
+
+function InvoicesManager({ invoices }: { invoices: Invoice[] }) {
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{invoices.length} facture(s) émise(s).</p>
+      </div>
+
+      <DataTable
+        data={invoices}
+        columns={[
+          {
+            key: "id",
+            label: "N° Facture",
+            render: (inv) => (
+              <span className="font-mono font-bold text-xs text-ae2v-red">{inv.id}</span>
+            ),
+          },
+          { key: "date", label: "Date", render: (inv) => inv.date },
+          {
+            key: "customer",
+            label: "Client",
+            render: (inv) => <span className="font-bold">{inv.customerName}</span>,
+          },
+          {
+            key: "method",
+            label: "Mode de règlement",
+            render: (inv) => <StatusPill tone="neutral">{inv.paymentMethod}</StatusPill>,
+          },
+          {
+            key: "total",
+            label: "Montant TTC",
+            render: (inv) => (
+              <span className="font-impact text-base">{formatCents(inv.totalCents)}</span>
+            ),
+          },
+          {
+            key: "action",
+            label: "Reçu",
+            render: (inv) => (
+              <Button size="sm" variant="secondary" onClick={() => setSelectedInvoice(inv)}>
+                <Printer className="size-3.5" />
+                Voir le Reçu
+              </Button>
+            ),
+          },
+        ]}
+      />
+
+      {/* Modal Reçu de Facture */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ae2v-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg border-2 border-ae2v-black bg-card shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b-2 border-ae2v-black pb-3">
+              <div className="flex items-center gap-2">
+                <Receipt className="size-5 text-ae2v-red" />
+                <h3 className="font-impact text-xl uppercase">Reçu de Règlement AE2V</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInvoice(null)}
+                className="p-1 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5 font-mono text-xs text-ae2v-black space-y-3">
+              <div className="flex justify-between border-b border-ae2v-black/20 pb-2">
+                <span className="font-bold">BDE AE2V VÉLIZY</span>
+                <span className="font-bold text-ae2v-red">{selectedInvoice.id}</span>
+              </div>
+              <p>
+                <strong>Date :</strong> {selectedInvoice.date}
+              </p>
+              <p>
+                <strong>Client :</strong> {selectedInvoice.customerName} (
+                {selectedInvoice.customerEmail})
+              </p>
+              <p>
+                <strong>Mode de paiement :</strong> {selectedInvoice.paymentMethod}
+              </p>
+
+              <div className="border-t border-b border-ae2v-black/20 py-2 space-y-1">
+                {selectedInvoice.lines.map((l, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span>
+                      {l.qty}× {l.description}
+                    </span>
+                    <span className="font-bold">{formatCents(l.totalCents)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between text-sm font-bold pt-1">
+                <span>TOTAL REÇU :</span>
+                <span className="font-impact text-base text-ae2v-red">
+                  {formatCents(selectedInvoice.totalCents)}
+                </span>
+              </div>
+              {selectedInvoice.notes && (
+                <p className="text-[0.65rem] opacity-75">Note : {selectedInvoice.notes}</p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => window.print()}>
+                <Printer className="size-4" />
+                Imprimer le reçu
+              </Button>
+              <Button variant="secondary" onClick={() => setSelectedInvoice(null)}>
+                Fermer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

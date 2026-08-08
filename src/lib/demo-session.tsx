@@ -18,6 +18,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { generateRandom2026Code } from "@/lib/id-generator";
 
 /* -------------------------------------------------------------------------- */
 /*  Rôles & permissions                                                        */
@@ -132,7 +133,7 @@ export const demoAccounts: DemoAccount[] = [
     requestedAt: "05/09/2026",
     validatedAt: "07/09/2026",
     memberSince: "07/09/2026",
-    cardCode: "AE2V-DEMO-NOA-0001",
+    cardCode: "AE2V-2026-USR-7K9P2M4X",
     tickets: [],
     orders: [],
     emailPrefs: ["Événements"],
@@ -153,7 +154,7 @@ export const demoAccounts: DemoAccount[] = [
     requestedAt: "02/09/2026",
     validatedAt: "12/09/2026",
     memberSince: "12/09/2026",
-    cardCode: "AE2V-DEMO-INES-0042",
+    cardCode: "AE2V-2026-USR-3R8W1L9V",
     tickets: [
       {
         id: "tk-1",
@@ -163,7 +164,7 @@ export const demoAccounts: DemoAccount[] = [
         place: "Le Hangar — Vélizy",
         tier: "Tarif adhérent",
         priceCents: 800,
-        code: "AE2V-TK-9F3K-2210",
+        code: "AE2V-2026-TK-9F3K2210",
         status: "valide",
       },
       {
@@ -174,7 +175,7 @@ export const demoAccounts: DemoAccount[] = [
         place: "Amphi B — IUT de Vélizy",
         tier: "Tarif adhérent",
         priceCents: 0,
-        code: "AE2V-TK-4B7Z-1077",
+        code: "AE2V-2026-TK-4B7Z1077",
         status: "utilise",
       },
     ],
@@ -209,7 +210,7 @@ export const demoAccounts: DemoAccount[] = [
     requestedAt: "01/09/2026",
     validatedAt: "03/09/2026",
     memberSince: "03/09/2026",
-    cardCode: "AE2V-DEMO-HUGO-0007",
+    cardCode: "AE2V-2026-USR-8M2P5N9Q",
     tickets: [
       {
         id: "tk-3",
@@ -219,7 +220,7 @@ export const demoAccounts: DemoAccount[] = [
         place: "Salle Ravel — Vélizy",
         tier: "Tarif adhérent",
         priceCents: 2500,
-        code: "AE2V-TK-1QT8-3390",
+        code: "AE2V-2026-TK-1QT83390",
         status: "valide",
       },
     ],
@@ -244,7 +245,7 @@ export const demoAccounts: DemoAccount[] = [
     requestedAt: "30/08/2026",
     validatedAt: "01/09/2026",
     memberSince: "01/09/2026",
-    cardCode: "AE2V-DEMO-CAMI-0001",
+    cardCode: "AE2V-2026-USR-1A4C7E9K",
     tickets: [],
     orders: [],
     emailPrefs: ["Événements", "Vie du bureau", "Partenariats"],
@@ -602,7 +603,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: "Un compte existe déjà avec cette adresse e-mail." };
       }
       const accountId = `acc-user-${Date.now()}`;
-      const cardCode = `AE2V-USER-${Math.floor(1000 + Math.random() * 9000)}`;
+      const cardCode = generateRandom2026Code("USR");
       const today = new Date().toLocaleDateString("fr-FR");
       const newAccount: DemoAccount = {
         id: accountId,

@@ -11,7 +11,7 @@ import soireeImg from "@/assets/events/soiree-integration.jpg";
 import tournoiImg from "@/assets/events/tournoi-esport.jpg";
 import weekendImg from "@/assets/events/weekend.jpg";
 
-export type EventStatus = "OUVERT" | "BIENTOT" | "COMPLET" | "TERMINE";
+export type EventStatus = "NON_PUBLIE" | "OUVERT" | "BIENTOT" | "COMPLET" | "TERMINE";
 
 export type EventTier = {
   id: string;
@@ -251,10 +251,11 @@ export const demoEvents: Ae2vEvent[] = [
 ];
 
 export const eventStatusLabels: Record<EventStatus, string> = {
+  NON_PUBLIE: "Brouillon / Non publié",
   OUVERT: "Inscriptions ouvertes",
-  BIENTOT: "Bientôt",
+  BIENTOT: "Bientôt disponible",
   COMPLET: "Complet",
-  TERMINE: "Terminé",
+  TERMINE: "Terminé / Archivé",
 };
 
 import { getDynamicEvents } from "@/lib/dynamic-store";
