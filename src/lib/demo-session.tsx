@@ -548,8 +548,23 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setState({ ...defaultState, ...(JSON.parse(raw) as Partial<DemoState>) });
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<DemoState>;
+          setState({
+            accountId: parsed.accountId ?? null,
+            dossiers: Array.isArray(parsed.dossiers) ? parsed.dossiers : defaultState.dossiers,
+            candidatures: Array.isArray(parsed.candidatures)
+              ? parsed.candidatures
+              : defaultState.candidatures,
+            messages: Array.isArray(parsed.messages) ? parsed.messages : defaultState.messages,
+            customAccounts: Array.isArray(parsed.customAccounts)
+              ? parsed.customAccounts
+              : defaultState.customAccounts,
+          });
+        }
+      }
     } catch {
       /* stockage indisponible : on reste sur l'état par défaut */
     }
@@ -559,7 +574,9 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
     } catch {
       /* ignore */
     }
@@ -648,71 +665,80 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
       setState((s) => ({
         ...s,
         accountId: newAccount.id,
-        customAccounts: [...s.customAccounts, newAccount],
-        dossiers: [newDossier, ...s.dossiers],
+        customAccounts: [...(s.customAccounts ?? []), newAccount],
+        dossiers: [newDossier, ...(s.dossiers ?? [])],
       }));
       return { ok: true };
     },
     signOut: () => setState((s) => ({ ...s, accountId: null })),
-    dossiers: state.dossiers,
+    dossiers: state.dossiers ?? [],
     addDossier: (newDossier) =>
-      setState((s) => ({
-        ...s,
-        dossiers: [
-          {
-            ...newDossier,
-            id: `ADH-${new Date().getFullYear()}-${String(315 + s.dossiers.length)}`,
-            submittedAt: new Date().toLocaleDateString("fr-FR"),
-            validatedAt: null,
-            memberSince: null,
-            status: "EN_ATTENTE",
-            note: "",
-          },
-          ...s.dossiers,
-        ],
-      })),
+      setState((s) => {
+        const safeDossiers = s.dossiers ?? [];
+        return {
+          ...s,
+          dossiers: [
+            {
+              ...newDossier,
+              id: `ADH-${new Date().getFullYear()}-${String(315 + safeDossiers.length)}`,
+              submittedAt: new Date().toLocaleDateString("fr-FR"),
+              validatedAt: null,
+              memberSince: null,
+              status: "EN_ATTENTE",
+              note: "",
+            },
+            ...safeDossiers,
+          ],
+        };
+      }),
     updateDossier: (id, patch) =>
       setState((s) => ({
         ...s,
-        dossiers: s.dossiers.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+        dossiers: (s.dossiers ?? []).map((d) => (d.id === id ? { ...d, ...patch } : d)),
       })),
-    candidatures: state.candidatures,
+    candidatures: state.candidatures ?? [],
     addCandidature: (input) =>
-      setState((s) => ({
-        ...s,
-        candidatures: [
-          {
-            ...input,
-            id: `CAN-${new Date().getFullYear()}-${String(100 + s.candidatures.length)}`,
-            submittedAt: new Date().toLocaleDateString("fr-FR"),
-            status: "EN_ATTENTE" as const,
-          },
-          ...s.candidatures,
-        ],
-      })),
+      setState((s) => {
+        const safeCands = s.candidatures ?? [];
+        return {
+          ...s,
+          candidatures: [
+            {
+              ...input,
+              id: `CAN-${new Date().getFullYear()}-${String(100 + safeCands.length)}`,
+              submittedAt: new Date().toLocaleDateString("fr-FR"),
+              status: "EN_ATTENTE" as const,
+            },
+            ...safeCands,
+          ],
+        };
+      }),
     updateCandidature: (id, status) =>
       setState((s) => ({
         ...s,
-        candidatures: s.candidatures.map((c) => (c.id === id ? { ...c, status } : c)),
+        candidatures: (s.candidatures ?? []).map((c) => (c.id === id ? { ...c, status } : c)),
       })),
-    messages: state.messages,
+    messages: state.messages ?? [],
     addMessage: (input) =>
-      setState((s) => ({
-        ...s,
-        messages: [
-          {
-            ...input,
-            id: `MSG-${new Date().getFullYear()}-${String(100 + s.messages.length).padStart(3, "0")}`,
-            sentAt: new Date().toLocaleDateString("fr-FR"),
-            status: "NOUVEAU" as const,
-          },
-          ...s.messages,
-        ],
-      })),
+      setState((s) => {
+        const safeMsgs = s.messages ?? [];
+        return {
+          ...s,
+          messages: [
+            {
+              ...input,
+              id: `MSG-${new Date().getFullYear()}-${String(100 + safeMsgs.length).padStart(3, "0")}`,
+              sentAt: new Date().toLocaleDateString("fr-FR"),
+              status: "NOUVEAU" as const,
+            },
+            ...safeMsgs,
+          ],
+        };
+      }),
     updateMessageStatus: (id, status) =>
       setState((s) => ({
         ...s,
-        messages: s.messages.map((m) => (m.id === id ? { ...m, status } : m)),
+        messages: (s.messages ?? []).map((m) => (m.id === id ? { ...m, status } : m)),
       })),
     addTicket: (ticket) =>
       setState((s) => {
