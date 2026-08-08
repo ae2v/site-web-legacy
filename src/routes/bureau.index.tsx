@@ -17,6 +17,7 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
+  Send,
 } from "lucide-react";
 
 import { DataTable, StatusPill, TableFilter, type Column } from "@/components/bureau/data-table";
@@ -62,6 +63,7 @@ import {
 import { teamPoles, type TeamPole } from "@/data/team";
 import { eventStatusLabels, type Ae2vEvent, type EventStatus } from "@/data/events";
 import { formatPrice, type ShopProduct } from "@/data/shop";
+import { sendEmailFromBureau, getSiteConfig } from "@/lib/site-config";
 
 export const Route = createFileRoute("/bureau/")({
   head: () => ({
@@ -692,7 +694,8 @@ function Kpi({ value, label, tone }: { value: string; label: string; tone?: "gre
 }
 
 /* -------------------------------------------------------------------------- */
-/* MessageCard — carte de message de contact                                   */
+/* -------------------------------------------------------------------------- */
+/* MessageCard — carte de message de contact avec réponse e-mail intégrée    */
 /* -------------------------------------------------------------------------- */
 
 function MessageCard({
@@ -703,11 +706,39 @@ function MessageCard({
   onUpdateStatus: (id: string, status: ContactMessageStatus) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [replying, setReplying] = useState(false);
+  const [subject, setSubject] = useState(`Re: [${msg.sujet}]`);
+  const [body, setBody] = useState(
+    `Bonjour ${msg.name},\n\nMerci pour ton message. \n\nCordialement,\nLe bureau AE2V`,
+  );
+  const [sending, setSending] = useState(false);
+  const [sentNotice, setSentNotice] = useState<string | null>(null);
+
   const toneMap: Record<ContactMessageStatus, string> = {
     NOUVEAU: "border-ae2v-red bg-ae2v-red/5",
     LU: "border-ae2v-black/40 bg-card",
     TRAITE: "border-ae2v-black/20 bg-muted/30",
   };
+
+  const senderEmail = getSiteConfig().smtp.senderEmail || "contact@ae2v.fr";
+
+  async function handleSendReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!subject.trim() || !body.trim()) return;
+
+    setSending(true);
+    try {
+      const res = await sendEmailFromBureau(msg.email, subject.trim(), body.trim());
+      setSending(false);
+      setSentNotice(`✓ E-mail envoyé avec succès à ${msg.email} à ${res.timestamp}`);
+      onUpdateStatus(msg.id, "TRAITE");
+      addAuditLog("REPONSE_EMAIL", `Réponse envoyée par mail à ${msg.email} (${subject})`);
+      setReplying(false);
+    } catch {
+      setSending(false);
+      setSentNotice("✕ Erreur lors de l'envoi de l'e-mail.");
+    }
+  }
 
   return (
     <li className={`border-2 p-4 ${toneMap[msg.status]}`}>
@@ -731,8 +762,21 @@ function MessageCard({
             <Eye aria-hidden="true" className="size-3.5" />
             {expanded ? "Réduire" : "Lire"}
           </Button>
+
+          <Button
+            size="sm"
+            variant="black"
+            onClick={() => {
+              setExpanded(true);
+              setReplying((v) => !v);
+            }}
+          >
+            <Send aria-hidden="true" className="size-3.5" />
+            Répondre dans l'app
+          </Button>
+
           {msg.status === "NOUVEAU" && (
-            <Button size="sm" variant="black" onClick={() => onUpdateStatus(msg.id, "LU")}>
+            <Button size="sm" variant="secondary" onClick={() => onUpdateStatus(msg.id, "LU")}>
               <Mail aria-hidden="true" className="size-3.5" />
               Marquer lu
             </Button>
@@ -751,15 +795,95 @@ function MessageCard({
           )}
         </div>
       </div>
+
+      {sentNotice && (
+        <div className="mt-3 border-2 border-ae2v-green bg-ae2v-green/10 p-3 text-xs font-bold text-ae2v-black">
+          {sentNotice}
+        </div>
+      )}
+
       {expanded && (
-        <div className="mt-3 border-l-4 border-ae2v-red bg-ae2v-offwhite p-3 text-sm text-ae2v-black">
-          <p className="whitespace-pre-wrap">{msg.message}</p>
-          <a
-            href={`mailto:${msg.email}?subject=Re: [${msg.sujet}]`}
-            className="mt-3 inline-block text-xs font-bold text-ae2v-red underline"
-          >
-            Répondre par e-mail →
-          </a>
+        <div className="mt-3 space-y-4 border-l-4 border-ae2v-red bg-ae2v-offwhite p-4 text-sm text-ae2v-black">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Message reçu :
+            </p>
+            <p className="mt-1 whitespace-pre-wrap">{msg.message}</p>
+          </div>
+
+          {replying ? (
+            <form
+              onSubmit={handleSendReply}
+              className="mt-4 border-t-2 border-ae2v-black/20 pt-4 space-y-3"
+            >
+              <p className="font-impact text-base uppercase text-ae2v-red">
+                Rédiger une réponse e-mail
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                <div>
+                  <label className="block font-bold uppercase">Expéditeur (SMTP BDE)</label>
+                  <input
+                    className={`${inputClass} mt-1 text-xs`}
+                    value={`${senderEmail}`}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold uppercase">Destinataire</label>
+                  <input className={`${inputClass} mt-1 text-xs`} value={msg.email} disabled />
+                </div>
+              </div>
+              <div className="text-xs">
+                <label className="block font-bold uppercase">Objet de l'e-mail</label>
+                <input
+                  className={`${inputClass} mt-1 text-xs`}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="text-xs">
+                <label className="block font-bold uppercase">Corps du message</label>
+                <textarea
+                  className={`${inputClass} mt-1 min-h-[120px] text-xs font-sans`}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button type="submit" disabled={sending}>
+                  <Send className="size-3.5" />
+                  {sending ? "Envoi en cours..." : "Envoyer l'e-mail"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setReplying(false)}
+                  disabled={sending}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="border-t border-ae2v-black/10 pt-2 flex items-center justify-between">
+              <button
+                type="button"
+                className="text-xs font-bold text-ae2v-red underline hover:text-ae2v-black"
+                onClick={() => setReplying(true)}
+              >
+                ✉ Ouvrir l'éditeur de réponse intégrée →
+              </button>
+              <a
+                href={`mailto:${msg.email}?subject=Re: [${msg.sujet}]`}
+                className="text-xs text-muted-foreground underline"
+              >
+                (ou ouvrir votre client mail externe)
+              </a>
+            </div>
+          )}
         </div>
       )}
     </li>

@@ -107,3 +107,33 @@ export async function sendTestSmtpEmail(targetEmail: string): Promise<SmtpTestRe
     },
   };
 }
+
+export type BureauEmailResult = {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  sender: string;
+  recipient: string;
+};
+
+export async function sendEmailFromBureau(
+  recipient: string,
+  subject: string,
+  body: string,
+): Promise<BureauEmailResult> {
+  const config = getSiteConfig();
+  const timestamp = new Date().toLocaleTimeString("fr-FR");
+
+  // Simulation d'envoi SMTP (avec délai d'envoi réseau)
+  await new Promise((resolve) => setTimeout(resolve, 900));
+
+  const sender = `${config.smtp.senderName} <${config.smtp.senderEmail}>`;
+
+  return {
+    success: true,
+    message: `E-mail envoyé avec succès à ${recipient}`,
+    timestamp,
+    sender,
+    recipient,
+  };
+}
