@@ -20,6 +20,7 @@ const controlClass =
  * Rendu tableau sur grand écran, liste de cartes empilées sur mobile.
  */
 export function DataTable<T extends { id: string }>({
+  data,
   rows,
   columns,
   searchable,
@@ -27,31 +28,43 @@ export function DataTable<T extends { id: string }>({
   searchPlaceholder = "Nom, e-mail, numéro…",
   filters,
   emptyLabel = "Aucun résultat.",
-  caption,
+  caption = "Données du tableau",
   renderDetails,
-  idPrefix,
+  idPrefix = "table",
 }: {
-  rows: T[];
+  data?: T[];
+  rows?: T[];
   columns: Column<T>[];
   /** Texte concaténé dans lequel la recherche s'effectue. */
-  searchable: (row: T) => string;
+  searchable?: (row: T) => string;
   searchLabel?: string;
   searchPlaceholder?: string;
   filters?: ReactNode;
   emptyLabel?: string;
-  caption: string;
+  caption?: string;
   /** Bloc d'actions/détails affiché sous chaque ligne. */
   renderDetails?: (row: T) => ReactNode;
-  idPrefix: string;
+  idPrefix?: string;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [dir, setDir] = useState<"asc" | "desc">("asc");
   const [openRow, setOpenRow] = useState<string | null>(null);
 
+  const safeRows = data ?? rows ?? [];
+
+  const defaultSearchable = (row: T) =>
+    Object.values(row ?? {})
+      .filter((v) => typeof v === "string" || typeof v === "number")
+      .join(" ");
+
+  const getSearchText = searchable ?? defaultSearchable;
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = q ? rows.filter((r) => searchable(r).toLowerCase().includes(q)) : rows.slice();
+    let list = q
+      ? safeRows.filter((r) => getSearchText(r).toLowerCase().includes(q))
+      : safeRows.slice();
     const column = columns.find((c) => c.key === sortKey);
     if (column?.sortValue) {
       list = list.sort((a, b) => {
@@ -65,7 +78,7 @@ export function DataTable<T extends { id: string }>({
       });
     }
     return list;
-  }, [rows, query, sortKey, dir, columns, searchable]);
+  }, [safeRows, query, sortKey, dir, columns, getSearchText]);
 
   function toggleSort(key: string) {
     if (sortKey === key) setDir((d) => (d === "asc" ? "desc" : "asc"));
