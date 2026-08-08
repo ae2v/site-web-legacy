@@ -64,8 +64,8 @@ export function PersonSheetModal({
           <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-ae2v-black bg-ae2v-black px-6 py-4 text-white">
             <div className="flex items-center gap-3">
               <div className="size-10 flex items-center justify-center border-2 border-ae2v-green bg-ae2v-green text-ae2v-black font-bold">
-                {person.firstName[0]}
-                {person.lastName[0]}
+                {person.firstName?.[0] ?? "M"}
+                {person.lastName?.[0] ?? "E"}
               </div>
               <div>
                 <h2 className="font-impact text-xl uppercase tracking-wide">

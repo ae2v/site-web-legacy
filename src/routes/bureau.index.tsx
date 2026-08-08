@@ -196,19 +196,25 @@ function BureauPage() {
 
   // Cotisations en attente
   const pendingContributions = useMemo(
-    () => dossiers.filter((d) => d.status === "VALIDE" && d.contributionStatus === "EN_ATTENTE"),
+    () =>
+      (dossiers ?? []).filter(
+        (d) =>
+          d.status === "VALIDE" &&
+          (d.contributionStatus === "PAIEMENT_EN_ATTENTE" ||
+            (d.contributionStatus as string) === "EN_ATTENTE"),
+      ),
     [dossiers],
   );
 
   const visibleMessages = useMemo(
-    () => messages.filter((m) => msgFilter === "TOUS" || m.status === msgFilter),
+    () => (messages ?? []).filter((m) => msgFilter === "TOUS" || m.status === msgFilter),
     [messages, msgFilter],
   );
 
-  const pendingCount = dossiers.filter((d) => d.status === "EN_ATTENTE").length;
-  const toFixCount = dossiers.filter((d) => d.status === "A_CORRIGER").length;
-  const candPending = candidatures.filter((c) => c.status === "EN_ATTENTE").length;
-  const msgNew = messages.filter((m) => m.status === "NOUVEAU").length;
+  const pendingCount = (dossiers ?? []).filter((d) => d.status === "EN_ATTENTE").length;
+  const toFixCount = (dossiers ?? []).filter((d) => d.status === "A_CORRIGER").length;
+  const candPending = (candidatures ?? []).filter((c) => c.status === "EN_ATTENTE").length;
+  const msgNew = (messages ?? []).filter((m) => m.status === "NOUVEAU").length;
 
   function openPersonModal(dossier: Dossier) {
     const matchedAccount = demoAccounts.find((a) => a.email === dossier.email);
@@ -1767,10 +1773,14 @@ function EventManager({
             </p>
 
             <div className="space-y-2">
-              {demoAccounts
-                .filter((a) => a.tickets.some((t) => t.eventId === selectedAttendeesEvent.id))
+              {(demoAccounts ?? [])
+                .filter((a) =>
+                  (a.tickets ?? []).some((t) => t.eventId === selectedAttendeesEvent?.id),
+                )
                 .map((acc) => {
-                  const tk = acc.tickets.find((t) => t.eventId === selectedAttendeesEvent.id);
+                  const tk = (acc.tickets ?? []).find(
+                    (t) => t.eventId === selectedAttendeesEvent?.id,
+                  );
                   return (
                     <div
                       key={acc.id}
@@ -2302,7 +2312,7 @@ function InvoicesManager({ invoices }: { invoices: Invoice[] }) {
               </p>
 
               <div className="border-t border-b border-ae2v-black/20 py-2 space-y-1">
-                {selectedInvoice.lines.map((l, idx) => (
+                {(selectedInvoice.lines ?? []).map((l, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>
                       {l.qty}× {l.description}
