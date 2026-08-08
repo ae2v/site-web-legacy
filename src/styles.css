@@ -1,0 +1,672 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * AE2V — design system.
+ *
+ * Palette de charte (rouge dominant, vert acide = signal rare).
+ * Géométrie dure : radius 0 / 4 / 8 px, 12 px exceptionnel.
+ * Toutes les couleurs sont en oklch.
+ */
+
+@theme inline {
+  /* Radius — dur et carré */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
+
+  /* Typographies AE2V */
+  --font-impact: "Bebas Neue Pro Expanded", "Anton", Impact, Verdana, sans-serif;
+  --font-display: "Bebas Neue Pro Expanded", "Anton", Impact, Verdana, sans-serif;
+  --font-h1: "Anton", Impact, Verdana, sans-serif;
+  --font-h2: "Red Hat Display", Arial, Verdana, sans-serif;
+  --font-body: "Raleway", Verdana, Arial, sans-serif;
+  --font-sans: "Raleway", Verdana, Arial, sans-serif;
+
+  /* Couleurs de marque brutes */
+  --color-ae2v-red: var(--ae2v-red);
+  --color-ae2v-red-dark: var(--ae2v-red-dark);
+  --color-ae2v-red-deep: var(--ae2v-red-deep);
+  --color-ae2v-red-light: var(--ae2v-red-light);
+  --color-ae2v-black: var(--ae2v-black);
+  --color-ae2v-offwhite: var(--ae2v-offwhite);
+  --color-ae2v-gray: var(--ae2v-gray);
+  --color-ae2v-green: var(--ae2v-green);
+  --color-ae2v-green-dark: var(--ae2v-green-dark);
+
+  /* Signal (vert acide) — usage contrôlé */
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+
+  /* Tokens sémantiques */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0px;
+
+  /* Charte AE2V */
+  --ae2v-red: oklch(0.5506 0.2253 28.79); /* #D60106 */
+  --ae2v-red-dark: oklch(0.4637 0.1898 28.55); /* #AA0005 */
+  --ae2v-red-deep: oklch(0.5078 0.2076 28.67); /* #C00106 */
+  --ae2v-red-light: oklch(0.6194 0.2241 24.85); /* #EF3039 */
+  --ae2v-black: oklch(0.1393 0.0024 106.7); /* #090908 */
+  --ae2v-offwhite: oklch(0.9583 0.007 88.64); /* #F3F1EC */
+  --ae2v-gray: oklch(0.8761 0 89.88); /* #D6D6D6 */
+  --ae2v-green: oklch(0.8661 0.2098 122.26); /* #BCE707 */
+  --ae2v-green-dark: oklch(0.7097 0.1668 119.47); /* #96AF04 */
+
+  --signal: var(--ae2v-green);
+  --signal-foreground: var(--ae2v-black);
+
+  --background: var(--ae2v-offwhite);
+  --foreground: var(--ae2v-black);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ae2v-black);
+  --popover: var(--ae2v-offwhite);
+  --popover-foreground: var(--ae2v-black);
+  --primary: var(--ae2v-red);
+  --primary-foreground: var(--ae2v-offwhite);
+  --secondary: var(--ae2v-black);
+  --secondary-foreground: var(--ae2v-offwhite);
+  --muted: oklch(0.9198 0.005 88.64);
+  --muted-foreground: oklch(0.4402 0.0089 88.64);
+  --accent: var(--ae2v-gray);
+  --accent-foreground: var(--ae2v-black);
+  --destructive: var(--ae2v-red-dark);
+  --destructive-foreground: var(--ae2v-offwhite);
+  --border: var(--ae2v-black);
+  --input: var(--ae2v-black);
+  --ring: var(--ae2v-red);
+  --chart-1: var(--ae2v-red);
+  --chart-2: var(--ae2v-black);
+  --chart-3: var(--ae2v-green);
+  --chart-4: var(--ae2v-red-dark);
+  --chart-5: var(--ae2v-gray);
+  --sidebar: var(--ae2v-black);
+  --sidebar-foreground: var(--ae2v-offwhite);
+  --sidebar-primary: var(--ae2v-red);
+  --sidebar-primary-foreground: var(--ae2v-offwhite);
+  --sidebar-accent: oklch(0.2393 0.0124 106.7);
+  --sidebar-accent-foreground: var(--ae2v-offwhite);
+  --sidebar-border: oklch(0.3 0.012 106.7);
+  --sidebar-ring: var(--ae2v-red);
+}
+
+.dark {
+  --background: var(--ae2v-black);
+  --foreground: var(--ae2v-offwhite);
+  --card: oklch(0.1893 0.0035 106.7);
+  --card-foreground: var(--ae2v-offwhite);
+  --popover: oklch(0.1893 0.0035 106.7);
+  --popover-foreground: var(--ae2v-offwhite);
+  --primary: var(--ae2v-red-light);
+  --primary-foreground: var(--ae2v-black);
+  --secondary: var(--ae2v-offwhite);
+  --secondary-foreground: var(--ae2v-black);
+  --muted: oklch(0.2393 0.0124 106.7);
+  --muted-foreground: oklch(0.7602 0.0089 88.64);
+  --accent: oklch(0.2893 0.0124 106.7);
+  --accent-foreground: var(--ae2v-offwhite);
+  --destructive: var(--ae2v-red-light);
+  --destructive-foreground: var(--ae2v-black);
+  --border: oklch(0.9583 0.007 88.64 / 22%);
+  --input: oklch(0.9583 0.007 88.64 / 30%);
+  --ring: var(--ae2v-red-light);
+  --sidebar: var(--ae2v-black);
+  --sidebar-foreground: var(--ae2v-offwhite);
+  --sidebar-primary: var(--ae2v-red-light);
+  --sidebar-primary-foreground: var(--ae2v-black);
+  --sidebar-accent: oklch(0.2393 0.0124 106.7);
+  --sidebar-accent-foreground: var(--ae2v-offwhite);
+  --sidebar-border: oklch(0.9583 0.007 88.64 / 18%);
+  --sidebar-ring: var(--ae2v-red-light);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 {
+    font-family: var(--font-h1);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-h2);
+    font-weight: 700;
+  }
+
+  ::selection {
+    background-color: var(--ae2v-green);
+    color: var(--ae2v-black);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--ae2v-green);
+    outline-offset: 2px;
+  }
+}
+
+/* --- Utilitaires de marque --- */
+
+@utility font-impact {
+  font-family: var(--font-impact);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 0.86;
+}
+
+/* Grain print léger — jamais au-dessus des formulaires, QR ou checkout */
+@utility ae2v-grain {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@utility ae2v-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    currentColor 0 2px,
+    transparent 2px 8px
+  );
+}
+
+@utility ae2v-dots {
+  background-image: radial-gradient(currentColor 1.5px, transparent 1.6px);
+  background-size: 14px 14px;
+}
+
+@utility tap-44 {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Titre "fantôme" en contour : réservé au décor, jamais au texte lisible seul */
+@utility ae2v-stroke {
+  color: transparent;
+  -webkit-text-stroke: 2px currentColor;
+  paint-order: stroke fill;
+}
+
+@utility ae2v-stroke-thin {
+  color: transparent;
+  -webkit-text-stroke: 1px currentColor;
+  paint-order: stroke fill;
+}
+
+/* Titres monumentaux : chasse resserrée, interligne écrasé */
+@utility ae2v-headline {
+  font-family: var(--font-impact);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.82;
+  overflow-wrap: normal;
+  hyphens: manual;
+}
+
+
+/* --- Micro-animations AE2V --- */
+
+@keyframes ae2v-marker {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ae2v-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ae2v-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ae2v-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) rotate(3deg);
+  }
+}
+
+@keyframes ae2v-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes ae2v-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Apparition séquencée : utiliser avec --d pour le délai */
+@utility ae2v-rise {
+  animation: ae2v-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@utility ae2v-slide-in {
+  animation: ae2v-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@utility ae2v-pop {
+  animation: ae2v-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@utility ae2v-float {
+  animation: ae2v-float 9s ease-in-out infinite;
+}
+
+@utility ae2v-ticker-track {
+  display: inline-flex;
+  animation: ae2v-ticker 26s linear infinite;
+}
+
+/* Lien éditorial : trait qui se dessine */
+@utility ae2v-link {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 3px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  &:hover::after,
+  &:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Typographies AE2V auto-hébergées (CDN Lovable) --- */
+@font-face {
+  font-family: "Anton";
+  src: url("/__l5e/assets-v1/be87934c-70ac-46f1-8dac-3b6d91bcf253/Anton-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bebas Neue Pro Expanded";
+  src: url("/__l5e/assets-v1/3b4827f7-10ad-44d7-ac80-4a0d2de0a5f2/BebasNeuePro-ExpandedExtraBold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============ Curseur contextuel AE2V ============ */
+/* Conteneur global : jamais cliquable, au-dessus de tout. */
+.ae2v-cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.08s linear;
+  --ae2v-cursor-color: var(--ae2v-red);
+}
+
+.ae2v-cursor.visible {
+  opacity: 1;
+}
+
+/* 1. Anneau : cercle libre ou cadre carré aimanté sur la cible. */
+.ae2v-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 2px solid var(--ae2v-cursor-color);
+  background: color-mix(in oklab, var(--ae2v-cursor-color) 8%, transparent);
+  will-change: left, top, width, height;
+  transition:
+    width 0.13s ease,
+    height 0.13s ease,
+    border-radius 0.13s ease,
+    box-shadow 0.13s ease,
+    background-color 0.13s ease,
+    border-color 0.13s ease;
+}
+
+/* Aimantage : géométrie dure AE2V (angles droits) + liseré blanc. */
+.ae2v-cursor-ring.target {
+  border-color: transparent;
+  background: transparent;
+  border-radius: 0;
+  box-shadow:
+    0 0 0 2px var(--ae2v-offwhite),
+    0 0 0 4px var(--ae2v-cursor-color);
+  transition:
+    left 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-radius 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.ae2v-cursor-ring.returning {
+  transition:
+    left 0.12s ease,
+    top 0.12s ease,
+    width 0.12s ease,
+    height 0.12s ease,
+    border-radius 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+/* 2. Noyau : point suiveur, s'agrandit pour porter une icône. */
+.ae2v-cursor-core {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ae2v-cursor-color);
+  color: var(--ae2v-offwhite);
+  transform: translate(-50%, -50%);
+  will-change: left, top;
+  transition:
+    width 0.1s ease,
+    height 0.1s ease,
+    border-radius 0.1s ease,
+    background-color 0.1s ease;
+}
+
+.ae2v-cursor-core.contextual {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+}
+
+.ae2v-cursor-core i {
+  font-family: var(--font-display, monospace);
+  font-style: normal;
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.06s linear;
+}
+
+.ae2v-cursor-core.contextual i {
+  opacity: 1;
+}
+
+.ae2v-cursor-core svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Retour tactile au clic. */
+.ae2v-cursor.pressed .ae2v-cursor-core {
+  scale: 1.35;
+}
+
+.ae2v-cursor.pressed .ae2v-cursor-ring {
+  scale: 0.94;
+}
+
+/* 3. Bulle de label : étiquette type ruban AE2V. */
+.ae2v-cursor-bubble {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: max-content;
+  padding: 5px 9px;
+  background: var(--ae2v-black);
+  color: var(--ae2v-offwhite);
+  font-family: var(--font-sans, inherit);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.08s linear;
+}
+
+.ae2v-cursor-bubble.show {
+  opacity: 1;
+}
+
+/* 4. Intentions : couleurs de la charte. */
+.ae2v-cursor.delete,
+.ae2v-cursor.remove {
+  --ae2v-cursor-color: var(--ae2v-red-dark);
+}
+
+.ae2v-cursor.add,
+.ae2v-cursor.upload,
+.ae2v-cursor.success {
+  --ae2v-cursor-color: var(--ae2v-green);
+}
+
+.ae2v-cursor.add .ae2v-cursor-core,
+.ae2v-cursor.upload .ae2v-cursor-core,
+.ae2v-cursor.success .ae2v-cursor-core {
+  color: var(--ae2v-black);
+}
+
+.ae2v-cursor.send,
+.ae2v-cursor.navigate,
+.ae2v-cursor.open,
+.ae2v-cursor.select,
+.ae2v-cursor.text {
+  --ae2v-cursor-color: var(--ae2v-red);
+}
+
+.ae2v-cursor.disabled {
+  --ae2v-cursor-color: color-mix(in oklab, var(--ae2v-black) 45%, transparent);
+}
+
+/* 5. Contraste : sur fond rouge/noir, le curseur passe en version claire. */
+.ae2v-cursor.on-dark:not(.add):not(.upload):not(.success) {
+  --ae2v-cursor-color: var(--ae2v-offwhite);
+}
+
+.ae2v-cursor.on-dark .ae2v-cursor-core {
+  color: var(--ae2v-black);
+}
+
+.ae2v-cursor.on-dark .ae2v-cursor-ring.target {
+  box-shadow:
+    0 0 0 2px var(--ae2v-black),
+    0 0 0 4px var(--ae2v-cursor-color);
+}
+
+.ae2v-cursor.on-dark .ae2v-cursor-bubble {
+  background: var(--ae2v-offwhite);
+  color: var(--ae2v-black);
+}
+
+/* 6. Texte sélectionnable : barre verticale type I-beam. */
+.ae2v-cursor.text .ae2v-cursor-ring {
+  opacity: 0;
+}
+
+.ae2v-cursor.text .ae2v-cursor-core,
+.ae2v-cursor.text .ae2v-cursor-core.contextual {
+  width: 2px;
+  height: 22px;
+  border-radius: 0;
+  background: var(--ae2v-cursor-color);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ae2v-black) 25%, transparent);
+}
+
+.ae2v-cursor.on-dark.text .ae2v-cursor-core {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ae2v-black) 60%, transparent);
+}
+
+.ae2v-cursor.text .ae2v-cursor-core i {
+  display: none;
+}
+
+/* Masquage du curseur natif uniquement quand le curseur custom est actif. */
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.ae2v-cursor-ready,
+  html.ae2v-cursor-ready body,
+  html.ae2v-cursor-ready a,
+  html.ae2v-cursor-ready button,
+  html.ae2v-cursor-ready [role="button"],
+  html.ae2v-cursor-ready [data-cursor],
+  html.ae2v-cursor-ready [data-cursor-text] {
+    cursor: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .ae2v-cursor {
+    display: none;
+  }
+}
+
+
+/* ============ Accessibilité : décor & mouvement ============ */
+
+/* Mot fantôme décoratif : texte rendu en pseudo-élément, donc hors arbre
+   d'accessibilité et non concerné par les critères de contraste du texte. */
+.ae2v-ghost-word::before {
+  content: attr(data-ghost);
+}
+
+/* Bandeau défilant : pause au survol, au focus clavier et sur demande. */
+[data-paused="true"] .ae2v-ticker-track,
+.group:hover .ae2v-ticker-track,
+.group:focus-within .ae2v-ticker-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ae2v-ticker-track {
+    animation: none !important;
+  }
+}
+
+/* Curseur personnalisé : désactivé en contraste forcé (le curseur système
+   redevient visible), et jamais actif sur pointeur grossier. */
+@media (forced-colors: active) {
+  .ae2v-cursor {
+    display: none;
+  }
+
+  html.ae2v-cursor-ready,
+  html.ae2v-cursor-ready body,
+  html.ae2v-cursor-ready * {
+    cursor: auto !important;
+  }
+}
+
