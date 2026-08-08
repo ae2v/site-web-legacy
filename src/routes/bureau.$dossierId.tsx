@@ -45,7 +45,7 @@ function DossierPage() {
       <PageHero
         eyebrow={`Dossier ${dossier.id}`}
         title={`${dossier.firstName} ${dossier.lastName}`}
-        intro={`Adhésion ${membershipStatusLabels[dossier.status].toLowerCase()} · demande déposée le ${dossier.submittedAt}.`}
+        intro={`Adhésion ${membershipStatusLabels[dossier.status] ? membershipStatusLabels[dossier.status].toLowerCase() : dossier.status} · demande déposée le ${dossier.submittedAt ?? "récemment"}.`}
       >
         <Button asChild size="lg" variant="black">
           <Link to="/bureau">← Retour à la liste</Link>

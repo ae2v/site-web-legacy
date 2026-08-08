@@ -242,7 +242,7 @@ function BureauPage() {
   return (
     <>
       <PageHero
-        eyebrow={roleLabels[account.role]}
+        eyebrow={account?.role ? roleLabels[account.role] : "Membre du bureau"}
         title="Bureau BDE AE2V"
         intro={
           can("dossiers:validate")
