@@ -20,6 +20,8 @@ export type EventTier = {
   /** Audience autorisée pour ce tarif. */
   audience: "adherent" | "membre" | "public" | "bureau";
   note?: string;
+  disabled?: boolean;
+  isMandatory?: boolean;
 };
 
 export type EventProgramStep = {

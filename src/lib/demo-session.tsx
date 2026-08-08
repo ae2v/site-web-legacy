@@ -407,6 +407,7 @@ export type Candidature = {
   availability: string;
   submittedAt: string;
   status: "EN_ATTENTE" | "ENTRETIEN" | "ACCEPTEE" | "REFUSEE";
+  internalNotes?: string;
 };
 
 export const candidatureStatusLabels: Record<Candidature["status"], string> = {
@@ -422,9 +423,58 @@ const initialCandidatures: Candidature[] = [
     name: "Sacha Bonnet",
     email: "sacha.demo@etu.uvsq.fr",
     pole: "Événementiel",
-    motivation: "Envie d'aider sur la logistique des soirées et le montage.",
-    availability: "Mercredi après-midi et week-end",
+    motivation:
+      "Je souhaite m'investir sur la logistique des soirées, la sonorisation et la gestion du bar pendant les événements.",
+    availability: "Mercredi après-midi et jeudi soir",
     submittedAt: "06/09/2026",
+    status: "EN_ATTENTE",
+    internalNotes: "Profil dynamique, déjà bénévole en festival.",
+  },
+  {
+    id: "CAN-2026-015",
+    name: "Emma Laurent",
+    email: "emma.laurent@etu.uvsq.fr",
+    pole: "Communication",
+    motivation:
+      "Étudiante en MMI 2, je maîtrise Photoshop, Illustrator et Premiere Pro. Je veux créer les affiches et la captation vidéo des soirées.",
+    availability: "Flexible, 4h par semaine",
+    submittedAt: "07/09/2026",
+    status: "ENTRETIEN",
+    internalNotes: "Portfolio très propre reçu par mail. Entretien prévu mardi 12h30.",
+  },
+  {
+    id: "CAN-2026-016",
+    name: "Thomas Royer",
+    email: "thomas.royer@etu.uvsq.fr",
+    pole: "Partenariats",
+    motivation:
+      "J'ai de l'expérience en démarchage téléphonique et je veux négocier des réductions auprès des restaurants et complexes sportifs de Vélizy.",
+    availability: "Lundi matin et vendredi",
+    submittedAt: "08/09/2026",
+    status: "ACCEPTEE",
+    internalNotes: "Candidature validée par le pôle partenariats.",
+  },
+  {
+    id: "CAN-2026-017",
+    name: "Léa Fournier",
+    email: "lea.fournier@etu.uvsq.fr",
+    pole: "Trésorerie",
+    motivation:
+      "Roure en Licence Pro comptabilité, je peux aider sur la saisie des reçus et la gestion du livre de compte Excel.",
+    availability: "Mardi toute la journée",
+    submittedAt: "08/09/2026",
+    status: "EN_ATTENTE",
+    internalNotes: "À débriefer avec le trésorier.",
+  },
+  {
+    id: "CAN-2026-018",
+    name: "Antoine Dubois",
+    email: "antoine.dubois@etu.uvsq.fr",
+    pole: "Événementiel",
+    motivation:
+      "Passionné d'e-sport et de jeux de société, je veux organiser un tournoi smash bros et des LANs à l'IUT.",
+    availability: "Jeudi après-midi",
+    submittedAt: "08/09/2026",
     status: "EN_ATTENTE",
   },
 ];
@@ -533,7 +583,7 @@ type DemoContextValue = {
   updateDossier: (id: string, patch: Partial<Dossier>) => void;
   candidatures: Candidature[];
   addCandidature: (input: Omit<Candidature, "id" | "submittedAt" | "status">) => void;
-  updateCandidature: (id: string, status: Candidature["status"]) => void;
+  updateCandidature: (id: string, patch: Partial<Candidature> | Candidature["status"]) => void;
   messages: ContactMessage[];
   addMessage: (input: Omit<ContactMessage, "id" | "sentAt" | "status">) => void;
   updateMessageStatus: (id: string, status: ContactMessageStatus) => void;
@@ -713,10 +763,12 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
           ],
         };
       }),
-    updateCandidature: (id, status) =>
+    updateCandidature: (id, patch) =>
       setState((s) => ({
         ...s,
-        candidatures: (s.candidatures ?? []).map((c) => (c.id === id ? { ...c, status } : c)),
+        candidatures: (s.candidatures ?? []).map((c) =>
+          c.id === id ? { ...c, ...(typeof patch === "string" ? { status: patch } : patch) } : c,
+        ),
       })),
     messages: state.messages ?? [],
     addMessage: (input) =>
