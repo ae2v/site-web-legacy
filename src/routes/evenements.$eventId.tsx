@@ -481,6 +481,7 @@ function RegistrationCta({
         }
       }
       if (!account) return;
+      const paymentPending = selectedTier.priceCents > 0;
       addTicket({
         eventId: event.id,
         eventTitle: event.title,
@@ -489,7 +490,7 @@ function RegistrationCta({
         tier: selectedTier.label,
         priceCents: selectedTier.priceCents,
         code: generateRandom2026Code("TK"),
-        status: "valide",
+        status: paymentPending ? "en_attente_paiement" : "valide",
       });
 
       // Increment jauge in dynamic store
@@ -504,7 +505,7 @@ function RegistrationCta({
       });
       saveDynamicEvents(updatedEvents);
 
-      setRegistrationState("CONFIRMEE");
+      setRegistrationState(paymentPending ? "PAIEMENT_EN_ATTENTE" : "CONFIRMEE");
     } catch {
       setError("Une erreur est survenue. Veuillez réessayer.");
     }
