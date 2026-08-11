@@ -8,6 +8,7 @@ import { formatCents } from "@/lib/demo-session";
 import { cn } from "@/lib/utils";
 
 const statusTone: Record<Ae2vEvent["status"], string> = {
+  NON_PUBLIE: "bg-ae2v-black text-ae2v-offwhite",
   OUVERT: "bg-ae2v-green text-ae2v-black",
   BIENTOT: "bg-ae2v-offwhite text-ae2v-black",
   COMPLET: "bg-ae2v-red text-ae2v-offwhite",
@@ -40,17 +41,24 @@ export function EventCard({
     <Reveal delay={index * 70}>
       <article className="group relative flex h-full flex-col border-2 border-ae2v-black bg-ae2v-offwhite text-ae2v-black transition-transform duration-200 motion-safe:group-hover:-translate-y-1 motion-safe:hover:-translate-y-1">
         <div className="relative overflow-hidden border-b-2 border-ae2v-black">
-          <img
-            src={event.image}
-            alt=""
-            width={1280}
-            height={720}
-            loading="lazy"
-            className={cn(
-              "w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none",
-              compact ? "aspect-[21/9]" : "aspect-[16/9]",
-            )}
-          />
+          {event.image ? (
+            <img
+              src={event.image}
+              alt=""
+              width={1280}
+              height={720}
+              loading="lazy"
+              className={cn(
+                "w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none",
+                compact ? "aspect-[21/9]" : "aspect-[16/9]",
+              )}
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className={cn("w-full bg-ae2v-black/10", compact ? "aspect-[21/9]" : "aspect-[16/9]")}
+            />
+          )}
           <p
             className={cn(
               "absolute top-3 left-0 border-2 border-ae2v-black px-3 py-1 text-xs font-bold uppercase",
@@ -139,7 +147,7 @@ export function EventCard({
                 {connected
                   ? audience === "adherent"
                     ? "ton tarif cotisant"
-                    : "ton tarif membre"
+                    : "ton tarif bureau"
                   : "tarif public"}
               </span>
             </p>

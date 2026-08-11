@@ -1,21 +1,33 @@
 import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 
 import { GrainOverlay } from "@/components/brand";
 import { PageHero } from "@/components/layout/page-hero";
 import { Button } from "@/components/ui/button";
-import { demoEvents, eventStatusLabels, findEvent, type Ae2vEvent } from "@/data/events";
-import { formatCents, hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
+import {
+  demoEvents,
+  eventStatusLabels,
+  findEvent,
+  publicRecordToEvent,
+  type Ae2vEvent,
+} from "@/data/events";
+import { formatCents, hasDiscount, useDemoSession } from "@/lib/demo-session";
 import { fillPercent, remainingSeats, tierForAudience, type Audience } from "@/lib/event-pricing";
 import { getDynamicEvents, saveDynamicEvents } from "@/lib/dynamic-store";
 import { generateRandom2026Code } from "@/lib/id-generator";
 import { cn } from "@/lib/utils";
+import { getPublicEventServer, registerEventServer } from "@/lib/server-functions/events";
 
 export const Route = createFileRoute("/evenements/$eventId")({
-  loader: ({ params }): { event: Ae2vEvent } => {
-    const event = findEvent(params.eventId);
-    if (!event) throw notFound();
-    return { event };
+  loader: async ({ params }): Promise<{ event: Ae2vEvent }> => {
+    const serverEvent = await getPublicEventServer({ data: { slug: params.eventId } });
+    if (serverEvent) return { event: publicRecordToEvent(serverEvent) };
+    if (import.meta.env.DEV) {
+      const event = findEvent(params.eventId);
+      if (event) return { event };
+    }
+    throw notFound();
   },
 
   head: ({ loaderData }) => {
@@ -70,15 +82,18 @@ function EventNotFound() {
 function EventPage() {
   const { event } = Route.useLoaderData() as { event: Ae2vEvent };
   const { account } = useDemoSession();
-  const audience: Audience = hasDiscount(account)
-    ? "adherent"
-    : isMember(account)
-      ? "membre"
-      : "public";
+  const audience: Audience =
+    account?.role === "bureau" || account?.role === "bureau_admin"
+      ? "bureau"
+      : hasDiscount(account)
+        ? "adherent"
+        : "public";
   const myTier = tierForAudience(event, audience);
   const remaining = remainingSeats(event);
   const fill = fillPercent(event);
-  const others = demoEvents.filter((e) => e.id !== event.id && e.status !== "TERMINE").slice(0, 3);
+  const others = import.meta.env.DEV
+    ? demoEvents.filter((e) => e.id !== event.id && e.status !== "TERMINE").slice(0, 3)
+    : [];
 
   return (
     <>
@@ -87,13 +102,15 @@ function EventPage() {
         data-cursor-scheme="light"
         className="relative isolate overflow-hidden border-b-2 border-ae2v-black bg-ae2v-black text-ae2v-offwhite"
       >
-        <img
-          src={event.image}
-          alt=""
-          width={1280}
-          height={720}
-          className="absolute inset-0 -z-10 size-full object-cover opacity-45"
-        />
+        {event.image ? (
+          <img
+            src={event.image}
+            alt=""
+            width={1280}
+            height={720}
+            className="absolute inset-0 -z-10 size-full object-cover opacity-45"
+          />
+        ) : null}
         <GrainOverlay opacity={0.14} />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-20">
           <Link
@@ -103,7 +120,7 @@ function EventPage() {
             ← Tous les événements
           </Link>
           <p className="mt-6 text-[0.7rem] font-bold tracking-[0.2em] text-ae2v-green uppercase">
-            {event.kind} · démonstration
+            {event.kind} · AE2V
           </p>
           <h1 className="ae2v-headline mt-2 text-[clamp(2.4rem,8vw,6rem)] leading-[0.9]">
             {event.title}
@@ -191,6 +208,14 @@ function EventPage() {
               {event.access}
             </p>
           </section>
+          {event.customSections?.map((section) => (
+            <section key={section.title} className="scroll-mt-20">
+              <h2 className="ae2v-headline text-[clamp(1.6rem,4vw,2.4rem)]">{section.title}</h2>
+              <p className="mt-4 whitespace-pre-line border-2 border-ae2v-black bg-card p-5 text-sm leading-relaxed">
+                {section.body}
+              </p>
+            </section>
+          ))}
         </div>
 
         {/* --------------------------- Colonne latérale -------------------- */}
@@ -201,33 +226,35 @@ function EventPage() {
           >
             <h2 className="font-impact text-xl uppercase">Tarifs</h2>
             <ul className="mt-4 space-y-2">
-              {event.tiers.map((tier) => {
-                const mine = myTier?.id === tier.id && Boolean(account);
-                return (
-                  <li
-                    key={tier.id}
-                    className={cn(
-                      "flex items-baseline justify-between gap-3 border-2 px-3 py-2 text-sm",
-                      mine ? "border-ae2v-red bg-ae2v-red/10 font-bold" : "border-ae2v-black/15",
-                    )}
-                  >
-                    <span>
-                      {tier.label}
-                      {mine && (
-                        <span className="ml-2 bg-ae2v-red px-1.5 py-0.5 text-[0.6rem] font-bold text-ae2v-offwhite uppercase">
-                          Ton tarif
-                        </span>
+              {event.tiers
+                .filter((tier) => !tier.disabled)
+                .map((tier) => {
+                  const mine = myTier?.id === tier.id && Boolean(account);
+                  return (
+                    <li
+                      key={tier.id}
+                      className={cn(
+                        "flex items-baseline justify-between gap-3 border-2 px-3 py-2 text-sm",
+                        mine ? "border-ae2v-red bg-ae2v-red/10 font-bold" : "border-ae2v-black/15",
                       )}
-                      {tier.note && (
-                        <span className="block text-xs font-normal opacity-70">{tier.note}</span>
-                      )}
-                    </span>
-                    <span className="font-impact text-lg whitespace-nowrap">
-                      {tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)}
-                    </span>
-                  </li>
-                );
-              })}
+                    >
+                      <span>
+                        {tier.label}
+                        {mine && (
+                          <span className="ml-2 bg-ae2v-red px-1.5 py-0.5 text-[0.6rem] font-bold text-ae2v-offwhite uppercase">
+                            Ton tarif
+                          </span>
+                        )}
+                        {tier.note && (
+                          <span className="block text-xs font-normal opacity-70">{tier.note}</span>
+                        )}
+                      </span>
+                      <span className="font-impact text-lg whitespace-nowrap">
+                        {tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)}
+                      </span>
+                    </li>
+                  );
+                })}
             </ul>
           </section>
 
@@ -293,11 +320,32 @@ function RegistrationCta({
   audience: Audience;
 }) {
   const { account, addTicket } = useDemoSession();
-  const [registered, setRegistered] = useState(false);
+  const registerEvent = useServerFn(registerEventServer);
+  const [registrationState, setRegistrationState] = useState<
+    "CONFIRMEE" | "LISTE_ATTENTE" | "PAIEMENT_EN_ATTENTE" | null
+  >(null);
+  const [registrationTicketCode, setRegistrationTicketCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [guestFormOpen, setGuestFormOpen] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestConsent, setGuestConsent] = useState(false);
+  const [guestTermsConsent, setGuestTermsConsent] = useState(false);
+  const [guestImageConsent, setGuestImageConsent] = useState(false);
+
+  const myTierLocal = tierForAudience(event, audience);
+  const selectableTiers = event.tiers.filter(
+    (tier) => !tier.disabled && (tier.audience === "public" || tier.audience === audience),
+  );
+  const [selectedTierId, setSelectedTierId] = useState(myTierLocal?.id ?? "");
+  const selectedTier = selectableTiers.find((tier) => tier.id === selectedTierId) ?? myTierLocal;
 
   const alreadyHasTicket = account?.tickets.some(
     (t) => t.eventId === event.id && t.status === "valide",
+  );
+  const hasPendingTicket = account?.tickets.some(
+    (t) => t.eventId === event.id && t.status !== "utilise" && t.status !== "valide",
   );
 
   if (event.status === "TERMINE") {
@@ -314,7 +362,7 @@ function RegistrationCta({
       </p>
     );
   }
-  if (event.status === "COMPLET") {
+  if (event.status === "COMPLET" && !event.waitlist) {
     return (
       <>
         <Button className="w-full" size="lg" variant="secondary" disabled={!event.waitlist}>
@@ -326,47 +374,120 @@ function RegistrationCta({
       </>
     );
   }
-  if (!connected) {
+  if (!connected && !guestFormOpen) {
     return (
       <>
-        <Button asChild className="w-full" size="lg">
-          <Link to="/connexion">Se connecter pour s'inscrire</Link>
+        <Button className="w-full" size="lg" onClick={() => setGuestFormOpen(true)}>
+          S'inscrire sans compte
+        </Button>
+        <Button asChild className="mt-2 w-full" size="lg" variant="outline">
+          <Link to="/connexion">Se connecter (tarif cotisant / bureau)</Link>
         </Button>
         <p className="mt-2 text-xs text-muted-foreground">
-          L'inscription est nominative : un billet, une personne.
+          L'inscription publique est nominative. Les tarifs cotisant et bureau nécessitent une
+          connexion.
         </p>
       </>
     );
   }
 
-  if (alreadyHasTicket || registered) {
+  if (alreadyHasTicket || hasPendingTicket || registrationState) {
+    const currentState =
+      registrationState ?? (hasPendingTicket ? "PAIEMENT_EN_ATTENTE" : "CONFIRMEE");
     return (
       <div className="border-2 border-ae2v-green bg-ae2v-green/10 p-4 text-sm">
-        <p className="font-bold text-ae2v-black">✓ Inscription confirmée</p>
-        <p className="mt-1 text-ae2v-black/80">
-          Ton billet apparaît dans{" "}
-          <Link to="/espace" className="font-bold underline">
-            Mon espace
-          </Link>{" "}
-          avec son QR code.
+        <p className="font-bold text-ae2v-black">
+          {currentState === "LISTE_ATTENTE"
+            ? "✓ Ajouté à la liste d’attente"
+            : currentState === "PAIEMENT_EN_ATTENTE"
+              ? "✓ Inscription enregistrée — paiement en attente"
+              : "✓ Inscription confirmée"}
         </p>
+        <p className="mt-1 text-ae2v-black/80">
+          {currentState === "LISTE_ATTENTE"
+            ? "Tu seras informé si une place se libère."
+            : currentState === "PAIEMENT_EN_ATTENTE"
+              ? "Le bureau doit confirmer le règlement avant que le billet soit utilisable. Conserve la référence ci-dessous pour le retrouver au scanner."
+              : "Ton billet apparaît dans "}
+          {currentState !== "LISTE_ATTENTE" && currentState !== "PAIEMENT_EN_ATTENTE" && (
+            <>
+              {" "}
+              <Link to="/espace" className="font-bold underline">
+                Mon espace
+              </Link>{" "}
+              avec son QR code.
+            </>
+          )}
+        </p>
+        {registrationTicketCode && (
+          <p className="mt-3 border-2 border-ae2v-black bg-card px-3 py-2 font-mono text-xs text-ae2v-black">
+            Référence billet : <strong>{registrationTicketCode}</strong>
+          </p>
+        )}
       </div>
     );
   }
 
-  const myTierLocal = tierForAudience(event, audience);
-
-  function handleRegister() {
-    if (!account || !myTierLocal) return;
+  async function handleRegister() {
+    if (!selectedTier) return;
+    if (
+      !connected &&
+      (!guestName.trim() || !guestEmail.trim() || !guestConsent || !guestTermsConsent)
+    ) {
+      setError("Renseigne ton nom, ton e-mail et accepte les conditions d'inscription.");
+      return;
+    }
+    if (connected && (!guestConsent || !guestTermsConsent)) {
+      setError("Accepte les conditions d'inscription avant de confirmer.");
+      return;
+    }
     setError(null);
     try {
+      const isLocalDemo = Boolean(account?.id.startsWith("acc-"));
+      if (!isLocalDemo) {
+        try {
+          const result = await registerEvent({
+            data: {
+              eventSlug: event.id,
+              tierId: selectedTier.id,
+              ...(connected
+                ? {
+                    legalConsent: true,
+                    termsConsent: guestTermsConsent,
+                    imageConsent: guestImageConsent,
+                  }
+                : {
+                    participantName: guestName,
+                    participantEmail: guestEmail,
+                    participantPhone: guestPhone,
+                    legalConsent: guestConsent,
+                    termsConsent: guestTermsConsent,
+                    imageConsent: guestImageConsent,
+                  }),
+            },
+          });
+          setRegistrationState(
+            result.registration.status === "LISTE_ATTENTE"
+              ? "LISTE_ATTENTE"
+              : result.ticket?.status === "en_attente_paiement"
+                ? "PAIEMENT_EN_ATTENTE"
+                : "CONFIRMEE",
+          );
+          setRegistrationTicketCode(result.ticket?.code ?? null);
+          return;
+        } catch {
+          setError("L'inscription n'a pas pu être enregistrée côté serveur.");
+          return;
+        }
+      }
+      if (!account) return;
       addTicket({
         eventId: event.id,
         eventTitle: event.title,
         date: event.date,
         place: event.place,
-        tier: myTierLocal.label,
-        priceCents: myTierLocal.priceCents,
+        tier: selectedTier.label,
+        priceCents: selectedTier.priceCents,
         code: generateRandom2026Code("TK"),
         status: "valide",
       });
@@ -383,16 +504,153 @@ function RegistrationCta({
       });
       saveDynamicEvents(updatedEvents);
 
-      setRegistered(true);
+      setRegistrationState("CONFIRMEE");
     } catch {
       setError("Une erreur est survenue. Veuillez réessayer.");
     }
   }
 
+  if (!connected) {
+    return (
+      <form
+        className="space-y-3 border-2 border-ae2v-black bg-ae2v-offwhite p-4 text-ae2v-black"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleRegister();
+        }}
+      >
+        <p className="text-xs font-bold uppercase tracking-wider">Inscription publique</p>
+        {selectableTiers.length > 1 && (
+          <label className="block text-xs font-bold uppercase">
+            Tarif choisi
+            <select
+              className="mt-1 min-h-11 w-full border-2 border-ae2v-black bg-card px-3 text-sm font-normal"
+              value={selectedTier?.id ?? ""}
+              onChange={(event) => setSelectedTierId(event.target.value)}
+            >
+              {selectableTiers.map((tier) => (
+                <option key={tier.id} value={tier.id}>
+                  {tier.label} · {tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {selectedTier?.note && (
+          <p className="mt-2 border-2 border-ae2v-red bg-ae2v-red/10 p-2 text-xs font-normal normal-case">
+            {selectedTier.note}
+          </p>
+        )}
+        <input
+          className="min-h-11 w-full border-2 border-ae2v-black bg-card px-3"
+          placeholder="Prénom et nom *"
+          value={guestName}
+          onChange={(event) => setGuestName(event.target.value)}
+          required
+        />
+        <input
+          className="min-h-11 w-full border-2 border-ae2v-black bg-card px-3"
+          type="email"
+          placeholder="E-mail *"
+          value={guestEmail}
+          onChange={(event) => setGuestEmail(event.target.value)}
+          required
+        />
+        <input
+          className="min-h-11 w-full border-2 border-ae2v-black bg-card px-3"
+          type="tel"
+          placeholder="Téléphone (facultatif)"
+          value={guestPhone}
+          onChange={(event) => setGuestPhone(event.target.value)}
+        />
+        <label className="flex gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={guestConsent}
+            onChange={(event) => setGuestConsent(event.target.checked)}
+            required
+          />{" "}
+          J'accepte le traitement de mes données pour cette inscription.
+        </label>
+        <label className="flex gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={guestTermsConsent}
+            onChange={(event) => setGuestTermsConsent(event.target.checked)}
+            required
+          />{" "}
+          J'accepte les conditions de l'événement et son règlement.
+        </label>
+        <label className="flex gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={guestImageConsent}
+            onChange={(event) => setGuestImageConsent(event.target.checked)}
+          />{" "}
+          J'autorise l'utilisation de mon image pendant l'événement (facultatif).
+        </label>
+        <Button className="w-full" size="lg" type="submit">
+          Valider l'inscription
+        </Button>
+        {error && <p className="text-xs font-bold text-ae2v-red">{error}</p>}
+      </form>
+    );
+  }
+
   return (
     <>
+      {selectableTiers.length > 1 && (
+        <label className="mb-3 block text-xs font-bold uppercase">
+          Tarif choisi
+          <select
+            className="mt-1 min-h-11 w-full border-2 border-ae2v-black bg-card px-3 text-sm font-normal"
+            value={selectedTier?.id ?? ""}
+            onChange={(event) => setSelectedTierId(event.target.value)}
+          >
+            {selectableTiers.map((tier) => (
+              <option key={tier.id} value={tier.id}>
+                {tier.label} · {tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {selectedTier?.note && (
+        <p className="mb-3 border-2 border-ae2v-red bg-ae2v-red/10 p-2 text-xs font-normal normal-case">
+          {selectedTier.note}
+        </p>
+      )}
+      <label className="mb-3 flex items-start gap-2 text-xs text-ae2v-black">
+        <input
+          className="mt-0.5 size-4 shrink-0"
+          type="checkbox"
+          checked={guestConsent}
+          onChange={(event) => setGuestConsent(event.target.checked)}
+          required
+        />
+        <span>J'accepte le traitement de mes données pour cette inscription.</span>
+      </label>
+      <label className="mb-3 flex items-start gap-2 text-xs text-ae2v-black">
+        <input
+          className="mt-0.5 size-4 shrink-0"
+          type="checkbox"
+          checked={guestTermsConsent}
+          onChange={(event) => setGuestTermsConsent(event.target.checked)}
+          required
+        />
+        <span>J'accepte les conditions de l'événement et son règlement.</span>
+      </label>
+      <label className="mb-3 flex items-start gap-2 text-xs text-ae2v-black">
+        <input
+          className="mt-0.5 size-4 shrink-0"
+          type="checkbox"
+          checked={guestImageConsent}
+          onChange={(event) => setGuestImageConsent(event.target.checked)}
+        />
+        <span>J'autorise l'utilisation de mon image pendant l'événement (facultatif).</span>
+      </label>
       <Button className="w-full" size="lg" onClick={handleRegister}>
-        S'inscrire à cet événement
+        {event.status === "COMPLET" ? "Rejoindre la liste d’attente" : "S'inscrire à cet événement"}
       </Button>
       {error && <p className="mt-2 text-xs font-bold text-ae2v-red">{error}</p>}
       <p className="mt-2 text-xs text-muted-foreground">

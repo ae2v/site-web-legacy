@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 
 import { EventCard } from "@/components/evenements/event-card";
 import { PageHero } from "@/components/layout/page-hero";
 import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
 import { getDynamicEvents } from "@/lib/dynamic-store";
-import { hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
+import { getPublicEventsServer } from "@/lib/server-functions/events";
+import { publicRecordToEvent } from "@/data/events";
+import { hasDiscount, useDemoSession } from "@/lib/demo-session";
 import type { Audience } from "@/lib/event-pricing";
 
 export const Route = createFileRoute("/evenements/")({
@@ -16,7 +19,7 @@ export const Route = createFileRoute("/evenements/")({
       {
         name: "description",
         content:
-          "Tous les événements de l'AE2V : soirées, afterworks, tournois et gala. Tarifs adhérents, jauges et billetterie avec QR code.",
+          "Tous les événements de l'AE2V : soirées, afterworks, tournois et gala. Tarifs cotisants, jauges et billetterie avec QR code.",
       },
       { property: "og:title", content: "Événements AE2V" },
       {
@@ -33,19 +36,37 @@ export const Route = createFileRoute("/evenements/")({
 
 function EvenementsPage() {
   const { account } = useDemoSession();
-  const [events, setEvents] = useState(getDynamicEvents());
+  const getPublicEvents = useServerFn(getPublicEventsServer);
+  const [events, setEvents] = useState(import.meta.env.DEV ? getDynamicEvents() : []);
 
   useEffect(() => {
-    const handleChanged = () => setEvents(getDynamicEvents());
+    let active = true;
+    void getPublicEvents({ data: undefined })
+      .then((records) => {
+        if (!active) return;
+        const serverEvents = records.map(publicRecordToEvent);
+        const serverIds = new Set(serverEvents.map((event) => event.id));
+        setEvents([
+          ...serverEvents,
+          ...(import.meta.env.DEV
+            ? getDynamicEvents().filter((event) => !serverIds.has(event.id))
+            : []),
+        ]);
+      })
+      .catch(() => {
+        if (import.meta.env.DEV) setEvents(getDynamicEvents());
+      });
+    const handleChanged = () => {
+      if (import.meta.env.DEV) setEvents(getDynamicEvents());
+    };
     window.addEventListener("ae2v_events_changed", handleChanged);
-    return () => window.removeEventListener("ae2v_events_changed", handleChanged);
-  }, []);
+    return () => {
+      active = false;
+      window.removeEventListener("ae2v_events_changed", handleChanged);
+    };
+  }, [getPublicEvents]);
 
-  const audience: Audience = hasDiscount(account)
-    ? "adherent"
-    : isMember(account)
-      ? "membre"
-      : "public";
+  const audience: Audience = hasDiscount(account) ? "adherent" : "public";
   const upcoming = events.filter((e) => e.status !== "TERMINE");
   const past = events.filter((e) => e.status === "TERMINE");
 
@@ -70,7 +91,7 @@ function EvenementsPage() {
         intro={
           account
             ? `Tarifs affichés pour ton statut : ${audience === "adherent" ? "membre cotisant" : "membre non cotisant (réductions réservées aux cotisants)"}.`
-            : "Connecte-toi pour voir ton tarif personnel et t'inscrire. Les tarifs public restent visibles."
+            : "Inscris-toi directement au tarif public ; connecte-toi seulement pour accéder aux tarifs cotisant ou bureau."
         }
       >
         <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

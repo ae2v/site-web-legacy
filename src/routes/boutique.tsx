@@ -13,7 +13,7 @@ export const Route = createFileRoute("/boutique")({
       {
         name: "description",
         content:
-          "Sweats, t-shirts, goodies et packs aux couleurs de l'AE2V, avec tarif adhérent et retrait sur le campus de Vélizy.",
+          "Sweats, t-shirts, goodies et packs aux couleurs de l'AE2V, avec tarif cotisant et retrait sur le campus de Vélizy.",
       },
       { property: "og:title", content: "Boutique AE2V" },
       {
@@ -34,7 +34,7 @@ function BoutiquePage() {
       <PageHero
         eyebrow="Merch officiel"
         title="Boutique"
-        intro="Textile, goodies et packs aux couleurs de l'AE2V : tarif adhérent, retrait sur le campus."
+        intro="Textile, goodies et packs aux couleurs de l'AE2V : tarif cotisant, retrait sur le campus."
       />
 
       <Section
@@ -52,7 +52,7 @@ function BoutiquePage() {
             </a>
           </Button>
           <Button asChild size="lg" variant="black">
-            <Link to="/adherer">Débloquer le tarif adhérent</Link>
+            <Link to="/adherer">Débloquer le tarif cotisant</Link>
           </Button>
         </div>
       </Section>
@@ -66,7 +66,7 @@ function BoutiquePage() {
       >
         <div className="grid gap-4 md:grid-cols-3">
           <HardCard eyebrow="01" title="Repère ton article ici" tone="dark" interactive={false}>
-            La page Boutique sert d'aperçu : photo, tailles, prix adhérent et prix public. Rien
+            La page Boutique sert d'aperçu : photo, tailles, prix cotisant et prix public. Rien
             n'est encaissé sur ce site.
           </HardCard>
           <HardCard eyebrow="02" title="Paie sur HelloAsso" tone="dark" interactive={false}>
@@ -85,7 +85,7 @@ function BoutiquePage() {
           items={[
             {
               q: "Comment sont fixés les prix ?",
-              a: "Au coût réel majoré d'une marge réinvestie dans les événements. Le prix adhérent est systématiquement affiché à côté du prix public.",
+              a: "Au coût réel majoré d'une marge réinvestie dans les événements. Le prix cotisant est systématiquement affiché à côté du prix public.",
             },
             {
               q: "Que faire si ma taille n'est plus disponible ?",

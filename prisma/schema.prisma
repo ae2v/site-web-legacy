@@ -16,6 +16,7 @@ enum Role {
 
 enum MembershipStatus {
   DEMANDE_SOUMISE
+  A_CORRIGER
   MEMBRE_VALIDE
   REFUSE
 }
@@ -34,46 +35,137 @@ enum EventStatus {
   TERMINE
 }
 
-model User {
-  id                 String             @id @default(cuid())
-  email              String             @unique
-  password           String?
-  firstName          String
-  lastName           String
-  role               Role               @default(MEMBRE)
-  pole               String?
-  roleTitle          String?
-  departement        String             @default("GEII")
-  niveau             String             @default("BUT1")
-  contributionStatus ContributionStatus @default(NON_COTISANT)
-  membershipStatus   MembershipStatus   @default(DEMANDE_SOUMISE)
-  cardCode           String             @unique
-  contributionCents  Int                @default(0)
-  memberSince        String?
-  requestedAt        String?
-  validatedAt        String?
-  schoolYear         String             @default("2026-2027")
-  emailPrefs         String[]           @default(["newsletter"])
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+enum PaymentStatus {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  REMBOURSE
+  PARTIELLEMENT_REMBOURSE
+}
 
-  tickets            Ticket[]
-  orders             Order[]
+model User {
+  id                   String             @id @default(cuid())
+  email                String             @unique
+  password             String?
+  firstName            String
+  lastName             String
+  role                 Role               @default(MEMBRE)
+  pole                 String?
+  roleTitle            String?
+  departement          String             @default("GEII")
+  niveau               String             @default("BUT1")
+  contributionStatus   ContributionStatus @default(NON_COTISANT)
+  membershipStatus     MembershipStatus   @default(DEMANDE_SOUMISE)
+  cardCode             String             @unique
+  contributionCents    Int                @default(0)
+  memberSince          String?
+  requestedAt          String?
+  validatedAt          String?
+  schoolYear           String             @default("2026-2027")
+  emailPrefs           String[]           @default([])
+  emailUnsubscribedAt  DateTime?
+  emailPreferenceToken String?            @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  tickets       Ticket[]
+  orders        Order[]
+  memberships   Membership[]
+  payments      Payment[]
+  registrations EventRegistration[]
+  invoices      Invoice[]
+  emailLogs     EmailLog[]
+  contactMessageReads ContactMessageRead[]
+  teamMember    TeamMember?
+  candidatures  Candidature[]
 }
 
 model Dossier {
+  id                   String             @id @default(cuid())
+  firstName            String
+  lastName             String
+  email                String             @unique
+  birthDate            String?
+  phone                String?
+  studentId            String?
+  departement          String
+  niveau               String
+  groupe               String?
+  interestsJson        String             @default("[]")
+  volunteer            String?
+  message              String?
+  emailPrefsJson       String             @default("[]")
+  emailUnsubscribedAt  DateTime?
+  emailPreferenceToken String?            @unique
+  rgpdAcceptedAt       DateTime?
+  statutsAcceptedAt    DateTime?
+  imageRight           Boolean            @default(false)
+  status               MembershipStatus   @default(DEMANDE_SOUMISE)
+  contributionStatus   ContributionStatus @default(NON_COTISANT)
+  contributionCents    Int                @default(0)
+  schoolYear           String             @default("2026-2027")
+  submittedAt          String
+  validatedAt          String?
+  notes                String?
+  correctionToken      String?              @unique
+  correctionRequestedAt DateTime?
+  createdAt            DateTime           @default(now())
+
+  corrections MembershipCorrection[]
+}
+
+model MembershipCorrection {
+  id        String   @id @default(cuid())
+  dossierId String
+  authorType String
+  authorName String
+  authorEmail String
+  message   String
+  createdAt DateTime @default(now())
+
+  dossier Dossier @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId, createdAt])
+}
+
+model Candidature {
+  id            String   @id @default(cuid())
+  userId        String?
+  name          String
+  email         String
+  pole          String
+  motivation    String
+  availability String
+  status        String   @default("EN_ATTENTE")
+  internalNotes String?
+  submittedAt  DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, submittedAt])
+  @@index([userId, submittedAt])
+}
+
+model Membership {
   id                 String             @id @default(cuid())
-  firstName          String
-  lastName           String
-  email              String             @unique
-  departement        String
-  niveau             String
+  userId             String
+  schoolYear         String
   status             MembershipStatus   @default(DEMANDE_SOUMISE)
   contributionStatus ContributionStatus @default(NON_COTISANT)
-  submittedAt        String
-  validatedAt        String?
+  amountCents        Int                @default(0)
+  submittedAt        DateTime           @default(now())
+  validatedAt        DateTime?
+  expiresAt          DateTime?
+  revokedAt          DateTime?
   notes              String?
   createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolYear])
+  @@index([schoolYear, status])
 }
 
 model Event {
@@ -82,7 +174,10 @@ model Event {
   slug                String      @unique
   kind                String      @default("Soirée")
   date                String
+  doors               String      @default("À déterminer")
   place               String
+  address             String      @default("À déterminer")
+  summary             String      @default("À déterminer")
   capacity            Int         @default(100)
   registered          Int         @default(0)
   status              EventStatus @default(OUVERT)
@@ -90,18 +185,50 @@ model Event {
   registrationOpensAt String?
   description         String
   image               String?
+  programJson         String      @default("[]")
+  access              String      @default("")
+  practicalJson       String      @default("[]")
+  customSectionsJson  String      @default("[]")
+  registrationClosesAt String     @default("À déterminer")
   pricePublicCents    Int         @default(0)
   priceMemberCents    Int         @default(0)
   tiersJson           String      @default("[]")
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
-  tickets             Ticket[]
+  tickets       Ticket[]
+  registrations EventRegistration[]
+  payments      Payment[]
+}
+
+model EventRegistration {
+  id         String   @id @default(cuid())
+  eventId    String
+  userId     String?
+  userEmail  String
+  participantName  String?
+  participantPhone String?
+  legalConsentAt   DateTime?
+  termsConsentAt   DateTime?
+  imageConsentAt   DateTime?
+  tier       String
+  priceCents Int
+  status     String   @default("CONFIRMEE")
+  createdAt  DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  payments Payment[]
+  ticket Ticket?
+
+  @@index([eventId, status])
+  @@index([userId, createdAt])
 }
 
 model Ticket {
   id         String   @id @default(cuid())
   eventId    String
+  registrationId String? @unique
   userId     String?
   userEmail  String
   code       String   @unique
@@ -110,8 +237,43 @@ model Ticket {
   status     String   @default("valide")
   createdAt  DateTime @default(now())
 
-  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventId, status])
+  @@index([userId, createdAt])
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  userId              String?
+  orderId             String?
+  invoiceId           String?       @unique
+  eventId             String?
+  registrationId      String?
+  amountCents         Int
+  refundedAmountCents Int?
+  status              PaymentStatus @default(EN_ATTENTE)
+  kind                String
+  provider            String?
+  providerReference   String?
+  paymentMethod       String?
+  notes               String?
+  confirmedAt         DateTime?
+  refundedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  registration EventRegistration? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([providerReference])
+  @@index([registrationId, status])
 }
 
 model Product {
@@ -123,6 +285,7 @@ model Product {
   badge            String?
   image            String?
   sizesJson        String   @default("[]")
+  helloAssoUrl     String?
   active           Boolean  @default(true)
   createdAt        DateTime @default(now())
 }
@@ -134,11 +297,29 @@ model Order {
   customerName String
   date         String
   totalCents   Int
-  status       String   @default("EN_PREPARATION")
+  status       String   @default("EN_ATTENTE")
   linesJson    String   @default("[]")
+  helloAssoId  String?  @unique
+  notes        String?
   createdAt    DateTime @default(now())
 
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lines    OrderLine[]
+  payments Payment[]
+  invoices Invoice[]
+}
+
+model OrderLine {
+  id             String   @id @default(cuid())
+  orderId        String
+  productId      String?
+  productName    String
+  variant        String?
+  quantity       Int
+  unitPriceCents Int
+  createdAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Invoice {
@@ -149,21 +330,40 @@ model Invoice {
   paymentMethod String
   priceCents    Int
   description   String
+  userId        String?
+  orderId       String?
+  status        String   @default("EMISE")
+  linesJson     String   @default("[]")
+  notes         String?
   createdAt     DateTime @default(now())
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  payments Payment[]
 }
 
 model TeamMember {
   id                 String   @id @default(cuid())
   displayName        String
   roleTitle          String
-  pole               String
-  personalAe2vEmail String   @unique
+  roleTitlesJson     String   @default("[]")
+  officerRole        String?
+  polesJson          String   @default("[]")
+  showDefaultPoleTitles Boolean @default(true)
+  pole               String?
+  secondaryPolesJson String   @default("[]")
+  personalAe2vEmail  String?  @unique
   roleEmail          String?
   isOfficer          Boolean  @default(false)
   bio                String?
   photoUrl           String?
   mandateYear        String   @default("2026-2027")
+  displayOrder       Int      @default(0)
+  publicVisible      Boolean  @default(true)
+  userId             String?  @unique
   createdAt          DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model ContactMessage {
@@ -175,6 +375,40 @@ model ContactMessage {
   status    String   @default("NON_LU")
   sentAt    String
   createdAt DateTime @default(now())
+
+  reads ContactMessageRead[]
+}
+
+model ContactMessageRead {
+  id              String   @id @default(cuid())
+  contactMessageId String
+  userId          String
+  readAt          DateTime @default(now())
+
+  contactMessage ContactMessage @relation(fields: [contactMessageId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contactMessageId, userId])
+  @@index([userId, readAt])
+}
+
+model EmailLog {
+  id        String    @id @default(cuid())
+  userId    String?
+  recipient String
+  sender    String
+  subject   String
+  body      String
+  category  String    @default("BDE")
+  status    String    @default("ENREGISTRE")
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([recipient, createdAt])
+  @@index([category, status])
 }
 
 model AuditLog {

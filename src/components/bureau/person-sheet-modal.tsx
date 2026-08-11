@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/bureau/data-table";
-import { formatCents, type Dossier, type CustomAccount } from "@/lib/demo-session";
+import { formatCents } from "@/lib/demo-session";
 import { EmailComposerModal } from "@/components/bureau/email-composer-modal";
 import { addAuditLog } from "@/lib/dynamic-store";
 
@@ -24,7 +24,10 @@ export type UnifiedPerson = {
   departement: string;
   niveau: string;
   status: "VALIDE" | "EN_ATTENTE" | "A_CORRIGER" | "REFUSE";
-  contributionStatus: "PAYEE" | "EN_ATTENTE";
+  membershipStatus?: "VALIDE" | "EN_ATTENTE" | "A_CORRIGER" | "REFUSE";
+  contributionStatus: string;
+  schoolYear?: string;
+  memberSince?: string | null;
   cardCode?: string;
   tickets?: { id: string; eventTitle: string; date: string; code: string; status: string }[];
   orders?: { id: string; date: string; totalCents: number; status: string }[];

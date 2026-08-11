@@ -10,7 +10,7 @@ export type NavItem = {
 
 export const publicNav: NavItem[] = [
   { to: "/", label: "Accueil", description: "Page d'accueil de l'AE2V." },
-  { to: "/bde", label: "Le BDE", description: "L'association, les pôles et l'équipe." },
+  { to: "/bde", label: "Le BDE", description: "L'association, ses actions et son équipe." },
   { to: "/evenements", label: "Événements", description: "Soirées, gala, afterworks et sorties." },
   { to: "/adherer", label: "Adhérer", description: "Rejoindre l'AE2V pour l'année en cours." },
   { to: "/boutique", label: "Boutique", description: "Goodies, textile et packs étudiants." },
@@ -23,7 +23,6 @@ export const accountNav: NavItem = {
 };
 
 export const secondaryNav: NavItem[] = [
-  { to: "/actualites", label: "Actualités", description: "Annonces et vie de l'association." },
   { to: "/contact", label: "Contact", description: "Écrire au bureau AE2V." },
 ];
 

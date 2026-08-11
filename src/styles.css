@@ -23,9 +23,9 @@
   --radius-4xl: 12px;
 
   /* Typographies AE2V */
-  --font-impact: "Bebas Neue Pro Expanded", "Anton", Impact, Verdana, sans-serif;
-  --font-display: "Bebas Neue Pro Expanded", "Anton", Impact, Verdana, sans-serif;
-  --font-h1: "Anton", Impact, Verdana, sans-serif;
+  --font-impact: Impact, Verdana, sans-serif;
+  --font-display: Impact, Verdana, sans-serif;
+  --font-h1: Impact, Verdana, sans-serif;
   --font-h2: "Red Hat Display", Arial, Verdana, sans-serif;
   --font-body: "Raleway", Verdana, Arial, sans-serif;
   --font-sans: "Raleway", Verdana, Arial, sans-serif;
@@ -381,20 +381,18 @@
   }
 }
 
-/* --- Typographies AE2V auto-hébergées (CDN Lovable) --- */
+/* --- Typographies AE2V --- */
 @font-face {
-  font-family: "Anton";
-  src: url("/__l5e/assets-v1/be87934c-70ac-46f1-8dac-3b6d91bcf253/Anton-Regular.ttf")
-    format("truetype");
+  font-family: "AE2V unavailable Anton";
+  src: local("Arial");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Bebas Neue Pro Expanded";
-  src: url("/__l5e/assets-v1/3b4827f7-10ad-44d7-ac80-4a0d2de0a5f2/BebasNeuePro-ExpandedExtraBold.otf")
-    format("opentype");
+  font-family: "AE2V unavailable Bebas";
+  src: local("Arial");
   font-weight: 800;
   font-style: normal;
   font-display: swap;

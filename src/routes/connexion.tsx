@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { LogIn } from "lucide-react";
 
 import { TapeLabel } from "@/components/brand";
@@ -13,6 +14,8 @@ import {
   roleLabels,
   useDemoSession,
 } from "@/lib/demo-session";
+import type { RemoteAccount } from "@/lib/demo-session";
+import { signInServer, signOutServer, signUpServer } from "@/lib/server-functions/auth";
 
 export const Route = createFileRoute("/connexion")({
   head: () => ({
@@ -38,7 +41,10 @@ const inputClass =
 function ConnexionPage() {
   const navigate = useNavigate();
   const session = useDemoSession();
-  const { account, signIn, signInWithCredentials, signOut, signUp } = session;
+  const { account, signIn, signInRemote, signInWithCredentials, signOut, signUp } = session;
+  const remoteSignIn = useServerFn(signInServer);
+  const remoteSignOut = useServerFn(signOutServer);
+  const remoteSignUp = useServerFn(signUpServer);
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -54,10 +60,25 @@ function ConnexionPage() {
     void navigate({ to: "/espace" });
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (mode === "login") {
-      const result = signInWithCredentials(email, password);
+      let result: { ok: boolean; error?: string };
+      let remoteUser: RemoteAccount | null = null;
+      try {
+        const remote = await remoteSignIn({ data: { email, password } });
+        if (remote.ok) {
+          remoteUser = remote.user;
+          result = { ok: true };
+        } else {
+          result = signInWithCredentials(email, password);
+        }
+      } catch {
+        result = signInWithCredentials(email, password);
+      }
+      if (result.ok) {
+        if (remoteUser) signInRemote(remoteUser);
+      }
       if (!result.ok) {
         setError(result.error ?? "Connexion impossible.");
         return;
@@ -69,13 +90,27 @@ function ConnexionPage() {
         setError("Veuillez remplir tous les champs obligatoires.");
         return;
       }
-      const res = signUp({ email, password, firstName, lastName, departement, niveau });
-      if (!res.ok) {
-        setError(res.error ?? "Erreur lors de l'inscription.");
+      try {
+        const remote = await remoteSignUp({
+          data: { email, password, firstName, lastName, departement, niveau },
+        });
+        if (!remote.ok) {
+          setError(remote.error);
+          return;
+        }
+        signInRemote(remote.user);
+        setError(null);
+        void navigate({ to: "/espace" });
         return;
+      } catch {
+        const res = signUp({ email, password, firstName, lastName, departement, niveau });
+        if (!res.ok) {
+          setError(res.error ?? "Erreur lors de l'inscription.");
+          return;
+        }
+        setError(null);
+        void navigate({ to: "/espace" });
       }
-      setError(null);
-      void navigate({ to: "/espace" });
     }
   }
 
@@ -99,7 +134,14 @@ function ConnexionPage() {
               Connecté en tant que {account.firstName} {account.lastName} ·{" "}
               {roleLabels[account.role]}.
             </p>
-            <Button className="mt-4" variant="black" onClick={signOut}>
+            <Button
+              className="mt-4"
+              variant="black"
+              onClick={() => {
+                signOut();
+                void remoteSignOut().catch(() => undefined);
+              }}
+            >
               Se déconnecter
             </Button>
           </div>

@@ -15,6 +15,7 @@ export type OrderItem = {
 
 export type Ae2vOrder = {
   id: string; // Ex. AE2V-2026-CMD-8X92
+  serverId?: string;
   date: string;
   customerName: string;
   customerEmail: string;

@@ -17,10 +17,7 @@
 ├── /bde
 │   ├── /bde/association
 │   ├── /bde/equipe
-│   ├── /bde/poles
 │   └── /bde/rejoindre
-├── /actualites
-│   └── /actualites/:slug
 ├── /contact
 ├── /connexion
 ├── /inscription

@@ -75,7 +75,7 @@ const faqList = [
   {
     question: "Quelle est la différence entre membre adhérent et cotisant ?",
     answer:
-      "L'adhésion valide votre dossier étudiant. La cotisation (à partir de 5 € / an) débloque les avantages tarifaires réduits sur les événements, le bar BDE et la boutique.",
+      "L'adhésion valide votre dossier étudiant. La cotisation (à partir de 3 € / an) débloque les avantages tarifaires réduits sur les événements, le bar BDE et la boutique.",
   },
   {
     question: "Comment sont prises les décisions au BDE ?",
@@ -85,7 +85,7 @@ const faqList = [
   {
     question: "Comment candidater pour rejoindre le bureau ?",
     answer:
-      "Rendez-vous sur votre espace étudiant (`/espace`) ou dans l'onglet Pôles (`/bde/poles`) pour envoyer votre candidature au pôle de votre choix.",
+      "Rendez-vous sur votre espace étudiant (`/espace`) ou utilisez le formulaire de contact pour rejoindre le bureau.",
   },
 ];
 
@@ -131,10 +131,10 @@ function AssociationPage() {
           </h3>
           <p className="text-sm opacity-85 max-w-3xl mb-8">
             Le bureau exécutif est élu chaque année scolaire lors de l'Assemblée Générale. Il
-            s'appuie sur des responsables de pôles et des bénévoles actifs.
+            s'appuie sur une équipe opérationnelle et des bénévoles actifs.
           </p>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="border-2 border-ae2v-offwhite/30 bg-card/10 p-5">
               <p className="text-xs font-bold uppercase tracking-wider text-ae2v-green">
                 Niveau 1 — Bureau Exécutif
@@ -143,15 +143,6 @@ function AssociationPage() {
               <p className="mt-2 text-xs opacity-75">
                 Pilotage légal, direction stratégique, budget global et représentation auprès de
                 l'IUT.
-              </p>
-            </div>
-            <div className="border-2 border-ae2v-offwhite/30 bg-card/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-ae2v-green">
-                Niveau 2 — Pôles Opérationnels
-              </p>
-              <h4 className="font-impact text-xl mt-1">Événementiel, Com & Partenaires</h4>
-              <p className="mt-2 text-xs opacity-75">
-                Conception des soirées, création visuelle, prospection des réductions et logistique.
               </p>
             </div>
             <div className="border-2 border-ae2v-offwhite/30 bg-card/10 p-5">

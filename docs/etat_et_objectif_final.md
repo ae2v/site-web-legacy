@@ -1,6 +1,6 @@
-# État des Lieux et Objectif Final — Site Temporaire AE2V
+# État des Lieux et Objectif Final — AE2V
 
-> **Note contextuelle** : Ce site est une version temporaire interactive de la plateforme AE2V (BDE de Vélizy), déployée dans l'attente de la version finale développée par Loan Jean.
+> Ce document décrit l’état actuel de la refonte AE2V et les derniers éléments de mise en production.
 
 ---
 
@@ -15,10 +15,10 @@
 
 ### Architecture & Navigation (Routes)
 
-- `/` : Page d'accueil complète (Hero, Actualités, Événements, Avantages, FAQ, CTA).
-- `/bde` : Hub de présentation du BDE (Pages Équipe, Pôles, Association).
+- `/` : Page d'accueil complète (Hero, Événements, Avantages, FAQ, CTA), sans module Actualités.
+- `/bde` : Hub de présentation du BDE (Pages Équipe et Association, sans présentation publique des pôles).
 - `/evenements` : Liste et fiche détaillée des événements avec billetterie.
-- `/boutique` : Boutique en ligne (panier multi-articles et lignes de commande).
+- `/boutique` : Aperçu minimal des produits HelloAsso avec redirection externe.
 - `/adherer` : Formulaire d'adhésion et de cotisation.
 - `/espace` : Espace étudiant (carte membre, billets, commandes, préférences email).
 - `/bureau` : Back-office de gestion (Validation des dossiers, candidatures, membres, événements).
@@ -28,22 +28,22 @@
 
 ### Données & Persistance
 
-- **Actuellement** : Données de démo codées en dur dans `src/data/*` (`team.ts`, `events.ts`, `shop.ts`, `poles.ts`, `links.ts`) avec un stockage local React Context (`DemoSessionProvider`).
-- **Limites à corriger** : Absence de persistance hybride (Real Auth + DB/JSON dynamique), formulaire d'adhésion non connecté à un stockage modifiable, absence d'interface d'administration système/SMTP.
+- **Architecture actuelle** : PostgreSQL via Prisma pour les flux métier, server functions protégées par session et rôle, avec miroirs locaux limités au mode démonstration.
+- **Centre de gestion** : `/bureau/personnes/:personId` regroupe identité, formulaire, statuts, adhésions, paiements, commandes, billets, factures, messages et journal d’audit.
 
 ---
 
-## 2. Objectifs Finaux de la Version Temporaire
+## 2. État cible et règles de mise en production
 
 1. **Architecture de Données Dynamique** :
    - Rendre les listes (membres du bureau, événements, articles boutique, liens d'accès) dynamiques et éditables via stockage persistant local/DB-ready et API JSON.
 2. **Système de Connexion Hybride** :
    - Vrai système d'authentification (email / mot de passe) avec persistance de session.
    - Conservation des 4 comptes de démo préconfigurés (Étudiant non cotisant, Adhérent cotisant, Membre bureau, Présidente Bureau Admin) pour démonstration facile.
-3. **Espace de Configuration `/setup` Sécurisé** :
-   - Création d'une page d'administration `/setup` protégée par un Master Password.
-   - Gestion de la configuration globale (nom du site, année universitaire, bascule mode maintenance/démo).
-   - Configuration SMTP complète (serveur, port, utilisateur, mot de passe, expéditeur, sécurité SSL/TLS) avec **outil de test d'envoi d'email intégré**.
+3. **Configuration `/setup`** :
+   - Paramètres d’interface non sensibles uniquement.
+   - Aucun secret SMTP ou mot de passe maître dans le navigateur.
+   - Le transport email réel est configuré côté serveur/Vercel.
 4. **Circuits Fonctionnels Connectés** :
    - Traitement réel des dossiers d'adhésion (création, mise en attente, validation/refus dans le bureau).
    - Gestion dynamique des billets d'événements et des commandes boutique.

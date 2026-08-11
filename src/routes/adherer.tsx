@@ -14,7 +14,7 @@ export const Route = createFileRoute("/adherer")({
       {
         name: "description",
         content:
-          "Formulaire d'adhésion à l'AE2V : quelques minutes, cotisation facultative à montant libre dès 5 €, carte de membre avec QR code après validation.",
+          "Formulaire d'adhésion à l'AE2V : quelques minutes, cotisation facultative à montant libre dès 3 €, carte de membre avec QR code après validation.",
       },
       { property: "og:title", content: "Adhérer à l'AE2V" },
       {
@@ -134,8 +134,8 @@ function AdhererPage() {
             L'adhésion couvre l'année en cours et prend fin à la rentrée suivante. L'historique
             reste visible dans ton espace.
           </HardCard>
-          <HardCard interactive={false} eyebrow="Cotisation" title="Facultative, dès 5 €">
-            Adhérer est gratuit. Cotiser est un soutien libre à partir de 5 €, réglé au bureau du
+          <HardCard interactive={false} eyebrow="Cotisation" title="Facultative, dès 3 €">
+            Adhérer est gratuit. Cotiser est un soutien libre à partir de 3 €, réglé au bureau du
             BDE après validation. Seule une cotisation confirmée ouvre les tarifs réduits.
           </HardCard>
           <HardCard interactive={false} eyebrow="Portée" title="Carte nominative">

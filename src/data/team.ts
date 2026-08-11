@@ -1,79 +1,183 @@
-/**
- * Données équipe AE2V.
- *
- * RÈGLES (docs/ae2v/03 + 05) :
- * - les adresses sont explicites, nullables, et doivent finir par `@ae2v.fr` ;
- * - aucune adresse personnelle / d'authentification n'est jamais affichée ;
- * - aucune adresse n'est déduite du nom.
- *
- * Deux adresses possibles par fiche :
- * - `roleEmail`     : adresse de FONCTION (statut officiel : présidence, trésorerie…) ;
- * - `personalAe2vEmail` : adresse NOMINATIVE AE2V de la personne.
- * Les deux s'affichent quand elles existent toutes les deux.
- *
- * ⚠️ Les entrées ci-dessous sont des DONNÉES DE DÉMONSTRATION (`isDemo: true`) :
- * noms fictifs et portraits générés (visages inexistants). Elles servent à
- * valider la maquette en attendant la saisie réelle depuis /bureau/equipe.
- */
-
-import member1 from "@/assets/team/member-1.jpg.asset.json";
-import member2 from "@/assets/team/member-2.jpg.asset.json";
-import member3 from "@/assets/team/member-3.jpg.asset.json";
-import member4 from "@/assets/team/member-4.jpg.asset.json";
-import member5 from "@/assets/team/member-5.jpg.asset.json";
-import member6 from "@/assets/team/member-6.jpg.asset.json";
-import member7 from "@/assets/team/member-7.jpg.asset.json";
-import member8 from "@/assets/team/member-8.jpg.asset.json";
-import member9 from "@/assets/team/member-9.jpg.asset.json";
-import member10 from "@/assets/team/member-10.jpg.asset.json";
-import member11 from "@/assets/team/member-11.jpg.asset.json";
-
+/** Données publiques de l'équipe AE2V. */
 export type TeamPole =
-  "Direction" | "Événementiel" | "Communication" | "Partenariats" | "Trésorerie";
+  "Direction" | "Communication" | "Numérique" | "Finance" | "Événementiel" | "Partenarial";
 
 export type TeamMember = {
   id: string;
+  userId?: string | null;
   displayName: string;
-  /** Titre d'affichage public (≠ rôle de sécurité). */
   roleTitle: string;
-  /** Statut officiel du bureau (rôle essentiel) ; null pour les membres de pôle. */
+  roleTitles: string[];
+  officerRole: string | null;
   isOfficer: boolean;
-  pole: TeamPole;
-  /** Année de mandat, ex. "2026–2027". */
+  poles: TeamPole[];
+  showDefaultPoleTitles: boolean;
   mandate: string;
-  /** Portrait public ; null → repli graphique AE2V. */
   photoUrl: string | null;
-  /** Adresse de fonction (statut), uniquement si elle existe réellement. */
   roleEmail: string | null;
-  /** Adresse nominative AE2V de la personne, uniquement si elle existe réellement. */
   personalAe2vEmail: string | null;
-  /** Bio courte facultative. */
   bio: string | null;
-  /** Fiche fictive de démonstration (nom + portrait générés). */
   isDemo: boolean;
   isPlaceholder: boolean;
+  publicVisible: boolean;
 };
 
 export const AE2V_EMAIL_DOMAIN = "@ae2v.fr";
+const MANDATE = "2026–2027";
 
-function safeEmail(value: string | null | undefined): string | null {
-  const email = value?.trim().toLowerCase();
-  if (!email) return null;
-  return email.endsWith(AE2V_EMAIL_DOMAIN) ? email : null;
+export const teamPoles: TeamPole[] = [
+  "Direction",
+  "Communication",
+  "Numérique",
+  "Finance",
+  "Événementiel",
+  "Partenarial",
+];
+
+export function defaultTitlesForPoles(poles: TeamPole[]): string[] {
+  return poles.map((pole) => {
+    if (pole === "Numérique") return "Chargé du numérique";
+    if (pole === "Communication") return "Chargé de communication";
+    if (pole === "Finance") return "Chargé de la finance";
+    if (pole === "Événementiel") return "Chargé de l’événementiel";
+    if (pole === "Partenarial") return "Chargé du partenarial";
+    return "Membre de la direction";
+  });
 }
 
-/** Garde-fou : n'affiche que des adresses réellement saisies et du domaine AE2V. */
-export function memberEmails(member: TeamMember): {
-  role: string | null;
-  personal: string | null;
-  any: boolean;
-} {
-  const role = safeEmail(member.roleEmail);
-  const personal = safeEmail(member.personalAe2vEmail);
+export function displayedTeamTitles(member: TeamMember): string[] {
+  const custom = member.roleTitles.filter(
+    (title) => title.trim().length > 0 && title.trim() !== "Membre du bureau",
+  );
+  // Les intitulés par pôle restent le filet de sécurité lorsqu'aucun titre
+  // personnalisé n'existe. Ils ne peuvent être masqués qu'en présence d'au
+  // moins un intitulé custom.
+  if (custom.length && !member.showDefaultPoleTitles) return custom;
+  if (custom.length) return custom;
+  return defaultTitlesForPoles(member.poles);
+}
+
+function member(
+  id: string,
+  displayName: string,
+  roleTitle: string,
+  poles: TeamPole[],
+  options: Partial<
+    Pick<
+      TeamMember,
+      | "roleEmail"
+      | "personalAe2vEmail"
+      | "bio"
+      | "photoUrl"
+      | "roleTitles"
+      | "officerRole"
+      | "poles"
+      | "showDefaultPoleTitles"
+    >
+  > = {},
+): TeamMember {
+  return {
+    id,
+    displayName,
+    roleTitle,
+    roleTitles: options.roleTitles ?? [roleTitle],
+    officerRole:
+      options.officerRole ??
+      (["Président", "Vice-président", "Secrétaire", "Trésorière"].includes(roleTitle)
+        ? roleTitle
+        : null),
+    isOfficer: ["Président", "Vice-président", "Secrétaire", "Trésorière"].includes(roleTitle),
+    poles: options.poles ?? poles,
+    showDefaultPoleTitles: options.showDefaultPoleTitles ?? true,
+    mandate: MANDATE,
+    photoUrl: options.photoUrl ?? null,
+    roleEmail: options.roleEmail ?? null,
+    personalAe2vEmail: options.personalAe2vEmail ?? null,
+    bio: options.bio ?? null,
+    isDemo: false,
+    isPlaceholder: options.photoUrl == null,
+    publicVisible: true,
+  };
+}
+
+export const teamMembers: TeamMember[] = [
+  member("hey-tham-kortas", "Hey’tham KORTAS", "Président", ["Direction", "Partenarial"], {
+    personalAe2vEmail: "heytham.kortas@ae2v.fr",
+    roleEmail: "president@ae2v.fr",
+  }),
+  member("alexandre-mariette", "Alexandre MARIETTE", "Vice-président", ["Direction"], {
+    personalAe2vEmail: "alexandre.mariette@ae2v.fr",
+    roleEmail: "vice-president@ae2v.fr",
+  }),
+  member("carla-barruet", "Carla BARRUET", "Secrétaire", ["Direction"], {
+    personalAe2vEmail: "carla.barruet@ae2v.fr",
+    roleEmail: "secretaire@ae2v.fr",
+  }),
+  member("jaden-brival", "Jaden BRIVAL", "Trésorière", ["Finance", "Direction"], {
+    personalAe2vEmail: "jaden.brival@ae2v.fr",
+    roleEmail: "tresoriere@ae2v.fr",
+  }),
+  member(
+    "bastian-noel",
+    "Bastian NOËL",
+    "Responsable de l’infrastructure numérique",
+    ["Numérique", "Communication"],
+    {
+      roleTitles: ["Responsable de l’infrastructure numérique", "Webmaster adjoint"],
+      showDefaultPoleTitles: false,
+      personalAe2vEmail: "bastian.noel@ae2v.fr",
+    },
+  ),
+  member("loan-jean", "Loan JEAN", "Responsable Web & Discord", ["Numérique", "Communication"], {
+    personalAe2vEmail: "loan.jean@ae2v.fr",
+  }),
+  member("franck-manickam", "Franck MANICKAM", "Chargé de l’événementiel", ["Événementiel"], {
+    personalAe2vEmail: "franck.manickam@ae2v.fr",
+  }),
+  member("selma-chadli", "Selma CHADLI", "Chargée de communication", ["Communication"], {
+    personalAe2vEmail: "selma.chadli@ae2v.fr",
+  }),
+  member(
+    "mathis-laporte-kouassi",
+    "Mathis LAPORTE KOUASSI",
+    "Chargé de communication",
+    ["Communication"],
+    { personalAe2vEmail: "mathis.laporte.kouassi@ae2v.fr" },
+  ),
+  member("yasmine-lacheb", "Yasmine LACHEB", "Chargée de communication", ["Communication"], {
+    personalAe2vEmail: "yasmine.lacheb@ae2v.fr",
+  }),
+  member(
+    "gaelle-rasolomanana",
+    "Gaelle RASOLOMANANA",
+    "Chargée de communication",
+    ["Communication"],
+    {
+      personalAe2vEmail: "gaelle.rasolomanana@ae2v.fr",
+    },
+  ),
+  member("julline-azer", "Julline AZER", "Chargée de communication", ["Communication"], {
+    personalAe2vEmail: "julline.azer@ae2v.fr",
+  }),
+  member("zohra-sekkal", "Zohra SEKKAL", "Membre du bureau", [], {
+    personalAe2vEmail: "zohra.sekkal@ae2v.fr",
+  }),
+  member("matteo-cakarun", "Matteo CAKARUN", "Membre du bureau", [], {
+    personalAe2vEmail: "matteo.cakarun@ae2v.fr",
+  }),
+  member("aurelia-okoto", "Aurélia OKOTO", "Membre du bureau", [], {
+    personalAe2vEmail: "aurelia.okoto@ae2v.fr",
+  }),
+];
+
+export function memberEmails(member: TeamMember) {
+  const valid = (value: string | null) =>
+    value?.trim().toLowerCase().endsWith(AE2V_EMAIL_DOMAIN) ? value.trim().toLowerCase() : null;
+  const role = valid(member.roleEmail);
+  const personal = valid(member.personalAe2vEmail);
   return { role, personal, any: Boolean(role || personal) };
 }
 
-/** Adresse à privilégier pour un bouton « écrire » unique. */
 export function primaryEmail(member: TeamMember): string | null {
   const { role, personal } = memberEmails(member);
   return role ?? personal;
@@ -88,179 +192,11 @@ export function initials(name: string): string {
     .join("");
 }
 
-export const teamPoles: TeamPole[] = [
-  "Direction",
-  "Événementiel",
-  "Communication",
-  "Partenariats",
-  "Trésorerie",
-];
-
-const MANDATE = "2026–2027";
-
-export const teamMembers: TeamMember[] = [
-  /* --- Rôles essentiels (statut + fonction) --- */
-  {
-    id: "presidence",
-    displayName: "Camille Rousseau",
-    roleTitle: "Présidente",
-    isOfficer: true,
-    pole: "Direction",
-    mandate: MANDATE,
-    photoUrl: member1.url,
-    roleEmail: "presidence@ae2v.fr",
-    personalAe2vEmail: "camille.rousseau@ae2v.fr",
-    bio: "Coordonne le bureau, représente l'association et pilote les projets de l'année.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "vice-presidence",
-    displayName: "Malik Bertrand",
-    roleTitle: "Vice-président",
-    isOfficer: true,
-    pole: "Direction",
-    mandate: MANDATE,
-    photoUrl: member2.url,
-    roleEmail: "vice-presidence@ae2v.fr",
-    personalAe2vEmail: "malik.bertrand@ae2v.fr",
-    bio: "Appuie la présidence sur le suivi des pôles et la vie quotidienne de l'asso.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "secretariat",
-    displayName: "Awa Diallo",
-    roleTitle: "Secrétaire générale",
-    isOfficer: true,
-    pole: "Direction",
-    mandate: MANDATE,
-    photoUrl: member3.url,
-    roleEmail: "secretariat@ae2v.fr",
-    personalAe2vEmail: "awa.diallo@ae2v.fr",
-    bio: "Comptes rendus, adhésions, archives et relation avec l'administration.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "tresorerie",
-    displayName: "Thomas Lemoine",
-    roleTitle: "Trésorier",
-    isOfficer: true,
-    pole: "Trésorerie",
-    mandate: MANDATE,
-    photoUrl: member4.url,
-    roleEmail: "tresorerie@ae2v.fr",
-    personalAe2vEmail: "thomas.lemoine@ae2v.fr",
-    bio: "Budget, encaissements, remboursements et transparence des comptes.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-
-  /* --- Membres de pôle (sans statut de bureau) --- */
-  {
-    id: "event-lea",
-    displayName: "Léa Marchand",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Événementiel",
-    mandate: MANDATE,
-    photoUrl: member5.url,
-    roleEmail: null,
-    personalAe2vEmail: "lea.marchand@ae2v.fr",
-    bio: "Programmation des soirées et des temps forts du campus.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "event-noe",
-    displayName: "Noé Fabre",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Événementiel",
-    mandate: MANDATE,
-    photoUrl: member8.url,
-    roleEmail: null,
-    personalAe2vEmail: "noe.fabre@ae2v.fr",
-    bio: "Logistique, matériel et installation sur site.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "event-ines",
-    displayName: "Inès Chevalier",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Événementiel",
-    mandate: MANDATE,
-    photoUrl: member9.url,
-    roleEmail: null,
-    personalAe2vEmail: "ines.chevalier@ae2v.fr",
-    bio: "Accueil, billetterie et check-in des participants.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "com-mei",
-    displayName: "Mei Tanaka",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Communication",
-    mandate: MANDATE,
-    photoUrl: member7.url,
-    roleEmail: null,
-    personalAe2vEmail: "mei.tanaka@ae2v.fr",
-    bio: "Identité visuelle et création des supports AE2V.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "com-sofiane",
-    displayName: "Sofiane Traoré",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Communication",
-    mandate: MANDATE,
-    photoUrl: member10.url,
-    roleEmail: null,
-    personalAe2vEmail: "sofiane.traore@ae2v.fr",
-    bio: "Réseaux sociaux, photo et couverture des événements.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "partenariats-yanis",
-    displayName: "Yanis Belkacem",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Partenariats",
-    mandate: MANDATE,
-    photoUrl: member6.url,
-    roleEmail: null,
-    personalAe2vEmail: "yanis.belkacem@ae2v.fr",
-    bio: "Prospection des commerces et suivi des réductions étudiantes.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-  {
-    id: "partenariats-jade",
-    displayName: "Jade Nguyen",
-    roleTitle: "Membre du pôle",
-    isOfficer: false,
-    pole: "Partenariats",
-    mandate: MANDATE,
-    photoUrl: member11.url,
-    roleEmail: null,
-    personalAe2vEmail: "jade.nguyen@ae2v.fr",
-    bio: "Relations partenaires et suivi des conventions.",
-    isDemo: true,
-    isPlaceholder: false,
-  },
-];
-
-/** Membres regroupés par pôle, dans l'ordre officiel des pôles. */
 export function membersByPole(members: TeamMember[] = teamMembers) {
   return teamPoles
-    .map((pole) => ({ pole, members: members.filter((m) => m.pole === pole) }))
+    .map((pole) => ({
+      pole,
+      members: members.filter((member) => member.poles.includes(pole)),
+    }))
     .filter((group) => group.members.length > 0);
 }

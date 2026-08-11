@@ -1,16 +1,40 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { isValidElement, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 export type Column<T> = {
   key: string;
-  label: string;
+  label?: string;
+  /** Alias conservé pour les tableaux historiques du bureau. */
+  header?: string;
   /** Valeur utilisée pour le tri (chaîne comparée en fr). */
   sortValue?: (row: T) => string | number;
   render: (row: T) => ReactNode;
   className?: string;
 };
+
+function fallbackSortValue<T>(row: T, key: string): string | number {
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "number" || typeof value === "string" ? value : String(value ?? "");
+}
+
+/**
+ * Les colonnes du bureau sont souvent des colonnes calculées (ex. « Nom »,
+ * « Formation » ou un statut rendu dans une pastille) : leur clé n'existe donc
+ * pas littéralement dans l'objet de données. On extrait le texte réellement
+ * affiché afin que chaque en-tête reste triable, même sans `sortValue` dédié.
+ */
+function renderedText(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(renderedText).join(" ");
+  if (isValidElement(node)) {
+    const props = (node as ReactElement<{ children?: ReactNode }>).props;
+    return renderedText(props.children);
+  }
+  return "";
+}
 
 const controlClass =
   "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-sm text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
@@ -30,7 +54,9 @@ export function DataTable<T extends { id: string }>({
   emptyLabel = "Aucun résultat.",
   caption = "Données du tableau",
   renderDetails,
+  onRowClick,
   idPrefix = "table",
+  allowColumnSelection = false,
 }: {
   data?: T[];
   rows?: T[];
@@ -44,14 +70,18 @@ export function DataTable<T extends { id: string }>({
   caption?: string;
   /** Bloc d'actions/détails affiché sous chaque ligne. */
   renderDetails?: (row: T) => ReactNode;
+  /** Ouvre une fiche/modal quand la ligne elle-même est activée. */
+  onRowClick?: (row: T) => void;
   idPrefix?: string;
+  allowColumnSelection?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [dir, setDir] = useState<"asc" | "desc">("asc");
   const [openRow, setOpenRow] = useState<string | null>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
-  const safeRows = data ?? rows ?? [];
+  const safeRows = useMemo(() => data ?? rows ?? [], [data, rows]);
 
   const defaultSearchable = (row: T) =>
     Object.values(row ?? {})
@@ -59,6 +89,19 @@ export function DataTable<T extends { id: string }>({
       .join(" ");
 
   const getSearchText = searchable ?? defaultSearchable;
+  const displayColumns = useMemo(
+    () => columns.filter((column) => !hiddenColumns.includes(column.key)),
+    [columns, hiddenColumns],
+  );
+
+  function toggleColumn(key: string) {
+    if (hiddenColumns.includes(key)) {
+      setHiddenColumns((current) => current.filter((item) => item !== key));
+      return;
+    }
+    if (displayColumns.length <= 1) return;
+    setHiddenColumns((current) => [...current, key]);
+  }
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,10 +109,14 @@ export function DataTable<T extends { id: string }>({
       ? safeRows.filter((r) => getSearchText(r).toLowerCase().includes(q))
       : safeRows.slice();
     const column = columns.find((c) => c.key === sortKey);
-    if (column?.sortValue) {
+    if (column) {
       list = list.sort((a, b) => {
-        const va = column.sortValue!(a);
-        const vb = column.sortValue!(b);
+        const va = column.sortValue
+          ? column.sortValue(a)
+          : renderedText(column.render(a)) || fallbackSortValue(a, column.key);
+        const vb = column.sortValue
+          ? column.sortValue(b)
+          : renderedText(column.render(b)) || fallbackSortValue(b, column.key);
         const cmp =
           typeof va === "number" && typeof vb === "number"
             ? va - vb
@@ -113,7 +160,30 @@ export function DataTable<T extends { id: string }>({
             />
           </div>
         </div>
-        {filters ? <div className="flex flex-wrap items-end gap-3">{filters}</div> : null}
+        <div className="flex flex-wrap items-end gap-3">
+          {filters}
+          {allowColumnSelection ? (
+            <details className="min-w-[12rem] self-end border-2 border-ae2v-black bg-ae2v-offwhite p-2">
+              <summary className="cursor-pointer px-1 text-xs font-bold tracking-[0.12em] uppercase">
+                Colonnes affichées
+              </summary>
+              <fieldset className="mt-2 grid gap-2 border-t-2 border-ae2v-black/15 pt-2">
+                <legend className="sr-only">Choisir les colonnes affichées</legend>
+                {columns.map((column) => (
+                  <label key={column.key} className="flex items-center gap-2 text-xs font-bold">
+                    <input
+                      type="checkbox"
+                      checked={!hiddenColumns.includes(column.key)}
+                      onChange={() => toggleColumn(column.key)}
+                      className="size-4 accent-ae2v-red"
+                    />
+                    {column.label ?? column.header ?? column.key}
+                  </label>
+                ))}
+              </fieldset>
+            </details>
+          ) : null}
+        </div>
       </div>
 
       <p aria-live="polite" className="mt-3 text-xs font-bold tracking-[0.14em] uppercase">
@@ -130,46 +200,38 @@ export function DataTable<T extends { id: string }>({
               <caption className="sr-only">{caption}</caption>
               <thead>
                 <tr className="bg-ae2v-black text-ae2v-offwhite">
-                  {columns.map((c) => (
+                  {displayColumns.map((c) => (
                     <th
                       key={c.key}
                       scope="col"
                       aria-sort={
-                        sortKey === c.key
-                          ? dir === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : c.sortValue
-                            ? "none"
-                            : undefined
+                        sortKey === c.key ? (dir === "asc" ? "ascending" : "descending") : "none"
                       }
                       className="px-3 py-2 text-left text-[0.65rem] font-bold tracking-[0.14em] uppercase"
                     >
-                      {c.sortValue ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleSort(c.key)}
-                          className="inline-flex items-center gap-1 py-2 hover:text-ae2v-green"
-                        >
-                          {c.label}
-                          {sortKey === c.key ? (
-                            dir === "asc" ? (
-                              <ArrowUp aria-hidden="true" className="size-3.5" />
-                            ) : (
-                              <ArrowDown aria-hidden="true" className="size-3.5" />
-                            )
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(c.key)}
+                        className="inline-flex items-center gap-1 py-2 hover:text-ae2v-green"
+                      >
+                        {c.label ?? c.header ?? c.key}
+                        {sortKey === c.key ? (
+                          dir === "asc" ? (
+                            <ArrowUp aria-hidden="true" className="size-3.5" />
                           ) : (
-                            <ArrowUpDown aria-hidden="true" className="size-3.5 opacity-60" />
-                          )}
-                          <span className="sr-only">
-                            {sortKey === c.key && dir === "asc"
-                              ? " (trié croissant, activer pour inverser)"
+                            <ArrowDown aria-hidden="true" className="size-3.5" />
+                          )
+                        ) : (
+                          <ArrowUpDown aria-hidden="true" className="size-3.5 opacity-60" />
+                        )}
+                        <span className="sr-only">
+                          {sortKey === c.key && dir === "asc"
+                            ? " (trié croissant, activer pour inverser)"
+                            : sortKey === c.key && dir === "desc"
+                              ? " (trié décroissant, activer pour inverser)"
                               : " (activer pour trier)"}
-                          </span>
-                        </button>
-                      ) : (
-                        c.label
-                      )}
+                        </span>
+                      </button>
                     </th>
                   ))}
                   {renderDetails ? (
@@ -187,10 +249,11 @@ export function DataTable<T extends { id: string }>({
                   <RowGroup
                     key={row.id}
                     row={row}
-                    columns={columns}
+                    columns={displayColumns}
                     open={openRow === row.id}
                     onToggle={() => setOpenRow((r) => (r === row.id ? null : row.id))}
                     {...(renderDetails ? { renderDetails } : {})}
+                    {...(onRowClick ? { onRowClick } : {})}
                     idPrefix={idPrefix}
                   />
                 ))}
@@ -201,12 +264,34 @@ export function DataTable<T extends { id: string }>({
           {/* Vue cartes — mobile / tablette */}
           <ul className="mt-3 space-y-3 lg:hidden">
             {visible.map((row) => (
-              <li key={row.id} className="border-2 border-ae2v-black bg-card p-4">
+              <li
+                key={row.id}
+                className={cn(
+                  "border-2 border-ae2v-black bg-card p-4",
+                  onRowClick && "cursor-pointer hover:border-ae2v-red",
+                )}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
+                aria-label={onRowClick ? `Ouvrir la ligne ${row.id}` : undefined}
+                onClick={(event) => {
+                  if (!onRowClick) return;
+                  if ((event.target as HTMLElement).closest("button,a,input,select,textarea"))
+                    return;
+                  onRowClick(row);
+                }}
+                onKeyDown={(event) => {
+                  if (!onRowClick || (event.key !== "Enter" && event.key !== " ")) return;
+                  if ((event.target as HTMLElement).closest("button,a,input,select,textarea"))
+                    return;
+                  event.preventDefault();
+                  onRowClick(row);
+                }}
+              >
                 <dl className="grid gap-2 text-sm">
-                  {columns.map((c) => (
+                  {displayColumns.map((c) => (
                     <div key={c.key} className="flex flex-wrap justify-between gap-2">
                       <dt className="text-[0.65rem] font-bold tracking-[0.14em] text-muted-foreground uppercase">
-                        {c.label}
+                        {c.label ?? c.header ?? c.key}
                       </dt>
                       <dd className="text-right">{c.render(row)}</dd>
                     </div>
@@ -228,6 +313,7 @@ function RowGroup<T extends { id: string }>({
   open,
   onToggle,
   renderDetails,
+  onRowClick,
   idPrefix,
 }: {
   row: T;
@@ -235,11 +321,30 @@ function RowGroup<T extends { id: string }>({
   open: boolean;
   onToggle: () => void;
   renderDetails?: (row: T) => ReactNode;
+  onRowClick?: (row: T) => void;
   idPrefix: string;
 }) {
   return (
     <>
-      <tr className="border-t-2 border-ae2v-black/15 align-top">
+      <tr
+        className={cn(
+          "border-t-2 border-ae2v-black/15 align-top",
+          onRowClick && "cursor-pointer hover:bg-ae2v-offwhite/70",
+        )}
+        tabIndex={onRowClick ? 0 : undefined}
+        aria-label={onRowClick ? `Ouvrir la ligne ${row.id}` : undefined}
+        onClick={(event) => {
+          if (!onRowClick) return;
+          if ((event.target as HTMLElement).closest("button,a,input,select,textarea")) return;
+          onRowClick(row);
+        }}
+        onKeyDown={(event) => {
+          if (!onRowClick || (event.key !== "Enter" && event.key !== " ")) return;
+          if ((event.target as HTMLElement).closest("button,a,input,select,textarea")) return;
+          event.preventDefault();
+          onRowClick(row);
+        }}
+      >
         {columns.map((c) => (
           <td key={c.key} className={cn("px-3 py-3", c.className)}>
             {c.render(row)}
@@ -311,7 +416,7 @@ export function StatusPill({
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "green" | "red" | "black";
+  tone?: "neutral" | "green" | "red" | "black" | "yellow";
 }) {
   return (
     <span
@@ -321,9 +426,11 @@ export function StatusPill({
           ? "bg-ae2v-green text-ae2v-black"
           : tone === "red"
             ? "bg-ae2v-red text-ae2v-offwhite"
-            : tone === "black"
-              ? "bg-ae2v-black text-ae2v-offwhite"
-              : "bg-transparent",
+            : tone === "yellow"
+              ? "bg-yellow-300 text-ae2v-black"
+              : tone === "black"
+                ? "bg-ae2v-black text-ae2v-offwhite"
+                : "bg-transparent",
       )}
     >
       {children}

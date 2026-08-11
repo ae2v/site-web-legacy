@@ -106,8 +106,8 @@ export function MemberCard({
           >
             <Field
               small={small}
-              label="Statut membre"
-              value={valid ? "Membre" : membershipStatusLabels[data.membershipStatus]}
+              label="Statut adhérent"
+              value={valid ? "Adhérent" : membershipStatusLabels[data.membershipStatus]}
             />
             <Field
               small={small}

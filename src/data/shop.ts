@@ -11,6 +11,14 @@ export type ShopProduct = {
   id: string;
   name: string;
   tagline: string;
+  helloAssoUrl?: string;
+  /** Champs de compatibilité utilisés par la gestion minimale du catalogue. */
+  category?: string;
+  priceCents?: number;
+  description?: string;
+  stock?: number;
+  slug?: string;
+  status?: "DISPONIBLE" | "EPUISE";
   /** Prix en centimes (entiers). */
   priceMember: number;
   pricePublic: number;
@@ -18,7 +26,7 @@ export type ShopProduct = {
   image: string;
   badge?: string;
   /** Article de démonstration : visuel et tarif indicatifs. */
-  isDemo: true;
+  isDemo?: boolean;
 };
 
 const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });

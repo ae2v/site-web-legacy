@@ -1,18 +1,43 @@
 import { useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ArrowUpRight } from "lucide-react";
 
 import { TapeLabel } from "@/components/brand";
 import { HELLOASSO_SHOP_URL, formatPrice } from "@/data/shop";
 import { getDynamicShopProducts } from "@/lib/dynamic-store";
+import { getProductsServer } from "@/lib/server-functions/products";
 
 export function ProductGrid() {
-  const [products, setProducts] = useState(getDynamicShopProducts());
+  const [products, setProducts] = useState(import.meta.env.DEV ? getDynamicShopProducts() : []);
+  const loadProducts = useServerFn(getProductsServer);
 
   useEffect(() => {
-    const handleChanged = () => setProducts(getDynamicShopProducts());
+    void loadProducts({ data: undefined })
+      .then((serverProducts) => {
+        const fallbackImage = import.meta.env.DEV ? (getDynamicShopProducts()[0]?.image ?? "") : "";
+        setProducts(
+          serverProducts.map((product) => ({
+            id: product.id,
+            name: product.name,
+            tagline: product.tagline,
+            priceMember: product.priceMemberCents,
+            pricePublic: product.pricePublicCents,
+            sizes: product.sizes,
+            image: product.image ?? fallbackImage,
+            ...(product.badge ? { badge: product.badge } : {}),
+            ...(product.helloAssoUrl ? { helloAssoUrl: product.helloAssoUrl } : {}),
+          })),
+        );
+      })
+      .catch(() => {
+        if (import.meta.env.DEV) setProducts(getDynamicShopProducts());
+      });
+    const handleChanged = () => {
+      if (import.meta.env.DEV) setProducts(getDynamicShopProducts());
+    };
     window.addEventListener("ae2v_products_changed", handleChanged);
     return () => window.removeEventListener("ae2v_products_changed", handleChanged);
-  }, []);
+  }, [loadProducts]);
 
   return (
     <div>
@@ -39,7 +64,7 @@ export function ProductGrid() {
               <div className="flex flex-1 flex-col gap-3 p-4">
                 <h3 className="font-display text-xl uppercase leading-none tracking-wide text-ae2v-black">
                   <a
-                    href={HELLOASSO_SHOP_URL}
+                    href={product.helloAssoUrl ?? HELLOASSO_SHOP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     data-cursor="interactive"
@@ -80,10 +105,12 @@ export function ProductGrid() {
       </ul>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 border-2 border-dashed border-ae2v-black/30 p-4">
-        <TapeLabel tone="green">Articles de démonstration</TapeLabel>
+        <TapeLabel tone="green">
+          {import.meta.env.DEV ? "Articles de démonstration" : "Catalogue indicatif"}
+        </TapeLabel>
         <p className="text-sm text-ae2v-black/75">
-          Visuels et tarifs indicatifs : la vente réelle se fait sur la boutique officielle
-          HelloAsso de l'AE2V.
+          Les visuels et tarifs sont indicatifs : la vente réelle se fait sur la boutique officielle
+          HelloAsso de l’AE2V.
         </p>
       </div>
     </div>

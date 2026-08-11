@@ -18,10 +18,12 @@ export type EventTier = {
   label: string;
   priceCents: number;
   /** Audience autorisée pour ce tarif. */
-  audience: "adherent" | "membre" | "public" | "bureau";
+  audience: "adherent" | "public" | "bureau";
   note?: string;
   disabled?: boolean;
   isMandatory?: boolean;
+  /** Tarif système public/adhérent/bureau, désactivable mais non supprimable. */
+  system?: boolean;
 };
 
 export type EventProgramStep = {
@@ -30,8 +32,15 @@ export type EventProgramStep = {
   detail?: string;
 };
 
+export type EventCustomSection = {
+  title: string;
+  body: string;
+};
+
 export type Ae2vEvent = {
   id: string;
+  /** Identifiant interne PostgreSQL, absent pour les événements de démonstration. */
+  serverId?: string;
   title: string;
   kind: string;
   date: string;
@@ -49,6 +58,8 @@ export type Ae2vEvent = {
   access: string;
   /** Informations pratiques complémentaires. */
   practical: string[];
+  /** Sections éditoriales facultatives affichées sur la page publique. */
+  customSections?: EventCustomSection[];
   capacity: number;
   registered: number;
   registrationOpensAt: string;
@@ -56,8 +67,105 @@ export type Ae2vEvent = {
   status: EventStatus;
   waitlist: boolean;
   tiers: EventTier[];
-  isDemo: true;
+  isDemo: boolean;
 };
+
+export type PublicEventRecord = {
+  id: string;
+  serverId: string;
+  title: string;
+  slug: string;
+  kind: string;
+  date: string;
+  doors: string;
+  place: string;
+  address: string;
+  summary: string;
+  capacity: number;
+  registered: number;
+  status: EventStatus;
+  waitlist: boolean;
+  description: string;
+  image: string | null;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string;
+  program?: EventProgramStep[];
+  access?: string | null;
+  practical?: string[];
+  customSections?: EventCustomSection[];
+  tiers: EventTier[];
+};
+
+/**
+ * Normalise les anciennes fiches d’événement avant affichage ou inscription.
+ * Les tarifs système public/cotisant/bureau sont toujours présents, peuvent
+ * être désactivés, mais ne sont jamais supprimables. L’ancien tarif « compte
+ * étudiant » est explicitement retiré.
+ */
+export function normalizeEventTiers(input: EventTier[] | null | undefined): EventTier[] {
+  const source = Array.isArray(input) ? input : [];
+  const allowedAudiences = new Set<EventTier["audience"]>(["public", "adherent", "bureau"]);
+  const cleaned = source.filter((tier) => {
+    if (!allowedAudiences.has(tier.audience)) return false;
+    return !/compte\s+étudiant/i.test(tier.label);
+  });
+  const defaults: Array<Pick<EventTier, "id" | "label" | "audience">> = [
+    { id: "public", label: "Tarif public", audience: "public" },
+    { id: "adherent", label: "Tarif cotisant", audience: "adherent" },
+    { id: "bureau", label: "Tarif membre du bureau", audience: "bureau" },
+  ];
+  const legacySystemIds = new Set(["public", "pub", "adherent", "adh", "bureau", "staff"]);
+  const systemSourceIds = new Set<string>();
+  const result = defaults.map((fallback) => {
+    const existing = cleaned.find(
+      (tier) =>
+        (tier.system === true ||
+          legacySystemIds.has(tier.id) ||
+          tier.label.trim().toLowerCase() === fallback.label.toLowerCase()) &&
+        tier.audience === fallback.audience,
+    );
+    if (existing) systemSourceIds.add(existing.id);
+    return {
+      ...(existing ?? { priceCents: 0, disabled: false }),
+      id: fallback.id,
+      label: fallback.label,
+      audience: fallback.audience,
+      system: true,
+      isMandatory: true,
+    } satisfies EventTier;
+  });
+  const custom = cleaned.filter((tier) => !systemSourceIds.has(tier.id) && !tier.system);
+  return [...result, ...custom];
+}
+
+export function publicRecordToEvent(record: PublicEventRecord): Ae2vEvent {
+  return {
+    id: record.slug,
+    serverId: record.serverId,
+    title: record.title,
+    kind: record.kind,
+    date: record.date,
+    isoDate: record.date,
+    doors: record.doors,
+    place: record.place,
+    address: record.address,
+    summary: record.summary,
+    description: record.description,
+    image: record.image && !record.image.startsWith("/images/") ? record.image : "",
+    access: record.access ?? "Informations d’accès communiquées par le BDE.",
+    practical: record.practical ?? [],
+    customSections: record.customSections ?? [],
+    program: record.program ?? [],
+    capacity: record.capacity,
+    registered: record.registered,
+    registrationOpensAt: record.registrationOpensAt ?? "",
+    registrationClosesAt: record.registrationClosesAt,
+    status: record.status,
+    waitlist: record.waitlist,
+    tiers: normalizeEventTiers(record.tiers),
+    isDemo: false,
+  };
+}
 
 export const demoEvents: Ae2vEvent[] = [
   {
@@ -97,8 +205,7 @@ export const demoEvents: Ae2vEvent[] = [
     status: "OUVERT",
     waitlist: true,
     tiers: [
-      { id: "adh", label: "Tarif adhérent", priceCents: 800, audience: "adherent" },
-      { id: "membre", label: "Tarif compte étudiant", priceCents: 1200, audience: "membre" },
+      { id: "adh", label: "Tarif cotisant", priceCents: 800, audience: "adherent" },
       { id: "pub", label: "Tarif public", priceCents: 1500, audience: "public" },
       {
         id: "staff",
@@ -141,8 +248,7 @@ export const demoEvents: Ae2vEvent[] = [
     status: "OUVERT",
     waitlist: false,
     tiers: [
-      { id: "adh", label: "Tarif adhérent", priceCents: 0, audience: "adherent" },
-      { id: "membre", label: "Tarif compte étudiant", priceCents: 500, audience: "membre" },
+      { id: "adh", label: "Tarif cotisant", priceCents: 0, audience: "adherent" },
       { id: "pub", label: "Tarif public", priceCents: 700, audience: "public" },
     ],
     isDemo: true,
@@ -177,10 +283,7 @@ export const demoEvents: Ae2vEvent[] = [
     registrationClosesAt: "13/10/2026",
     status: "COMPLET",
     waitlist: true,
-    tiers: [
-      { id: "adh", label: "Tarif adhérent", priceCents: 0, audience: "adherent" },
-      { id: "membre", label: "Tarif compte étudiant", priceCents: 300, audience: "membre" },
-    ],
+    tiers: [{ id: "adh", label: "Tarif cotisant", priceCents: 0, audience: "adherent" }],
     isDemo: true,
   },
   {
@@ -215,8 +318,7 @@ export const demoEvents: Ae2vEvent[] = [
     status: "BIENTOT",
     waitlist: false,
     tiers: [
-      { id: "adh", label: "Tarif adhérent", priceCents: 2500, audience: "adherent" },
-      { id: "membre", label: "Tarif compte étudiant", priceCents: 3500, audience: "membre" },
+      { id: "adh", label: "Tarif cotisant", priceCents: 2500, audience: "adherent" },
       { id: "pub", label: "Tarif public / accompagnant", priceCents: 4000, audience: "public" },
     ],
     isDemo: true,
@@ -247,7 +349,7 @@ export const demoEvents: Ae2vEvent[] = [
     registrationClosesAt: "30/08/2026",
     status: "TERMINE",
     waitlist: false,
-    tiers: [{ id: "adh", label: "Tarif adhérent", priceCents: 3500, audience: "adherent" }],
+    tiers: [{ id: "adh", label: "Tarif cotisant", priceCents: 3500, audience: "adherent" }],
     isDemo: true,
   },
 ];

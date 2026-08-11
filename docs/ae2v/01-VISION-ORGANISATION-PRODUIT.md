@@ -137,7 +137,6 @@ LE BDE → L'ÉQUIPE
 - exports ;
 - dashboard bureau ;
 - médias ;
-- actualités.
 
 ## P2 — après stabilisation
 

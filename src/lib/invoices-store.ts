@@ -22,7 +22,12 @@ export type Invoice = {
   paymentMethod: PaymentMethod;
   totalCents: number;
   lines: InvoiceLine[];
+  status?: "EMISE" | "ANNULEE" | "REMBOURSEE" | "PARTIELLEMENT_REMBOURSEE";
   notes?: string;
+  /** Paiement serveur rattaché, lorsqu’il existe. */
+  paymentId?: string | null;
+  paymentStatus?: string | null;
+  refundedAmountCents?: number;
 };
 
 const STORAGE_KEY = "ae2v_dynamic_invoices_v1";
@@ -107,7 +112,7 @@ export function createInvoice({
     paymentMethod,
     totalCents,
     lines,
-    notes,
+    ...(notes ? { notes } : {}),
   };
 
   const current = getDynamicInvoices();

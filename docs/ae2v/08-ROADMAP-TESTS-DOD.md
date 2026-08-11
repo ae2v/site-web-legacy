@@ -31,7 +31,6 @@
 - avantages ;
 - boutique ;
 - BDE ;
-- actualités ;
 - contact ;
 - légal.
 

@@ -1,11 +1,12 @@
 import { teamMembers, type TeamMember } from "@/data/team";
-import { demoEvents, type Ae2vEvent } from "@/data/events";
+import { demoEvents, normalizeEventTiers, type Ae2vEvent } from "@/data/events";
 import { shopProducts, type ShopProduct } from "@/data/shop";
+
+export type { TeamMember } from "@/data/team";
 
 const DYNAMIC_MEMBERS_KEY = "ae2v_dynamic_team_v1";
 const DYNAMIC_EVENTS_KEY = "ae2v_dynamic_events_v1";
 const DYNAMIC_PRODUCTS_KEY = "ae2v_dynamic_products_v1";
-const DYNAMIC_NEWS_KEY = "ae2v_dynamic_news_v1";
 const DYNAMIC_PARTNERS_KEY = "ae2v_dynamic_partners_v1";
 const DYNAMIC_AUDIT_KEY = "ae2v_dynamic_audit_v1";
 
@@ -19,7 +20,18 @@ export function getDynamicTeamMembers(): TeamMember[] {
     const raw = localStorage.getItem(DYNAMIC_MEMBERS_KEY);
     if (!raw) return teamMembers;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : teamMembers;
+    return Array.isArray(parsed) && parsed.length > 0
+      ? parsed.map((member) => ({
+          ...member,
+          poles: Array.isArray(member.poles)
+            ? member.poles
+            : [
+                member.pole,
+                ...(Array.isArray(member.secondaryPoles) ? member.secondaryPoles : []),
+              ].filter(Boolean),
+          showDefaultPoleTitles: member.showDefaultPoleTitles !== false,
+        }))
+      : teamMembers;
   } catch {
     return teamMembers;
   }
@@ -68,7 +80,17 @@ export function getDynamicEvents(): Ae2vEvent[] {
     const raw = localStorage.getItem(DYNAMIC_EVENTS_KEY);
     if (!raw) return demoEvents;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : demoEvents;
+    if (!Array.isArray(parsed) || parsed.length === 0) return demoEvents;
+    return parsed.map((event) => {
+      const fallback = demoEvents.find((candidate) => candidate.id === event?.id);
+      const image = typeof event?.image === "string" ? event.image : "";
+      return {
+        ...(fallback ?? {}),
+        ...event,
+        tiers: normalizeEventTiers(event?.tiers),
+        image: image && !image.startsWith("/images/") ? image : (fallback?.image ?? ""),
+      } as Ae2vEvent;
+    });
   } catch {
     return demoEvents;
   }
@@ -111,67 +133,7 @@ export function saveDynamicShopProducts(products: ShopProduct[]) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 4. ACTUALITÉS                                                              */
-/* -------------------------------------------------------------------------- */
-
-export type Ae2vNewsArticle = {
-  id: string;
-  title: string;
-  category: string;
-  date: string;
-  summary: string;
-  content: string;
-  author: string;
-};
-
-const initialNews: Ae2vNewsArticle[] = [
-  {
-    id: "news-001",
-    title: "Lancement de la billetterie pour la Soirée d'Intégration 2026",
-    category: "Événement",
-    date: "01 septembre 2026",
-    summary:
-      "Les places pour la soirée d'intégration sont ouvertes ! Pensez à cotiser pour bénéficier du tarif réduit.",
-    content:
-      "Le bureau de l'AE2V est fière d'annoncer l'ouverture officielle de la billetterie pour la soirée d'intégration. Rendez-vous dans l'onglet Événements pour réserver votre place. Billet nominatif avec QR code à présenter à l'entrée.",
-    author: "Pôle Événementiel",
-  },
-  {
-    id: "news-002",
-    title: "Nouveaux partenariats exclusifs pour les membres cotisants",
-    category: "Partenariat",
-    date: "28 août 2026",
-    summary:
-      "Profitez de réductions chez nos commerçants partenaires sur présentation de votre carte membre numérique.",
-    content:
-      "L'AE2V a négocié cette année des remises privilégiées dans plusieurs enseignes de Vélizy (restauration, loisirs, auto-école). Présentez simplement le QR code de votre carte membre depuis Mon Espace !",
-    author: "Pôle Partenariats",
-  },
-];
-
-export function getDynamicNews(): Ae2vNewsArticle[] {
-  if (typeof window === "undefined") return initialNews;
-  try {
-    const raw = localStorage.getItem(DYNAMIC_NEWS_KEY);
-    if (!raw) return initialNews;
-    return JSON.parse(raw);
-  } catch {
-    return initialNews;
-  }
-}
-
-export function saveDynamicNews(news: Ae2vNewsArticle[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(DYNAMIC_NEWS_KEY, JSON.stringify(news));
-    window.dispatchEvent(new CustomEvent("ae2v_news_changed", { detail: news }));
-  } catch (e) {
-    console.error("Erreur sauvegarde actualités:", e);
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-/* 5. PARTENAIRES                                                              */
+/* 4. PARTENAIRES                                                              */
 /* -------------------------------------------------------------------------- */
 
 export type Ae2vPartner = {
@@ -234,7 +196,7 @@ export function saveDynamicPartners(partners: Ae2vPartner[]) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6. JOURNAL D'AUDIT                                                         */
+/* 5. JOURNAL D'AUDIT                                                         */
 /* -------------------------------------------------------------------------- */
 
 export type AuditLogEntry = {

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CreditCard, Gift, ShoppingBag, Ticket, UserRound } from "lucide-react";
 
 import { TapeLabel } from "@/components/brand";
@@ -9,7 +10,9 @@ import { PageHero } from "@/components/layout/page-hero";
 import { EmptyState, HardCard, Section } from "@/components/layout/section";
 import { TabPanel, TabsNav } from "@/components/layout/tabs-nav";
 import { Button } from "@/components/ui/button";
-import { demoEvents } from "@/data/events";
+import { getDynamicTeamMembers } from "@/lib/dynamic-store";
+import { displayedTeamTitles, initials, type TeamPole } from "@/data/team";
+import { demoEvents, publicRecordToEvent, type Ae2vEvent } from "@/data/events";
 import { poles as bdePolesData } from "@/data/poles";
 import {
   contributionStatusLabels,
@@ -19,7 +22,21 @@ import {
   membershipStatusLabels,
   roleLabels,
   useDemoSession,
+  type Candidature,
 } from "@/lib/demo-session";
+import {
+  EMAIL_CATEGORIES,
+  getEmailPreferencesServer,
+  updateEmailPreferencesServer,
+  type EmailCategory,
+} from "@/lib/server-functions/email-preferences";
+import { getOwnTeamMemberServer, type ServerTeamMember } from "@/lib/server-functions/team";
+import { downloadInvoicePdf } from "@/lib/invoice-pdf";
+import { getPublicEventsServer } from "@/lib/server-functions/events";
+import {
+  getOwnCandidaturesServer,
+  submitCandidatureServer,
+} from "@/lib/server-functions/candidatures";
 
 export const Route = createFileRoute("/espace")({
   head: () => ({
@@ -61,12 +78,104 @@ const TABS = [
   { id: "cotisation", label: "Cotisation" },
   { id: "evenements", label: "Événements" },
   { id: "commandes", label: "Commandes" },
+  { id: "factures", label: "Factures" },
   { id: "profil", label: "Profil" },
 ];
 
 function EspacePage() {
   const { account, candidatures, addCandidature } = useDemoSession();
   const [tab, setTab] = useState("apercu");
+  const [emailCategories, setEmailCategories] = useState<EmailCategory[]>([]);
+  const [emailUnsubscribed, setEmailUnsubscribed] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMessage, setEmailMessage] = useState<string | null>(null);
+  const [serverBureauMember, setServerBureauMember] = useState<ServerTeamMember | null>(null);
+  const [serverCandidatures, setServerCandidatures] = useState<Candidature[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Ae2vEvent[]>(
+    import.meta.env.DEV ? demoEvents : [],
+  );
+  const loadEmailPreferences = useServerFn(getEmailPreferencesServer);
+  const saveEmailPreferences = useServerFn(updateEmailPreferencesServer);
+  const loadOwnTeamMember = useServerFn(getOwnTeamMemberServer);
+  const loadPublicEvents = useServerFn(getPublicEventsServer);
+  const loadOwnCandidatures = useServerFn(getOwnCandidaturesServer);
+  const submitCandidature = useServerFn(submitCandidatureServer);
+
+  useEffect(() => {
+    let active = true;
+    void loadPublicEvents({ data: undefined })
+      .then((records) => {
+        if (!active) return;
+        if (records.length > 0) setUpcomingEvents(records.map(publicRecordToEvent));
+        else if (import.meta.env.DEV) setUpcomingEvents(demoEvents);
+        else setUpcomingEvents([]);
+      })
+      .catch(() => {
+        if (active && import.meta.env.DEV) setUpcomingEvents(demoEvents);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadPublicEvents]);
+
+  useEffect(() => {
+    if (!account) return;
+    const legacyCategories: EmailCategory[] = account.emailPrefs.flatMap((value) => {
+      const upper = value.toUpperCase();
+      if (upper.includes("ÉVÉN") || upper.includes("EVEN")) return ["EVENEMENTS"];
+      if (upper.includes("BOUTIQUE")) return ["BOUTIQUE"];
+      if (upper.includes("PARTEN") || upper.includes("BUREAU")) return ["BDE"];
+      return [];
+    });
+    setEmailCategories(Array.from(new Set(legacyCategories)));
+    if (account.id.startsWith("acc-")) return;
+    let active = true;
+    void loadEmailPreferences({ data: undefined })
+      .then((snapshot) => {
+        if (!active) return;
+        setEmailCategories(snapshot.categories);
+        setEmailUnsubscribed(snapshot.unsubscribed);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [account, loadEmailPreferences]);
+
+  useEffect(() => {
+    if (!account || account.id.startsWith("acc-")) {
+      setServerBureauMember(null);
+      return;
+    }
+    let active = true;
+    void loadOwnTeamMember()
+      .then((member) => {
+        if (active) setServerBureauMember(member);
+      })
+      .catch(() => {
+        if (active) setServerBureauMember(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [account, loadOwnTeamMember]);
+
+  useEffect(() => {
+    if (!account || account.id.startsWith("acc-")) {
+      setServerCandidatures([]);
+      return;
+    }
+    void loadOwnCandidatures({ data: undefined })
+      .then((rows) =>
+        setServerCandidatures(
+          rows.map((row) => ({
+            ...row,
+            status: row.status as Candidature["status"],
+          })),
+        ),
+      )
+      .catch(() => setServerCandidatures([]));
+  }, [account, loadOwnCandidatures]);
 
   if (!account) {
     return (
@@ -121,9 +230,50 @@ function EspacePage() {
   const membre = isMember(account);
   const cotisant = hasDiscount(account);
   const pendingPayment = account.contributionStatus === "PAIEMENT_EN_ATTENTE";
-  const myCandidature = candidatures.find(
+  const currentCandidatures = account.id.startsWith("acc-") ? candidatures : serverCandidatures;
+  const myCandidature = currentCandidatures.find(
     (c) => c.email.toLowerCase() === account.email.toLowerCase(),
   );
+  const localBureauMember = getDynamicTeamMembers().find(
+    (member) =>
+      member.displayName.toLowerCase() === `${account.firstName} ${account.lastName}`.toLowerCase(),
+  );
+  const derivedOfficerRole: ServerTeamMember["officerRole"] =
+    account.roleTitle === "Président" || account.roleTitle === "Présidente"
+      ? "Président"
+      : account.roleTitle === "Vice-président" || account.roleTitle === "Vice-présidente"
+        ? "Vice-président"
+        : account.roleTitle === "Secrétaire"
+          ? "Secrétaire"
+          : account.roleTitle === "Trésorier"
+            ? "Trésorier"
+            : account.roleTitle === "Trésorière"
+              ? "Trésorière"
+              : null;
+  const derivedBureauMember: ServerTeamMember | null =
+    account.role === "bureau" || account.role === "bureau_admin"
+      ? {
+          id: `account-team-${account.id}`,
+          displayName: `${account.firstName} ${account.lastName}`,
+          roleTitle: account.roleTitle ?? "Membre du bureau",
+          roleTitles: [account.roleTitle ?? "Membre du bureau"],
+          officerRole: derivedOfficerRole,
+          poles: account.pole ? [account.pole] : [],
+          showDefaultPoleTitles: false,
+          personalAe2vEmail: account.email.toLowerCase().endsWith("@ae2v.fr")
+            ? account.email
+            : null,
+          roleEmail: null,
+          isOfficer: Boolean(derivedOfficerRole),
+          bio: null,
+          photoUrl: null,
+          mandateYear: account.schoolYear,
+          displayOrder: 0,
+          publicVisible: true,
+          userId: account.id,
+        }
+      : null;
+  const bureauMember = serverBureauMember ?? localBureauMember ?? derivedBureauMember;
 
   return (
     <>
@@ -150,7 +300,7 @@ function EspacePage() {
         <Section number={1} ghost="APERÇU" title="Vue d'ensemble">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi
-              value={membre ? "Membre" : membershipStatusLabels[account.membershipStatus]}
+              value={membre ? "Adhérent" : membershipStatusLabels[account.membershipStatus]}
               label="Statut d'adhésion"
               tone={membre ? "green" : undefined}
             />
@@ -158,11 +308,28 @@ function EspacePage() {
               value={contributionStatusLabels[account.contributionStatus]}
               label="Statut de cotisation"
             />
-            <Kpi value={account.memberSince ?? "—"} label="Membre depuis" />
+            <Kpi value={account.memberSince ?? "—"} label="Adhérent depuis" />
             <Kpi value={String(account.tickets.length)} label="Billets" />
           </div>
 
           {pendingPayment ? <PendingNotice className="mt-6" /> : null}
+
+          {bureauMember && (
+            <div className="mt-6">
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-ae2v-red">
+                    Membre du bureau
+                  </p>
+                  <h3 className="font-impact text-2xl uppercase">Ta carte du bureau</h3>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setTab("carte")}>
+                  Ouvrir les cartes
+                </Button>
+              </div>
+              <BureauMemberCard member={bureauMember} />
+            </div>
+          )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <HardCard interactive={false} eyebrow="Carte" title="Ma carte de membre">
@@ -234,6 +401,11 @@ function EspacePage() {
                 </div>
                 {pendingPayment ? <PendingNotice /> : null}
               </div>
+              {bureauMember && (
+                <div className="lg:col-span-2">
+                  <BureauMemberCard member={bureauMember} />
+                </div>
+              )}
             </div>
           ) : (
             <EmptyState
@@ -270,7 +442,7 @@ function EspacePage() {
           <div className="mt-6 border-2 border-ae2v-black bg-card p-5 text-sm">
             {cotisant ? (
               <p>
-                Ta cotisation est confirmée : les tarifs réduits adhérent s'appliquent sur les
+                Ta cotisation est confirmée : les tarifs réduits cotisant s'appliquent sur les
                 événements et la boutique.
               </p>
             ) : pendingPayment ? (
@@ -289,7 +461,7 @@ function EspacePage() {
               </p>
             ) : (
               <p>
-                Tu es membre sans cotisation. Cotiser (montant libre à partir de 5 €, réglé au
+                Tu es membre sans cotisation. Cotiser (montant libre à partir de 3 €, réglé au
                 bureau du BDE) débloque les tarifs réduits.
               </p>
             )}
@@ -339,10 +511,18 @@ function EspacePage() {
                       className={`mt-3 inline-block border-2 px-2 py-1 text-xs font-bold uppercase ${
                         ticket.status === "valide"
                           ? "border-ae2v-green bg-ae2v-green text-ae2v-black"
-                          : "border-ae2v-offwhite/40 text-ae2v-offwhite/70"
+                          : ticket.status === "en_attente_paiement"
+                            ? "border-yellow-300 bg-yellow-300 text-ae2v-black"
+                            : "border-ae2v-offwhite/40 text-ae2v-offwhite/70"
                       }`}
                     >
-                      {ticket.status === "valide" ? "✓ Valide" : "Déjà utilisé"}
+                      {ticket.status === "valide"
+                        ? "✓ Valide"
+                        : ticket.status === "en_attente_paiement"
+                          ? "Paiement en attente"
+                          : ticket.status === "annule"
+                            ? "Annulé"
+                            : "Déjà utilisé"}
                     </p>
                   </div>
                   {ticket.status === "valide" && (
@@ -359,7 +539,7 @@ function EspacePage() {
 
           <h3 className="ae2v-headline mt-12 text-2xl">Prochainement</h3>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {demoEvents
+            {upcomingEvents
               .filter((e) => e.status === "OUVERT" || e.status === "BIENTOT")
               .slice(0, 3)
               .map((event) => (
@@ -435,10 +615,85 @@ function EspacePage() {
         </Section>
       </TabPanel>
 
+      {/* ----------------------------- Factures ----------------------------- */}
+      <TabPanel id="factures" idPrefix="espace" active={tab}>
+        <Section
+          number={6}
+          ghost="FACTURES"
+          title="Mes factures"
+          tone="dark"
+          intro="Retrouve les justificatifs liés à tes paiements confirmés."
+        >
+          {(account.payments ?? []).length > 0 ? (
+            <div className="mb-8">
+              <h3 className="font-impact text-xl uppercase">Historique des paiements</h3>
+              <ul className="mt-3 space-y-3">
+                {(account.payments ?? []).map((payment) => (
+                  <li
+                    key={payment.id}
+                    className="flex flex-wrap items-center justify-between gap-3 border-2 border-ae2v-offwhite/25 bg-ae2v-black p-4 text-sm"
+                  >
+                    <span>
+                      <strong>{payment.kind.replaceAll("_", " ")}</strong>
+                      <span className="ml-2 opacity-70">{payment.createdAt}</span>
+                    </span>
+                    <span className="font-bold">
+                      {formatCents(payment.amountCents)} · {payment.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {(account.invoices ?? []).length === 0 ? (
+            <EmptyState
+              label="Aucune facture"
+              detail="Une facture sera générée automatiquement dès qu’un paiement est confirmé par le bureau."
+            />
+          ) : (
+            <ul className="space-y-4">
+              {(account.invoices ?? []).map((invoice) => (
+                <li
+                  key={invoice.id}
+                  className="flex flex-wrap items-center justify-between gap-4 border-2 border-ae2v-offwhite/25 bg-ae2v-black p-5"
+                >
+                  <div>
+                    <p className="font-impact text-xl">{invoice.id}</p>
+                    <p className="mt-1 text-sm opacity-80">
+                      {invoice.description} · {invoice.date}
+                    </p>
+                    <p className="mt-1 text-sm font-bold">
+                      {formatCents(invoice.totalCents)} · {invoice.status}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      downloadInvoicePdf({
+                        id: invoice.id,
+                        date: invoice.date,
+                        customerName: `${account.firstName} ${account.lastName}`,
+                        customerEmail: account.email,
+                        paymentMethod: invoice.paymentMethod,
+                        totalCents: invoice.totalCents,
+                        description: invoice.description,
+                        status: invoice.status,
+                      })
+                    }
+                  >
+                    Télécharger le PDF
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </TabPanel>
+
       {/* ------------------------------ Profil ------------------------------ */}
       <TabPanel id="profil" idPrefix="espace" active={tab}>
         <Section
-          number={6}
+          number={7}
           ghost="PROFIL"
           title="Mon profil"
           intro="Tes informations et ta participation à la vie de l'association."
@@ -462,6 +717,97 @@ function EspacePage() {
             </dl>
           </div>
 
+          <div className="mt-6 border-2 border-ae2v-black bg-card p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h3 className="font-impact text-xl uppercase">Mes préférences email</h3>
+                <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+                  Choisis les catégories facultatives que tu souhaites recevoir. Les confirmations
+                  de paiement et messages liés à une action restent séparés.
+                </p>
+              </div>
+              <span className="text-xs font-bold uppercase tracking-[0.12em]">
+                {emailUnsubscribed
+                  ? "Tout est désactivé"
+                  : `${emailCategories.length} catégorie(s)`}
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {EMAIL_CATEGORIES.map((category) => {
+                const checked = emailCategories.includes(category) && !emailUnsubscribed;
+                return (
+                  <label
+                    key={category}
+                    className="flex min-h-12 items-center gap-3 border-2 border-ae2v-black/15 bg-ae2v-offwhite px-3 py-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={emailSaving}
+                      onChange={(event) => {
+                        setEmailUnsubscribed(false);
+                        setEmailCategories((current) =>
+                          event.target.checked
+                            ? Array.from(new Set([...current, category]))
+                            : current.filter((item) => item !== category),
+                        );
+                      }}
+                    />
+                    <span>{emailCategoryLabel(category)}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button
+                variant="black"
+                disabled={emailSaving}
+                onClick={() => {
+                  setEmailSaving(true);
+                  setEmailMessage(null);
+                  void saveEmailPreferences({
+                    data: { categories: emailCategories, unsubscribeAll: false },
+                  })
+                    .then((snapshot) => {
+                      setEmailCategories(snapshot.categories);
+                      setEmailUnsubscribed(snapshot.unsubscribed);
+                      setEmailMessage("Préférences enregistrées.");
+                    })
+                    .catch(() =>
+                      setEmailMessage("Impossible d’enregistrer les préférences pour le moment."),
+                    )
+                    .finally(() => setEmailSaving(false));
+                }}
+              >
+                {emailSaving ? "Enregistrement…" : "Enregistrer mes choix"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={emailSaving}
+                onClick={() => {
+                  setEmailSaving(true);
+                  void saveEmailPreferences({ data: { categories: [], unsubscribeAll: true } })
+                    .then((snapshot) => {
+                      setEmailCategories(snapshot.categories);
+                      setEmailUnsubscribed(snapshot.unsubscribed);
+                      setEmailMessage("Toutes les communications facultatives sont désactivées.");
+                    })
+                    .catch(() =>
+                      setEmailMessage("Impossible de modifier les préférences pour le moment."),
+                    )
+                    .finally(() => setEmailSaving(false));
+                }}
+              >
+                Tout désactiver
+              </Button>
+            </div>
+            {emailMessage && (
+              <p className="mt-3 text-sm font-bold" role="status">
+                {emailMessage}
+              </p>
+            )}
+          </div>
+
           <h3 className="ae2v-headline mt-12 text-2xl">Participer à l'organisation</h3>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Tout membre peut demander à rejoindre un pôle du bureau, participer aux votes et à
@@ -471,21 +817,44 @@ function EspacePage() {
             <JoinBureauBlock
               alreadyApplied={Boolean(myCandidature)}
               statusLabel={myCandidature?.status ?? null}
-              onSubmit={(pole, motivation, availability) =>
-                addCandidature({
-                  name: `${account.firstName} ${account.lastName}`,
-                  email: account.email,
-                  pole,
-                  motivation,
-                  availability,
-                })
-              }
+              onSubmit={async (pole, motivation, availability) => {
+                if (account.id.startsWith("acc-")) {
+                  addCandidature({
+                    name: `${account.firstName} ${account.lastName}`,
+                    email: account.email,
+                    pole,
+                    motivation,
+                    availability,
+                  });
+                  return;
+                }
+                const row = await submitCandidature({
+                  data: { pole, motivation, availability },
+                });
+                setServerCandidatures((current) => [
+                  {
+                    ...row,
+                    status: row.status as Candidature["status"],
+                  },
+                  ...current,
+                ]);
+              }}
             />
           </div>
         </Section>
       </TabPanel>
     </>
   );
+}
+
+function emailCategoryLabel(category: EmailCategory): string {
+  return {
+    ADHESION: "Adhésion et vie membre",
+    EVENEMENTS: "Événements",
+    BOUTIQUE: "Boutique et commandes",
+    BDE: "Vie du BDE",
+    INFORMATIONS_GENERALES: "Informations générales",
+  }[category];
 }
 
 function PendingNotice({ className }: { className?: string }) {
@@ -499,6 +868,99 @@ function PendingNotice({ className }: { className?: string }) {
         seront dès la confirmation du paiement par le bureau.
       </span>
     </p>
+  );
+}
+
+function BureauMemberCard({
+  member,
+}: {
+  member: ServerTeamMember | ReturnType<typeof getDynamicTeamMembers>[number];
+}) {
+  const titles = displayedTeamTitles(
+    "mandate" in member
+      ? member
+      : {
+          ...member,
+          poles: member.poles as TeamPole[],
+          showDefaultPoleTitles: member.showDefaultPoleTitles,
+          mandate: member.mandateYear,
+          isDemo: false,
+          isPlaceholder: !member.photoUrl,
+        },
+  );
+  const poles = member.poles.join(" · ") || "À définir";
+  const mandate = "mandate" in member ? member.mandate : member.mandateYear;
+  return (
+    <article className="relative overflow-hidden border-2 border-ae2v-black bg-ae2v-black p-6 text-ae2v-offwhite shadow-[8px_8px_0_0_var(--ae2v-red)]">
+      <div className="pointer-events-none absolute -right-8 -top-8 size-36 rotate-45 border-2 border-ae2v-green/40" />
+      <div className="relative flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[0.65rem] font-bold tracking-[0.18em] uppercase text-ae2v-green">
+            Carte membre du bureau
+          </p>
+          <h3 className="mt-2 font-impact text-3xl uppercase">{member.displayName}</h3>
+          {member.officerRole && (
+            <span className="mt-2 inline-flex border-2 border-ae2v-green bg-ae2v-green px-2 py-1 text-xs font-black uppercase text-ae2v-black">
+              {member.officerRole}
+            </span>
+          )}
+        </div>
+        {member.photoUrl ? (
+          <img
+            src={member.photoUrl}
+            alt={`Portrait de ${member.displayName}`}
+            className="size-20 border-2 border-ae2v-green object-cover"
+          />
+        ) : (
+          <div className="flex size-20 items-center justify-center border-2 border-ae2v-green bg-ae2v-red font-impact text-2xl text-ae2v-offwhite">
+            {initials(member.displayName)}
+          </div>
+        )}
+      </div>
+      <div className="relative mt-6 grid gap-4 border-t-2 border-ae2v-offwhite/20 pt-4 sm:grid-cols-2">
+        <div>
+          <p className="text-[0.6rem] font-bold tracking-[0.16em] uppercase text-ae2v-offwhite/60">
+            Titres
+          </p>
+          <p className="mt-1 font-bold">{titles.join(" · ")}</p>
+        </div>
+        <div>
+          <p className="text-[0.6rem] font-bold tracking-[0.16em] uppercase text-ae2v-offwhite/60">
+            Pôles
+          </p>
+          <p className="mt-1 font-bold">{poles}</p>
+        </div>
+        <div>
+          <p className="text-[0.6rem] font-bold tracking-[0.16em] uppercase text-ae2v-offwhite/60">
+            Mandat
+          </p>
+          <p className="mt-1 font-bold">{mandate}</p>
+        </div>
+        {(member.roleEmail || member.personalAe2vEmail) && (
+          <div>
+            <p className="text-[0.6rem] font-bold tracking-[0.16em] uppercase text-ae2v-offwhite/60">
+              Contacts AE2V
+            </p>
+            {member.roleEmail && (
+              <a
+                className="mt-1 block font-mono text-xs text-ae2v-green underline"
+                href={`mailto:${member.roleEmail}`}
+              >
+                {member.roleEmail}
+              </a>
+            )}
+            {member.personalAe2vEmail && (
+              <a
+                className="mt-1 block font-mono text-xs text-ae2v-green underline"
+                href={`mailto:${member.personalAe2vEmail}`}
+              >
+                {member.personalAe2vEmail}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -529,7 +991,7 @@ function JoinBureauBlock({
 }: {
   alreadyApplied: boolean;
   statusLabel: string | null;
-  onSubmit: (pole: string, motivation: string, availability: string) => void;
+  onSubmit: (pole: string, motivation: string, availability: string) => void | Promise<void>;
 }) {
   const [pole, setPole] = useState(poles[0]!);
   const [motivation, setMotivation] = useState("");
@@ -565,8 +1027,11 @@ function JoinBureauBlock({
           return;
         }
         setError(null);
-        onSubmit(pole, motivation.trim(), availability.trim() || "Non précisé");
-        setSent(true);
+        void Promise.resolve(
+          onSubmit(pole, motivation.trim(), availability.trim() || "Non précisé"),
+        )
+          .then(() => setSent(true))
+          .catch(() => setError("La candidature n’a pas pu être enregistrée. Réessaie plus tard."));
       }}
     >
       <h3 className="ae2v-headline text-2xl">Demander à rejoindre le bureau</h3>

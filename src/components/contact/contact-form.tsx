@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,6 +7,7 @@ import { Check, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useDemoSession } from "@/lib/demo-session";
+import { submitContactMessageServer } from "@/lib/server-functions/contact";
 
 /* -------------------------------------------------------------------------- */
 /*  Validation                                                                 */
@@ -89,14 +91,16 @@ function FieldShell({
 }
 
 /**
- * Formulaire de contact AE2V (démonstration côté navigateur).
+ * Formulaire de contact AE2V relié à la boîte de réception Bureau.
  * Labels visibles, erreurs reliées aux champs, valeurs conservées après erreur,
- * et repli explicite vers l'e-mail officiel tant que l'envoi serveur n'existe pas.
+ * et repli explicite vers l'e-mail officiel si le stockage serveur est indisponible.
  */
 export function ContactForm() {
   const [sent, setSent] = useState<ContactFormValues | null>(null);
+  const [serverPersisted, setServerPersisted] = useState(false);
   const statusRef = useRef<HTMLDivElement>(null);
   const { addMessage } = useDemoSession();
+  const submitContactMessage = useServerFn(submitContactMessageServer);
 
   const {
     register,
@@ -118,13 +122,27 @@ export function ContactForm() {
       .filter(Boolean)
       .join(" ") || undefined;
 
-  function onSubmit(values: ContactFormValues) {
-    addMessage({
-      name: values.name,
-      email: values.email,
-      sujet: values.sujet,
-      message: values.message,
-    });
+  async function onSubmit(values: ContactFormValues) {
+    let persisted = false;
+    try {
+      await submitContactMessage({
+        data: {
+          name: values.name,
+          email: values.email,
+          sujet: values.sujet,
+          message: values.message,
+        },
+      });
+      persisted = true;
+    } catch {
+      addMessage({
+        name: values.name,
+        email: values.email,
+        sujet: values.sujet,
+        message: values.message,
+      });
+    }
+    setServerPersisted(persisted);
     setSent(values);
     requestAnimationFrame(() => statusRef.current?.focus());
   }
@@ -147,9 +165,10 @@ export function ContactForm() {
         </p>
         <h3 className="ae2v-headline mt-4 text-[clamp(1.6rem,4vw,2.4rem)]">Merci {sent.name} !</h3>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          L'envoi automatique arrivera avec la phase serveur. Pour que ta demande parte dès
-          maintenant, ouvre ton logiciel de messagerie : le message est déjà prérempli. Le bureau
-          répond en général sous 3 jours ouvrés à <strong>{sent.email}</strong>.
+          {serverPersisted
+            ? "Ta demande est bien arrivée dans la boîte de réception du Bureau. "
+            : "Le stockage serveur est momentanément indisponible : ouvre ton logiciel de messagerie pour envoyer ta demande. "}
+          Le bureau répond en général sous 3 jours ouvrés à <strong>{sent.email}</strong>.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button asChild size="lg">

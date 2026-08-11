@@ -17,7 +17,7 @@ export const poles: PoleInfo[] = [
   {
     slug: "evenementiel",
     name: "Événementiel",
-    mission: "Imagine et organise les soirées, le gala, les afterworks et les sorties de l'année.",
+    mission: "Imagine et organise les événements, les soirées, le gala et les sorties de l'année.",
   },
   {
     slug: "communication",
@@ -26,14 +26,14 @@ export const poles: PoleInfo[] = [
       "Fait vivre l'identité AE2V : réseaux sociaux, affiches, annonces et couverture des events.",
   },
   {
-    slug: "partenariats",
-    name: "Partenariats",
+    slug: "partenarial",
+    name: "Partenarial",
     mission:
       "Négocie les avantages étudiants et construit les relations avec les partenaires locaux.",
   },
   {
-    slug: "tresorerie",
-    name: "Trésorerie",
+    slug: "finance",
+    name: "Finance",
     mission: "Suit le budget, les encaissements, les remboursements et la transparence financière.",
   },
 ];

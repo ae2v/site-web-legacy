@@ -19,6 +19,8 @@ import {
   type ReactNode,
 } from "react";
 import { generateRandom2026Code } from "@/lib/id-generator";
+import { useServerFn } from "@tanstack/react-start";
+import { getCurrentUserServer } from "@/lib/server-functions/auth";
 
 /* -------------------------------------------------------------------------- */
 /*  Rôles & permissions                                                        */
@@ -74,7 +76,7 @@ export type DemoTicket = {
   tier: string;
   priceCents: number;
   code: string;
-  status: "valide" | "utilise";
+  status: "valide" | "utilise" | "en_attente_paiement" | "annule";
 };
 
 export type DemoOrder = {
@@ -82,6 +84,24 @@ export type DemoOrder = {
   date: string;
   status: "À préparer" | "Prête" | "Retirée" | "Annulée";
   lines: { name: string; variant: string; qty: number; priceCents: number }[];
+};
+
+export type DemoInvoice = {
+  id: string;
+  date: string;
+  description: string;
+  totalCents: number;
+  status: string;
+  paymentMethod: string;
+};
+
+export type DemoPayment = {
+  id: string;
+  amountCents: number;
+  status: string;
+  kind: string;
+  createdAt: string;
+  refundedAmountCents: number;
 };
 
 export type DemoAccount = {
@@ -111,8 +131,135 @@ export type DemoAccount = {
   cardCode: string;
   tickets: DemoTicket[];
   orders: DemoOrder[];
+  invoices?: DemoInvoice[];
+  payments?: DemoPayment[];
   emailPrefs: string[];
 };
+
+export type RemoteAccount = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: "MEMBRE" | "BUREAU" | "TRESORIER" | "PRESIDENT";
+  pole: string | null;
+  roleTitle: string | null;
+  departement: string;
+  niveau: string;
+  contributionCents: number;
+  contributionStatus: "NON_COTISANT" | "PAIEMENT_EN_ATTENTE" | "PAYEE";
+  membershipStatus: "DEMANDE_SOUMISE" | "A_CORRIGER" | "MEMBRE_VALIDE" | "REFUSE";
+  schoolYear: string;
+  emailPrefs: string[];
+  cardCode: string;
+  memberSince: string | null;
+  requestedAt: string | null;
+  validatedAt: string | null;
+  tickets: Array<{
+    id: string;
+    eventId: string;
+    eventTitle: string;
+    date: string;
+    place: string;
+    tier: string;
+    priceCents: number;
+    code: string;
+    status: string;
+  }>;
+  orders: Array<{
+    id: string;
+    date: string;
+    status: string;
+    lines: Array<{ name: string; variant: string; qty: number; priceCents: number }>;
+  }>;
+  invoices: Array<{
+    id: string;
+    date: string;
+    description: string;
+    totalCents: number;
+    status: string;
+    paymentMethod: string;
+  }>;
+  payments: Array<{
+    id: string;
+    amountCents: number;
+    status: string;
+    kind: string;
+    createdAt: string;
+    refundedAmountCents: number;
+  }>;
+};
+
+function remoteToDemoAccount(user: RemoteAccount): DemoAccount {
+  const bureauRole: DemoRole =
+    user.role === "MEMBRE" ? "membre" : user.role === "BUREAU" ? "bureau" : "bureau_admin";
+  return {
+    id: user.id,
+    email: user.email,
+    password: "",
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: bureauRole,
+    ...(user.pole ? { pole: user.pole } : {}),
+    ...(user.roleTitle ? { roleTitle: user.roleTitle } : {}),
+    departement: user.departement,
+    niveau: user.niveau,
+    contributionCents: user.contributionCents,
+    schoolYear: user.schoolYear,
+    membershipStatus:
+      user.membershipStatus === "MEMBRE_VALIDE"
+        ? "VALIDE"
+        : user.membershipStatus === "REFUSE"
+          ? "REFUSE"
+          : "EN_ATTENTE",
+    contributionStatus: user.contributionStatus === "PAYEE" ? "COTISANT" : user.contributionStatus,
+    requestedAt: user.requestedAt,
+    validatedAt: user.validatedAt,
+    memberSince: user.memberSince,
+    cardCode: user.cardCode,
+    tickets: user.tickets.map((ticket) => ({
+      id: ticket.id,
+      eventId: ticket.eventId,
+      eventTitle: ticket.eventTitle,
+      date: ticket.date,
+      place: ticket.place,
+      tier: ticket.tier,
+      priceCents: ticket.priceCents,
+      code: ticket.code,
+      status:
+        ticket.status === "utilise"
+          ? "utilise"
+          : ticket.status === "en_attente_paiement"
+            ? "en_attente_paiement"
+            : ticket.status === "annule"
+              ? "annule"
+              : "valide",
+    })),
+    orders: user.orders.map((order) => ({
+      id: order.id,
+      date: order.date,
+      status: normalizeRemoteOrderStatus(order.status),
+      lines: order.lines,
+    })),
+    invoices: user.invoices,
+    payments: user.payments,
+    emailPrefs: user.emailPrefs,
+  };
+}
+
+function normalizeRemoteOrderStatus(status: string): DemoOrder["status"] {
+  switch (status) {
+    case "PRETE":
+      return "Prête";
+    case "REMIS":
+      return "Retirée";
+    case "ANNULEE":
+    case "REMBOURSEE":
+      return "Annulée";
+    default:
+      return "À préparer";
+  }
+}
 
 const YEAR = "2026-2027";
 
@@ -136,6 +283,7 @@ export const demoAccounts: DemoAccount[] = [
     cardCode: "AE2V-2026-USR-7K9P2M4X",
     tickets: [],
     orders: [],
+    invoices: [],
     emailPrefs: ["Événements"],
   },
   {
@@ -162,7 +310,7 @@ export const demoAccounts: DemoAccount[] = [
         eventTitle: "Soirée d'intégration",
         date: "Jeudi 24 septembre 2026 · 21h00",
         place: "Le Hangar — Vélizy",
-        tier: "Tarif adhérent",
+        tier: "Tarif cotisant",
         priceCents: 800,
         code: "AE2V-2026-TK-9F3K2210",
         status: "valide",
@@ -173,7 +321,7 @@ export const demoAccounts: DemoAccount[] = [
         eventTitle: "Tournoi e-sport",
         date: "Mercredi 14 octobre 2026 · 14h00",
         place: "Amphi B — IUT de Vélizy",
-        tier: "Tarif adhérent",
+        tier: "Tarif cotisant",
         priceCents: 0,
         code: "AE2V-2026-TK-4B7Z1077",
         status: "utilise",
@@ -190,6 +338,7 @@ export const demoAccounts: DemoAccount[] = [
         ],
       },
     ],
+    invoices: [],
     emailPrefs: ["Événements", "Boutique", "Partenariats"],
   },
   {
@@ -218,13 +367,14 @@ export const demoAccounts: DemoAccount[] = [
         eventTitle: "Gala de fin d'année",
         date: "Vendredi 12 juin 2027 · 19h30",
         place: "Salle Ravel — Vélizy",
-        tier: "Tarif adhérent",
+        tier: "Tarif cotisant",
         priceCents: 2500,
         code: "AE2V-2026-TK-1QT83390",
         status: "valide",
       },
     ],
     orders: [],
+    invoices: [],
     emailPrefs: ["Événements", "Vie du bureau"],
   },
   {
@@ -248,6 +398,7 @@ export const demoAccounts: DemoAccount[] = [
     cardCode: "AE2V-2026-USR-1A4C7E9K",
     tickets: [],
     orders: [],
+    invoices: [],
     emailPrefs: ["Événements", "Vie du bureau", "Partenariats"],
   },
 ];
@@ -297,12 +448,24 @@ export function hasDiscount(
 
 export type Dossier = {
   id: string;
+  /** Identifiant de l'adhérent associé lorsqu'il existe côté serveur. */
+  personId?: string;
   firstName: string;
   lastName: string;
   email: string;
   /** Téléphone saisi au formulaire (facultatif dans la démo). */
   phone: string;
   studentId: string;
+  /** Champs complémentaires issus du formulaire d'adhésion. */
+  schoolYear?: string;
+  birthDate?: string | null;
+  groupe?: string | null;
+  interests?: string[];
+  volunteer?: string | null;
+  message?: string | null;
+  imageRight?: boolean;
+  rgpdAcceptedAt?: string | null;
+  statutsAcceptedAt?: string | null;
   departement: string;
   niveau: string;
   contributionCents: number;
@@ -327,6 +490,14 @@ const initialDossiers: Dossier[] = [
     email: "noa.demo@etu.uvsq.fr",
     phone: "06 12 34 56 78",
     studentId: "22301188",
+    schoolYear: "2026-2027",
+    groupe: "MMI1-A",
+    interests: ["Événements", "Communication & photo"],
+    volunteer: "oui",
+    message: "Je souhaite découvrir les événements et aider à leur organisation.",
+    imageRight: true,
+    rgpdAcceptedAt: "05/09/2026",
+    statutsAcceptedAt: "05/09/2026",
     departement: "MMI",
     niveau: "1re année",
     contributionCents: 500,
@@ -345,6 +516,14 @@ const initialDossiers: Dossier[] = [
     email: "sacha.demo@etu.uvsq.fr",
     phone: "06 98 76 54 32",
     studentId: "22300471",
+    schoolYear: "2026-2027",
+    groupe: "GMP2-B",
+    interests: ["Sorties", "Vie étudiante"],
+    volunteer: "peut-etre",
+    message: "Je souhaite participer à la vie étudiante et aux événements de l'association.",
+    imageRight: true,
+    rgpdAcceptedAt: "05/09/2026",
+    statutsAcceptedAt: "05/09/2026",
     departement: "GMP",
     niveau: "2e année",
     contributionCents: 1500,
@@ -363,6 +542,14 @@ const initialDossiers: Dossier[] = [
     email: "ines.demo@etu.uvsq.fr",
     phone: "07 45 12 88 03",
     studentId: "22299034",
+    schoolYear: "2026-2027",
+    groupe: "INFO2-A",
+    interests: ["Numérique", "Événements"],
+    volunteer: "oui",
+    message: "Je souhaite contribuer aux projets numériques de l'AE2V.",
+    imageRight: true,
+    rgpdAcceptedAt: "02/09/2026",
+    statutsAcceptedAt: "02/09/2026",
     departement: "Informatique",
     niveau: "2e année",
     contributionCents: 1200,
@@ -381,6 +568,14 @@ const initialDossiers: Dossier[] = [
     email: "yanis.demo@etu.uvsq.fr",
     phone: "",
     studentId: "2230",
+    schoolYear: "2026-2027",
+    groupe: "",
+    interests: ["Jeux / e-sport"],
+    volunteer: "peut-etre",
+    message: "Je souhaite rejoindre la vie associative et découvrir les activités proposées.",
+    imageRight: false,
+    rgpdAcceptedAt: "04/09/2026",
+    statutsAcceptedAt: "04/09/2026",
     departement: "RT",
     niveau: "1re année",
     contributionCents: 0,
@@ -493,6 +688,11 @@ export type ContactMessage = {
   message: string;
   sentAt: string;
   status: ContactMessageStatus;
+  readByMe?: boolean;
+  readByCount?: number;
+  readByNames?: string[];
+  readByOtherCount?: number;
+  readByOtherNames?: string[];
 };
 
 export const contactMessageStatusLabels: Record<ContactMessageStatus, string> = {
@@ -558,11 +758,13 @@ const defaultState: DemoState = {
 
 type DemoContextValue = {
   ready: boolean;
+  sessionResolved: boolean;
   account: DemoAccount | null;
   role: DemoRole | null;
   isBureau: boolean;
   can: (permission: DemoPermission) => boolean;
   signIn: (accountId: string) => void;
+  signInRemote: (user: RemoteAccount) => void;
   signInWithCredentials: (email: string, password: string) => { ok: boolean; error?: string };
   signUp: (params: {
     email: string;
@@ -595,6 +797,8 @@ const DemoContext = createContext<DemoContextValue | null>(null);
 export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DemoState>(defaultState);
   const [ready, setReady] = useState(false);
+  const [sessionResolved, setSessionResolved] = useState(false);
+  const getCurrentUser = useServerFn(getCurrentUserServer);
 
   useEffect(() => {
     try {
@@ -620,6 +824,42 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     }
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (
+      !ready ||
+      state.accountId?.startsWith("acc-") ||
+      state.customAccounts.some((account) => account.id === state.accountId)
+    ) {
+      if (ready) setSessionResolved(true);
+      return;
+    }
+    let active = true;
+    void getCurrentUser()
+      .then((result) => {
+        if (active && result.ok) {
+          const user = result.user;
+          const remoteAccount = remoteToDemoAccount(user);
+          setState((current) => ({
+            ...current,
+            accountId: user.id,
+            customAccounts: [
+              ...(current.customAccounts ?? []).filter((account) => account.id !== user.id),
+              remoteAccount,
+            ],
+          }));
+        }
+      })
+      .catch(() => {
+        // Sans session serveur, les profils de démonstration restent disponibles.
+      })
+      .finally(() => {
+        if (active) setSessionResolved(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [getCurrentUser, ready, state.accountId, state.customAccounts]);
 
   useEffect(() => {
     if (!ready) return;
@@ -648,11 +888,23 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
 
   const value: DemoContextValue = {
     ready,
+    sessionResolved,
     account,
     role: account?.role ?? null,
     isBureau: account?.role === "bureau" || account?.role === "bureau_admin",
     can,
     signIn: (accountId) => setState((s) => ({ ...s, accountId })),
+    signInRemote: (user) => {
+      const remoteAccount = remoteToDemoAccount(user);
+      setState((s) => ({
+        ...s,
+        accountId: user.id,
+        customAccounts: [
+          ...(s.customAccounts ?? []).filter((account) => account.id !== user.id),
+          remoteAccount,
+        ],
+      }));
+    },
     signInWithCredentials: (email, password) => {
       const normalizedEmail = email.trim().toLowerCase();
       const allAccounts = [...demoAccounts, ...state.customAccounts];
@@ -790,7 +1042,16 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     updateMessageStatus: (id, status) =>
       setState((s) => ({
         ...s,
-        messages: (s.messages ?? []).map((m) => (m.id === id ? { ...m, status } : m)),
+        messages: (s.messages ?? []).map((m) =>
+          m.id === id
+            ? {
+                ...m,
+                status,
+                readByMe: true,
+                readByCount: Math.max(m.readByCount ?? 0, 1),
+              }
+            : m,
+        ),
       })),
     addTicket: (ticket) =>
       setState((s) => {

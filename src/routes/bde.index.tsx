@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowUpRight,
   Shield,
@@ -18,7 +19,9 @@ import { Reveal } from "@/components/brand/reveal";
 import { SectionNumber, TapeLabel } from "@/components/brand";
 import { HardCard, Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
-import { getDynamicTeamMembers, getDynamicEvents } from "@/lib/dynamic-store";
+import { getPublicEventsServer } from "@/lib/server-functions/events";
+import { getPublicTeamMembersServer } from "@/lib/server-functions/team";
+import { getDynamicEvents, getDynamicTeamMembers } from "@/lib/dynamic-store";
 
 export const Route = createFileRoute("/bde/")({
   head: () => ({
@@ -27,10 +30,10 @@ export const Route = createFileRoute("/bde/")({
       {
         name: "description",
         content:
-          "Découvrez le BDE AE2V : organisation, missions, pôles d'activité et équipe du bureau étudiant de l'IUT de Vélizy.",
+          "Découvrez le BDE AE2V : son rôle, ses actions et l'équipe du bureau étudiant de l'IUT de Vélizy.",
       },
       { property: "og:title", content: "Le BDE — AE2V Vélizy" },
-      { property: "og:description", content: "Missions, pôles et équipe du bureau étudiant AE2V." },
+      { property: "og:description", content: "Missions et équipe du bureau étudiant AE2V." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "/bde" },
     ],
@@ -45,12 +48,6 @@ const bdeNavCards = [
     label: "L'association & Gouvernance",
     badge: "Missions & Statuts",
     text: "Ce qu'est l'AE2V, notre rôle de représentation, notre fonctionnement transparent et notre charte associative.",
-  },
-  {
-    to: "/bde/poles",
-    label: "Les 5 Pôles d'Activité",
-    badge: "Organisation",
-    text: "Événementiel, Communication, Partenariats, Trésorerie et Présidence : découvrez qui fait quoi dans l'association.",
   },
   {
     to: "/bde/equipe",
@@ -84,13 +81,32 @@ const pillars = [
 ];
 
 function BdeIndex() {
-  const [teamCount, setTeamCount] = useState(0);
-  const [eventCount, setEventCount] = useState(0);
+  const [teamCount, setTeamCount] = useState<number | null>(null);
+  const [eventCount, setEventCount] = useState<number | null>(null);
+  const loadTeam = useServerFn(getPublicTeamMembersServer);
+  const loadEvents = useServerFn(getPublicEventsServer);
 
   useEffect(() => {
-    setTeamCount(getDynamicTeamMembers().length);
-    setEventCount(getDynamicEvents().length);
-  }, []);
+    void Promise.all([loadTeam({ data: undefined }), loadEvents({ data: undefined })])
+      .then(([members, events]) => {
+        if (import.meta.env.DEV && members.length === 0 && events.length === 0) {
+          setTeamCount(getDynamicTeamMembers().length);
+          setEventCount(getDynamicEvents().length);
+          return;
+        }
+        setTeamCount(members.length);
+        setEventCount(events.length);
+      })
+      .catch(() => {
+        if (import.meta.env.DEV) {
+          setTeamCount(getDynamicTeamMembers().length);
+          setEventCount(getDynamicEvents().length);
+        } else {
+          setTeamCount(0);
+          setEventCount(0);
+        }
+      });
+  }, [loadEvents, loadTeam]);
 
   return (
     <>
@@ -103,21 +119,19 @@ function BdeIndex() {
       {/* KPI Bar */}
       <section className="border-b-2 border-ae2v-black bg-card py-8">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5">
-              <p className="font-impact text-3xl text-ae2v-red">5 Pôles</p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Structure opérationnelle
+              <p className="font-impact text-3xl text-ae2v-black">
+                {teamCount === null ? "…" : teamCount} Membres du bureau
               </p>
-            </div>
-            <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5">
-              <p className="font-impact text-3xl text-ae2v-black">{teamCount || 11} Membres</p>
               <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Équipe du bureau 2026-2027
               </p>
             </div>
             <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5">
-              <p className="font-impact text-3xl text-ae2v-green">{eventCount || 5} Événements</p>
+              <p className="font-impact text-3xl text-ae2v-green">
+                {eventCount === null ? "…" : eventCount} Événements
+              </p>
               <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Programmés cette année
               </p>
@@ -190,12 +204,12 @@ function BdeIndex() {
         number={3}
         ghost="REJOINDRE"
         title="Participer à la vie du BDE"
-        intro="L'AE2V est ouverte à tous les étudiants de l'IUT. Adhérer ou s'investir dans un pôle permet d'enrichir son expérience associative."
+        intro="L'AE2V est ouverte à tous les étudiants de l'IUT. Adhérer ou s'investir dans le bureau permet d'enrichir son expérience associative."
       >
         <div className="grid gap-6 md:grid-cols-2">
-          <HardCard eyebrow="Pour les étudiants" title="Devenir Membre Cotisant">
-            Adhérer à l'AE2V débloque les tarifs réduits sur toutes les soirées, les goodies de la
-            boutique et les réductions chez nos commerçants partenaires.
+          <HardCard eyebrow="Pour les étudiants" title="Devenir adhérent cotisant">
+            Devenir adhérent à l'AE2V débloque les tarifs réduits sur toutes les soirées, les
+            goodies de la boutique et les réductions chez nos commerçants partenaires.
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link to="/adherer">Adhérer maintenant</Link>
@@ -207,11 +221,11 @@ function BdeIndex() {
           </HardCard>
 
           <HardCard eyebrow="Pour les passionnés" title="S'investir dans le Bureau">
-            Envie de concevoir les événements, de créer le design, de gérer les partenariats ou la
-            comptabilité ? Propose ta candidature pour rejoindre un pôle !
+            Envie de concevoir les événements, de créer, d'aider à la gestion ou de représenter les
+            étudiants ? Écris au bureau pour découvrir les possibilités d'implication.
             <div className="mt-6">
               <Button asChild variant="black" size="lg">
-                <Link to="/bde/poles">Voir les pôles & Postuler</Link>
+                <Link to="/contact">Écrire au bureau</Link>
               </Button>
             </div>
           </HardCard>

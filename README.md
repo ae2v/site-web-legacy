@@ -1,6 +1,6 @@
-# AE2V — Site Temporaire du BDE de Vélizy
+# AE2V — Plateforme du BDE de Vélizy
 
-> **Version Temporaire** : Plateforme interactive du BDE AE2V (IUT de Vélizy) développée et déployée dans l'attente de la version finale par Loan Jean.
+> Plateforme AE2V : découverte publique, espace étudiant et opérations du Bureau.
 
 ---
 
@@ -8,10 +8,10 @@
 
 Ce site fournit à la communauté étudiante de l'IUT de Vélizy et au bureau de l'association (AE2V) l'ensemble des fonctionnalités opérationnelles :
 
-1. **Découverte publique** : Présentation du BDE, actualités, agenda des événements, boutique et avantages partenaires.
+1. **Découverte publique** : Présentation du BDE, agenda des événements, aperçu HelloAsso et avantages partenaires.
 2. **Espace Étudiant (`/espace`)** : Carte de membre numérique avec QR code, accès aux billets réservés et suivi des commandes boutique.
 3. **Back-office Bureau (`/bureau`)** : Gestion et validation des dossiers d'adhésion, traitement des candidatures et suivi des événements.
-4. **Configuration Système (`/setup`)** : Interface d'administration protégée par mot de passe maître (`ae2v-admin-2026` par défaut) pour la gestion du site et le test du serveur SMTP.
+4. **Fiche membre 360°** : profil unique partagé entre recherche, scanner, adhésion, paiements, commandes, événements, factures et messages.
 
 ---
 
@@ -20,7 +20,7 @@ Ce site fournit à la communauté étudiante de l'IUT de Vélizy et au bureau de
 - **Framework** : [TanStack Start](https://tanstack.com/router) (React 19 + Vite + Nitro SSR)
 - **Langage** : TypeScript
 - **Styling** : Tailwind CSS v4 + Design System AE2V (#D60106 Rouge, Anton & Red Hat Display)
-- **Persistance** : Hybride (Stockage dynamique local / ready pour base de données Supabase ou Vercel KV)
+- **Persistance** : PostgreSQL via Prisma pour les flux métier, avec miroir local uniquement pour la démonstration hors migration
 - **Déploiement** : [Vercel](https://vercel.com) & [GitHub](https://github.com/ae2v/temp.bde-velizy.fr)
 
 ---
@@ -47,6 +47,16 @@ npm run dev
 
 Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur.
 
+### Variables d’environnement
+
+Copiez `.env.example` vers `.env` en développement. En production, configurez dans Vercel :
+
+- `POSTGRES_URL` : connexion PostgreSQL ;
+- `SESSION_SECRET` : secret aléatoire long, obligatoire ;
+- `HELLOASSO_SHOP_URL` : URL publique HelloAsso facultative.
+
+Ne committez jamais `.env` et ne réutilisez pas le secret de développement.
+
 ---
 
 ## 🔐 Démonstration & Administration
@@ -60,13 +70,22 @@ Sur la page `/connexion`, vous pouvez utiliser les accès rapides :
 - **Inès Faure** (Membre Cotisante) : `ines.demo@etu.uvsq.fr`
 - **Noa Perrin** (Membre Non Cotisant) : `noa.demo@etu.uvsq.fr`
 
-### Accès à la page `/setup`
+### Migration de la base
 
-La page d'administration globale et SMTP `/setup` est protégée par le mot de passe maître :
+Le schéma Prisma contient les tables d’adhésions, paiements, commandes, lignes de commande,
+inscriptions événement, préférences email, journal et factures. La migration versionnée doit être
+appliquée après sauvegarde vérifiée :
 
-```text
-ae2v-admin-2026
+```bash
+npm run db:diff
+npm run db:migrate:deploy
+npx prisma generate
+npm run db:seed
 ```
+
+Ne jamais utiliser `db push --accept-data-loss` en production. Voir
+[`docs/DEPLOIEMENT-MIGRATION-POSTGRESQL.md`](docs/DEPLOIEMENT-MIGRATION-POSTGRESQL.md) pour la
+procédure contrôlée.
 
 ---
 

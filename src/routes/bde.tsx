@@ -10,7 +10,6 @@ export const Route = createFileRoute("/bde")({
 const bdeNav = [
   { to: "/bde", label: "Vue d'ensemble", exact: true },
   { to: "/bde/association", label: "L'association", exact: false },
-  { to: "/bde/poles", label: "Les pôles", exact: false },
   { to: "/bde/equipe", label: "L'équipe", exact: false },
 ] as const;
 

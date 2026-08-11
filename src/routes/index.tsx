@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { ArrowUpRight, CalendarDays, Instagram, Mail, ShoppingBag, Ticket } from "lucide-react";
 
 import {
@@ -19,10 +21,12 @@ import { Reveal } from "@/components/brand/reveal";
 import { Logo } from "@/components/brand/Logo";
 import { EventCard } from "@/components/evenements/event-card";
 import { Button } from "@/components/ui/button";
-import { demoEvents } from "@/data/events";
-import { initials, teamMembers, type TeamMember } from "@/data/team";
-import { hasDiscount, isMember, useDemoSession } from "@/lib/demo-session";
+import { demoEvents, publicRecordToEvent, type Ae2vEvent } from "@/data/events";
+import { initials, teamMembers, type TeamMember, type TeamPole } from "@/data/team";
+import { hasDiscount, useDemoSession } from "@/lib/demo-session";
 import type { Audience } from "@/lib/event-pricing";
+import { getPublicEventsServer } from "@/lib/server-functions/events";
+import { getPublicTeamMembersServer } from "@/lib/server-functions/team";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -67,21 +71,70 @@ const doors = [
   },
 ] as const;
 
-/** Podium desktop : vice-présidence (gauche) · présidence (centre, surélevée) · secrétariat (droite). */
-const podiumIds = ["vice-presidence", "presidence", "secretariat"] as const;
-const podium = podiumIds
-  .map((id) => teamMembers.find((m) => m.id === id))
-  .filter((m): m is TeamMember => Boolean(m));
+/** Podium desktop : vice-présidence · présidence · secrétariat. */
+const podiumRoles = ["Vice-président", "Président", "Secrétaire"] as const;
 const podiumOffsets = ["sm:translate-y-2", "sm:-translate-y-6", "sm:translate-y-6"];
 
 function Index() {
   const { account } = useDemoSession();
-  const audience: Audience = hasDiscount(account)
-    ? "adherent"
-    : isMember(account)
-      ? "membre"
-      : "public";
-  const nextEvents = demoEvents.filter((e) => e.status !== "TERMINE").slice(0, 3);
+  const loadEvents = useServerFn(getPublicEventsServer);
+  const loadTeam = useServerFn(getPublicTeamMembersServer);
+  const [publicEvents, setPublicEvents] = useState<Ae2vEvent[]>(
+    import.meta.env.DEV ? demoEvents : [],
+  );
+  const [publicTeam, setPublicTeam] = useState<TeamMember[]>(
+    import.meta.env.DEV ? teamMembers : [],
+  );
+  useEffect(() => {
+    void Promise.all([loadEvents({ data: undefined }), loadTeam({ data: undefined })])
+      .then(([events, members]) => {
+        if (events.length > 0) {
+          setPublicEvents(events.map(publicRecordToEvent));
+        } else if (import.meta.env.DEV) {
+          setPublicEvents(demoEvents);
+        } else {
+          setPublicEvents([]);
+        }
+
+        if (members.length > 0) {
+          setPublicTeam(
+            members.map((member) => ({
+              id: member.id,
+              displayName: member.displayName,
+              roleTitle: member.roleTitle,
+              roleTitles: member.roleTitles,
+              officerRole: member.officerRole,
+              poles: member.poles as TeamPole[],
+              showDefaultPoleTitles: member.showDefaultPoleTitles,
+              mandate: member.mandateYear,
+              photoUrl: member.photoUrl,
+              roleEmail: member.roleEmail,
+              personalAe2vEmail: member.personalAe2vEmail,
+              bio: member.bio,
+              isOfficer: member.isOfficer,
+              isDemo: false,
+              isPlaceholder: !member.photoUrl,
+              publicVisible: member.publicVisible,
+            })),
+          );
+        } else if (import.meta.env.DEV) {
+          setPublicTeam(teamMembers);
+        } else {
+          setPublicTeam([]);
+        }
+      })
+      .catch(() => {
+        if (import.meta.env.DEV) {
+          setPublicEvents(demoEvents);
+          setPublicTeam(teamMembers);
+        }
+      });
+  }, [loadEvents, loadTeam]);
+  const audience: Audience = hasDiscount(account) ? "adherent" : "public";
+  const nextEvents = publicEvents.filter((e) => e.status !== "TERMINE").slice(0, 3);
+  const podium = podiumRoles
+    .map((role) => publicTeam.find((member) => member.roleTitle === role))
+    .filter((member): member is TeamMember => Boolean(member));
 
   return (
     <>
@@ -349,7 +402,7 @@ function Index() {
                   variant="black"
                   className="border-2 border-ae2v-offwhite/40"
                 >
-                  <Link to="/bde/poles">Les pôles</Link>
+                  <Link to="/bde/equipe">Découvrir l’équipe</Link>
                 </Button>
                 <Button
                   asChild
@@ -390,7 +443,9 @@ function Index() {
                       <span className="ae2v-headline mt-2 text-xl leading-tight">
                         {member.displayName}
                       </span>
-                      <span className="mt-1 text-xs text-ae2v-offwhite/70">{member.pole}</span>
+                      <span className="mt-1 text-xs text-ae2v-offwhite/70">
+                        {member.poles.join(" · ") || "Membre du bureau"}
+                      </span>
                     </Link>
                   </li>
                 ))}

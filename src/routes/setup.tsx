@@ -1,28 +1,18 @@
 import { useState, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import {
-  ShieldCheck,
-  Mail,
-  Save,
-  RefreshCw,
-  Key,
-  Server,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Mail, Save, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 
-import { TapeLabel } from "@/components/brand";
 import { PageHero } from "@/components/layout/page-hero";
 import { HardCard, Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
 import {
   getSiteConfig,
   saveSiteConfig,
-  verifyMasterPassword,
   sendTestSmtpEmail,
   type SiteConfig,
   type SmtpTestResult,
 } from "@/lib/site-config";
+import { useDemoSession } from "@/lib/demo-session";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({
@@ -38,14 +28,10 @@ const inputClass =
   "min-h-[44px] w-full border-2 border-ae2v-black/25 bg-ae2v-offwhite px-3 py-2 text-base text-ae2v-black outline-none focus-visible:border-ae2v-red focus-visible:ring-2 focus-visible:ring-ae2v-red/40";
 
 function SetupPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
+  const { can, sessionResolved } = useDemoSession();
 
   const [config, setConfig] = useState<SiteConfig>(getSiteConfig());
   const [saveSuccess, setSaveSuccess] = useState(false);
-
-  const [newMasterPassword, setNewMasterPassword] = useState("");
 
   const [testEmailTarget, setTestEmailTarget] = useState("admin@ae2v.fr");
   const [testLoading, setTestLoading] = useState(false);
@@ -55,25 +41,11 @@ function SetupPage() {
     setConfig(getSiteConfig());
   }, []);
 
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (verifyMasterPassword(passwordInput)) {
-      setIsAuthenticated(true);
-      setAuthError(null);
-    } else {
-      setAuthError("Mot de passe maître incorrect. (Par défaut : ae2v-admin-2026)");
-    }
-  }
-
   function handleSaveConfig(e: React.FormEvent) {
     e.preventDefault();
     const patch: Partial<SiteConfig> = { ...config };
-    if (newMasterPassword.trim().length > 0) {
-      patch.masterPasswordHash = newMasterPassword.trim();
-    }
     const updated = saveSiteConfig(patch);
     setConfig(updated);
-    setNewMasterPassword("");
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   }
@@ -87,51 +59,30 @@ function SetupPage() {
     setTestLoading(false);
   }
 
-  if (!isAuthenticated) {
+  if (!sessionResolved) {
     return (
       <>
         <PageHero
           eyebrow="Administration"
-          title="Configuration Système"
-          intro="Accès restreint. Veuillez saisir le mot de passe maître pour accéder aux paramètres du site et au serveur SMTP."
+          title="Vérification de session"
+          intro="Vérification de tes droits Bureau en cours…"
         />
+      </>
+    );
+  }
 
-        <Section number={1} ghost="ACCÈS" title="Authentification Maître" tone="dark">
-          <form
-            onSubmit={handleLogin}
-            className="mx-auto max-w-md border-2 border-ae2v-black bg-ae2v-offwhite p-6"
-          >
-            <TapeLabel tone="red">Zone Sécurisée</TapeLabel>
-            <p className="mt-4 text-sm text-ae2v-black/70">
-              Entrez le mot de passe maître de l'application temporaire.
-            </p>
-
-            <div className="mt-4">
-              <label className="block text-xs font-bold tracking-[0.14em] text-ae2v-black uppercase">
-                Mot de passe maître
-              </label>
-              <input
-                type="password"
-                className={`${inputClass} mt-2`}
-                placeholder="ae2v-admin-2026"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                required
-              />
-            </div>
-
-            {authError ? (
-              <p role="alert" className="mt-4 text-sm font-bold text-ae2v-red">
-                ✕ {authError}
-              </p>
-            ) : null}
-
-            <Button type="submit" className="mt-6 w-full" size="lg">
-              <Key aria-hidden="true" />
-              Déverrouiller la configuration
-            </Button>
-          </form>
-        </Section>
+  if (!can("events:manage")) {
+    return (
+      <>
+        <PageHero
+          eyebrow="Administration"
+          title="Accès Bureau requis"
+          intro="La configuration système est réservée aux membres du Bureau autorisés."
+        >
+          <Button asChild size="lg">
+            <Link to="/connexion">Se connecter</Link>
+          </Button>
+        </PageHero>
       </>
     );
   }
@@ -141,7 +92,7 @@ function SetupPage() {
       <PageHero
         eyebrow="Administration Système"
         title="Centre de Configuration AE2V"
-        intro="Gestion des paramètres globaux, mot de passe maître et configuration des envois SMTP."
+        intro="Gestion des paramètres d’interface. Les secrets et l’envoi d’e-mails restent côté serveur."
       />
 
       <Section number={1} ghost="GENERAL" title="Paramètres Généraux & Sécurité" tone="light">
@@ -200,23 +151,12 @@ function SetupPage() {
             </div>
           </HardCard>
 
-          <HardCard eyebrow="SÉCURITÉ" title="Changer le Mot de Passe Maître">
+          <HardCard eyebrow="SÉCURITÉ" title="Session Bureau active">
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                Ce mot de passe contrôle l'accès à cette page <code>/setup</code>.
+                L’accès à cette page est contrôlé par la session serveur et les droits Bureau. Aucun
+                mot de passe maître n’est stocké dans le navigateur.
               </p>
-              <div>
-                <label className="block text-xs font-bold tracking-[0.14em] uppercase">
-                  Nouveau mot de passe maître
-                </label>
-                <input
-                  type="password"
-                  className={`${inputClass} mt-1`}
-                  placeholder="Laisser vide pour ne pas changer"
-                  value={newMasterPassword}
-                  onChange={(e) => setNewMasterPassword(e.target.value)}
-                />
-              </div>
               <div className="pt-4">
                 <Button type="submit" variant="red" className="w-full">
                   <Save aria-hidden="true" />
@@ -233,13 +173,13 @@ function SetupPage() {
         </form>
       </Section>
 
-      <Section number={2} ghost="SMTP" title="Configuration & Test SMTP" tone="dark">
+      <Section number={2} ghost="E-MAIL" title="Transport e-mail serveur" tone="dark">
         <div className="grid gap-6 md:grid-cols-2">
-          <HardCard eyebrow="SMTP" title="Paramètres du Serveur E-mail">
+          <HardCard eyebrow="TRANSPORT SERVEUR" title="Référence du transport (sans secret)">
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold tracking-[0.14em] text-ae2v-black uppercase">
-                  Serveur SMTP (Host)
+                  Serveur de transport (référence)
                 </label>
                 <input
                   type="text"
@@ -288,7 +228,7 @@ function SetupPage() {
 
               <div>
                 <label className="block text-xs font-bold tracking-[0.14em] text-ae2v-black uppercase">
-                  Utilisateur SMTP
+                  Identifiant du transport
                 </label>
                 <input
                   type="text"
@@ -301,17 +241,12 @@ function SetupPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold tracking-[0.14em] text-ae2v-black uppercase">
-                  Mot de passe SMTP
-                </label>
-                <input
-                  type="password"
-                  className={`${inputClass} mt-1`}
-                  value={config.smtp.pass}
-                  onChange={(e) =>
-                    setConfig({ ...config, smtp: { ...config.smtp, pass: e.target.value } })
-                  }
-                />
+                <p className="block text-xs font-bold tracking-[0.14em] text-ae2v-black uppercase">
+                  Secret du transport (non stocké dans le navigateur)
+                </p>
+                <p className="mt-1 border-2 border-ae2v-black/20 bg-ae2v-offwhite p-3 text-xs text-ae2v-black/75">
+                  À configurer uniquement dans les variables d’environnement Vercel ou du serveur.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -346,17 +281,22 @@ function SetupPage() {
                 </div>
               </div>
 
+              <p className="border-2 border-ae2v-red bg-ae2v-red/10 p-3 text-xs font-bold text-ae2v-black">
+                Ces paramètres sont indicatifs pour la démo. Aucun mot de passe n’est conservé dans
+                le navigateur et aucun envoi ne part directement depuis cette page.
+              </p>
               <Button onClick={handleSaveConfig} className="mt-4 w-full">
                 <Save aria-hidden="true" />
-                Enregistrer la configuration SMTP
+                Enregistrer les paramètres locaux
               </Button>
             </div>
           </HardCard>
 
-          <HardCard eyebrow="DIAGNOSTIC" title="Test d'Envoi SMTP">
+          <HardCard eyebrow="DIAGNOSTIC" title="Envoi serveur requis">
             <div className="space-y-4">
               <p className="text-sm text-ae2v-black/80">
-                Envoyez un e-mail de test pour valider la communication avec votre serveur SMTP.
+                L’envoi réel utilise le transport serveur configuré dans Vercel : `RESEND_API_KEY`
+                et `EMAIL_FROM`. Le navigateur ne reçoit jamais le secret.
               </p>
 
               <div>
@@ -371,18 +311,13 @@ function SetupPage() {
                 />
               </div>
 
-              <Button
-                onClick={handleTestSmtp}
-                disabled={testLoading}
-                variant="green"
-                className="w-full"
-              >
+              <Button onClick={handleTestSmtp} disabled variant="green" className="w-full">
                 {testLoading ? (
                   <RefreshCw className="animate-spin" aria-hidden="true" />
                 ) : (
                   <Mail aria-hidden="true" />
                 )}
-                {testLoading ? "Envoi du test en cours..." : "Tester la connexion SMTP"}
+                {testLoading ? "Vérification en cours…" : "Test disponible côté serveur uniquement"}
               </Button>
 
               {testResult ? (

@@ -23,7 +23,6 @@ BOUTIQUE
 - Promotions
 
 COMMUNICATION
-- Actualités
 - Médias
 - Liens courts
 - Emails

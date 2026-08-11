@@ -3,8 +3,21 @@ import { Mail, RotateCw, X } from "lucide-react";
 
 import { CrossMarker, DotCloud, GrainOverlay, TapeLabel } from "@/components/brand";
 import { Logo } from "@/components/brand/Logo";
-import { initials, memberEmails, primaryEmail, type TeamMember } from "@/data/team";
+import {
+  displayedTeamTitles,
+  initials,
+  memberEmails,
+  primaryEmail,
+  type TeamMember,
+} from "@/data/team";
 import { cn } from "@/lib/utils";
+
+function cardTitles(member: TeamMember): string[] {
+  const titles = displayedTeamTitles(member);
+  if (!member.officerRole) return titles;
+  const officer = member.officerRole.trim().toLocaleLowerCase("fr-FR");
+  return titles.filter((title) => title.trim().toLocaleLowerCase("fr-FR") !== officer);
+}
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -97,7 +110,8 @@ function CardFront({
               compact ? "text-[0.62rem]" : "text-sm",
             )}
           >
-            {member.roleTitle}
+            {(member.officerRole ? `${member.officerRole} · ` : "") +
+              (cardTitles(member).join(" · ") || "Membre du bureau")}
           </p>
           <p
             className={cn(
@@ -105,7 +119,7 @@ function CardFront({
               compact ? "text-[0.55rem]" : "text-xs",
             )}
           >
-            Pôle {member.pole}
+            Pôles : {member.poles.join(" · ") || "À définir"}
           </p>
         </div>
 
@@ -143,11 +157,14 @@ function CardBack({ member }: { member: TeamMember }) {
           <dt className="text-[0.6rem] tracking-[0.16em] uppercase text-ae2v-offwhite/60">
             {member.isOfficer ? "Statut" : "Rôle"}
           </dt>
-          <dd className="font-bold">{member.roleTitle}</dd>
+          <dd className="font-bold">
+            {member.officerRole ? `${member.officerRole} · ` : ""}
+            {cardTitles(member).join(" · ") || "Membre du bureau"}
+          </dd>
         </div>
         <div>
           <dt className="text-[0.6rem] tracking-[0.16em] uppercase text-ae2v-offwhite/60">Pôle</dt>
-          <dd className="font-bold">{member.pole}</dd>
+          <dd className="font-bold">{member.poles.join(" · ") || "À définir"}</dd>
         </div>
         {role && (
           <div>
@@ -461,7 +478,9 @@ function BusinessCardDialog({
 
         {/* Contenu du verso restitué au lecteur d'écran sans dépendre du 3D. */}
         <p className="sr-only">
-          {member.roleTitle}, pôle {member.pole}, mandat {member.mandate}.
+          {member.officerRole ? `${member.officerRole}, ` : ""}
+          {displayedTeamTitles(member).join(", ") || "Membre du bureau"}, pôles{" "}
+          {member.poles.join(", ") || "à définir"}, mandat {member.mandate}.
           {memberEmails(member).role ? ` Email de fonction : ${memberEmails(member).role}.` : ""}
           {memberEmails(member).personal
             ? ` Email nominatif : ${memberEmails(member).personal}.`

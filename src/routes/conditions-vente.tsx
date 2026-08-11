@@ -46,7 +46,7 @@ function CgvPage() {
           </li>
           <li>
             <strong>Billets</strong> : associés à un événement daté, à une place et le cas échéant à
-            un tarif adhérent. Un billet est personnel et contrôlé à l'entrée.
+            un tarif cotisant. Un billet est personnel et contrôlé à l'entrée.
           </li>
           <li>
             <strong>Boutique</strong> : produits proposés dans la limite des stocks disponibles,

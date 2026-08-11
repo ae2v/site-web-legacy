@@ -7,6 +7,8 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { TapeLabel } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { useDemoSession } from "@/lib/demo-session";
+import { submitMembershipServer } from "@/lib/server-functions/membership";
+import { useServerFn } from "@tanstack/react-start";
 
 /* -------------------------------------------------------------------------- */
 /*  Année scolaire courante (rentrée en septembre)                             */
@@ -46,15 +48,6 @@ const schema = z.object({
     .trim()
     .min(2, "Indique ton nom (2 caractères minimum).")
     .max(60, "60 caractères maximum."),
-  birthDate: z
-    .string()
-    .min(1, "Indique ta date de naissance.")
-    .refine((v) => {
-      const d = new Date(v);
-      if (Number.isNaN(d.getTime())) return false;
-      const age = (Date.now() - d.getTime()) / 31557600000;
-      return age >= 15 && age <= 100;
-    }, "Date de naissance invalide (adhésion à partir de 15 ans)."),
   email: z
     .string()
     .trim()
@@ -64,8 +57,10 @@ const schema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(
-      /^(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}$/,
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (value) => !value || /^(?:\+33|0)[1-9](?:[\s.-]?\d{2}){4}$/.test(value),
       "Numéro français invalide (ex. 06 12 34 56 78).",
     ),
 
@@ -78,7 +73,7 @@ const schema = z.object({
   niveau: z.enum(niveaux, { message: "Choisis ton année d'étude." }),
   groupe: z.string().trim().max(12, "12 caractères maximum.").optional().or(z.literal("")),
 
-  // 3. Adhésion — cotisation FACULTATIVE, montant libre à partir de 5 €
+  // 3. Adhésion — cotisation FACULTATIVE, montant libre à partir de 3 €
   cotisation: z.enum(["aucune", "libre"], {
     message: "Indique si tu souhaites cotiser.",
   }),
@@ -111,7 +106,7 @@ const interestOptions = [
 ];
 
 const stepFields: Array<Array<keyof MembershipFormValues>> = [
-  ["firstName", "lastName", "birthDate", "email", "phone"],
+  ["firstName", "lastName", "email", "phone"],
   ["studentId", "departement", "niveau", "groupe"],
   ["cotisation", "customAmount", "interests", "volunteer", "message"],
   ["emailOptIn", "emailTopics"],
@@ -174,9 +169,12 @@ function FieldShell({
         {required ? (
           <span className="text-ae2v-red"> *</span>
         ) : (
-          <span className="ml-1 font-medium tracking-normal text-ae2v-black/50 normal-case">
-            (facultatif)
-          </span>
+          <>
+            {" "}
+            <span className="font-medium tracking-normal text-ae2v-black/50 normal-case">
+              (facultatif)
+            </span>
+          </>
         )}
       </label>
       {hint ? (
@@ -204,6 +202,8 @@ export function MembershipForm() {
   const year = useMemo(() => currentSchoolYear(), []);
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState<MembershipFormValues | null>(null);
+  const [serverPersisted, setServerPersisted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
@@ -222,7 +222,6 @@ export function MembershipForm() {
     defaultValues: {
       firstName: "",
       lastName: "",
-      birthDate: "",
       email: "",
       phone: "",
       studentId: "",
@@ -254,10 +253,10 @@ export function MembershipForm() {
     const current = getValues();
     if (step === 2 && current.cotisation === "libre") {
       const amount = Number(String(current.customAmount ?? "").replace(",", "."));
-      if (!Number.isFinite(amount) || amount < 5 || amount > 500) {
+      if (!Number.isFinite(amount) || amount < 3 || amount > 500) {
         setError("customAmount", {
           type: "manual",
-          message: "Montant libre : entre 5 € et 500 €.",
+          message: "Montant libre : entre 3 € et 500 €.",
         });
         return;
       }
@@ -278,14 +277,17 @@ export function MembershipForm() {
     requestAnimationFrame(() => headingRef.current?.focus());
   }
 
-  function onSubmit(data: MembershipFormValues) {
+  const submitMembership = useServerFn(submitMembershipServer);
+
+  async function onSubmit(data: MembershipFormValues) {
+    setSubmitError(null);
     // Garde finale sur les règles inter-champs (montant libre, sujets d'e-mails).
     if (data.cotisation === "libre") {
       const amount = Number(String(data.customAmount ?? "").replace(",", "."));
-      if (!Number.isFinite(amount) || amount < 5 || amount > 500) {
+      if (!Number.isFinite(amount) || amount < 3 || amount > 500) {
         setError("customAmount", {
           type: "manual",
-          message: "Montant libre : entre 5 € et 500 €.",
+          message: "Montant libre : entre 3 € et 500 €.",
         });
         setStep(2);
         return;
@@ -299,7 +301,38 @@ export function MembershipForm() {
       setStep(3);
       return;
     }
-    if (addDossier) {
+    let persistedOnServer = false;
+    try {
+      await submitMembership({
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          studentId: data.studentId,
+          departement: data.departement,
+          niveau: data.niveau,
+          ...(data.groupe ? { groupe: data.groupe } : {}),
+          cotisationCents: contributionCents(data),
+          interests: data.interests,
+          volunteer: data.volunteer,
+          ...(data.message ? { message: data.message } : {}),
+          emailPrefs: data.emailOptIn ? data.emailTopics : [],
+          imageRight: data.imageRight,
+          schoolYear: year,
+        },
+      });
+      persistedOnServer = true;
+    } catch {
+      // Le fallback local reste réservé au développement et aux démonstrations.
+      if (!import.meta.env.DEV) {
+        setSubmitError(
+          "Le dossier n’a pas pu être transmis au serveur. Réessaie dans quelques instants.",
+        );
+        return;
+      }
+    }
+    if (!persistedOnServer && addDossier) {
       addDossier({
         firstName: data.firstName,
         lastName: data.lastName,
@@ -313,6 +346,7 @@ export function MembershipForm() {
         emailPrefs: data.emailOptIn ? data.emailTopics : [],
       });
     }
+    setServerPersisted(persistedOnServer);
     setSubmitted(data);
     requestAnimationFrame(() => statusRef.current?.focus());
   }
@@ -327,6 +361,11 @@ export function MembershipForm() {
         className="border-2 border-ae2v-black bg-ae2v-offwhite p-6 outline-none md:p-8"
       >
         <TapeLabel tone="green">Demande enregistrée</TapeLabel>
+        <p className="mt-3 text-xs font-bold uppercase tracking-wider text-ae2v-black/60">
+          {serverPersisted
+            ? "Dossier transmis au bureau"
+            : "Dossier enregistré localement — synchronisation serveur en attente"}
+        </p>
         <h3 className="ae2v-headline mt-5 text-[clamp(1.8rem,5vw,3rem)] text-ae2v-black">
           Merci {submitted.firstName} !
         </h3>
@@ -420,6 +459,14 @@ export function MembershipForm() {
         Champs marqués <span className="font-bold text-ae2v-red">*</span> obligatoires. Tes réponses
         sont conservées si une erreur survient.
       </p>
+      {submitError ? (
+        <div
+          role="alert"
+          className="mt-4 border-2 border-ae2v-red bg-ae2v-red/10 p-4 text-sm font-bold text-ae2v-red"
+        >
+          {submitError}
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-5">
         {/* --------------------------- Étape 1 --------------------------- */}
@@ -447,23 +494,6 @@ export function MembershipForm() {
                 />
               </FieldShell>
             </div>
-            <FieldShell
-              id="birthDate"
-              label="Date de naissance"
-              required
-              hint="Utilisée pour vérifier l'accès à certains événements."
-              error={errors.birthDate?.message}
-            >
-              <input
-                id="birthDate"
-                type="date"
-                className={inputClass}
-                autoComplete="bday"
-                aria-invalid={!!errors.birthDate}
-                aria-describedby={errId("birthDate", true)}
-                {...register("birthDate")}
-              />
-            </FieldShell>
             <div className="grid gap-5 sm:grid-cols-2">
               <FieldShell
                 id="email"
@@ -487,7 +517,6 @@ export function MembershipForm() {
               <FieldShell
                 id="phone"
                 label="Téléphone"
-                required
                 hint="Pour te prévenir en cas de changement de dernière minute."
                 error={errors.phone?.message}
               >
@@ -600,7 +629,7 @@ export function MembershipForm() {
               </legend>
               <p className="mt-1 text-sm text-ae2v-black/70">
                 Année scolaire {year}. L'adhésion est gratuite. Si tu souhaites soutenir
-                l'association, le montant est libre, à partir de 5 €.
+                l'association, le montant est libre, à partir de 3 €.
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
@@ -612,7 +641,7 @@ export function MembershipForm() {
                   {
                     value: "libre",
                     title: "Je souhaite cotiser",
-                    text: "Montant libre à partir de 5 €.",
+                    text: "Montant libre à partir de 3 €.",
                   },
                 ].map((option) => {
                   const active = values.cotisation === option.value;
@@ -657,13 +686,13 @@ export function MembershipForm() {
                     className="mt-4"
                     label="Montant libre (en euros)"
                     required
-                    hint="Minimum 5 €, maximum 500 €."
+                    hint="Minimum 3 €, maximum 500 €."
                     error={errors.customAmount?.message}
                   >
                     <input
                       id="customAmount"
                       type="number"
-                      min={5}
+                      min={3}
                       max={500}
                       step="1"
                       inputMode="decimal"
