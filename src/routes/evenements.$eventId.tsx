@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -340,6 +340,13 @@ function RegistrationCta({
   );
   const [selectedTierId, setSelectedTierId] = useState(myTierLocal?.id ?? "");
   const selectedTier = selectableTiers.find((tier) => tier.id === selectedTierId) ?? myTierLocal;
+
+  // La session peut être restaurée après le premier rendu. Dans ce cas, le
+  // tarif public ne doit pas rester sélectionné pour un cotisant ou un membre
+  // du bureau alors que son tarif autorisé vient d'être identifié.
+  useEffect(() => {
+    setSelectedTierId(myTierLocal?.id ?? "");
+  }, [event.id, audience, myTierLocal?.id]);
 
   const alreadyHasTicket = account?.tickets.some(
     (t) => t.eventId === event.id && t.status === "valide",
