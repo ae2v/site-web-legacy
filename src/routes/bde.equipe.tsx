@@ -137,31 +137,6 @@ function EquipePage() {
             </div>
           ) : (
             <div className="space-y-14">
-              {officers.length > 0 && (
-                <div className="border-2 border-ae2v-black bg-ae2v-black p-5 text-ae2v-offwhite">
-                  <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-ae2v-offwhite/25 pb-3">
-                    <h2 className="font-impact text-2xl uppercase text-ae2v-green md:text-3xl">
-                      Dirigeants
-                    </h2>
-                    <span className="text-xs font-bold tracking-[0.14em] uppercase opacity-75">
-                      Fonctions officielles du bureau
-                    </span>
-                  </div>
-                  <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {officers.map((member) => (
-                      <li key={member.id} className="border-2 border-ae2v-offwhite/25 p-3">
-                        <p className="font-bold">{member.displayName}</p>
-                        <p className="mt-1 text-sm text-ae2v-green">
-                          {member.officerRole ?? displayedTeamTitles(member).join(" · ")}
-                        </p>
-                        <p className="mt-1 text-[0.65rem] opacity-70">
-                          {member.poles.length ? member.poles.join(" · ") : "Membre du bureau"}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
               {groups.map(({ pole, members: poleMembers }) => (
                 <div key={pole}>
                   <div className="mb-6 flex items-baseline gap-4 border-b-2 border-ae2v-black pb-2">
