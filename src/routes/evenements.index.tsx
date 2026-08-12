@@ -1,22 +1,98 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, MapPin, ArrowUpRight } from "lucide-react";
 
+import { EventCard } from "@/components/evenements/event-card";
 import { PageHero } from "@/components/layout/page-hero";
 import { Section } from "@/components/layout/section";
-import { publicEvents, eventStatusLabels } from "@/data/events";
+import { Button } from "@/components/ui/button";
+import { publicEvents } from "@/data/events";
+import type { Audience } from "@/lib/event-pricing";
 
 export const Route = createFileRoute("/evenements/")({
-  head: () => ({ meta: [{ title: "Événements — AE2V" }, { name: "description", content: "Les événements publics de l'AE2V à Vélizy." }] }),
-  component: EventsPage,
+  head: () => ({
+    meta: [
+      { title: "Événements AE2V — Soirées, gala et sorties étudiantes" },
+      {
+        name: "description",
+        content:
+          "Tous les événements de l'AE2V : soirées, afterworks, tournois et gala. Tarifs cotisants, jauges et billetterie avec QR code.",
+      },
+      { property: "og:title", content: "Événements AE2V" },
+      {
+        property: "og:description",
+        content: "Soirées, afterworks, tournois et gala de l'association étudiante de Vélizy.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "/evenements" },
+    ],
+    links: [{ rel: "canonical", href: "/evenements" }],
+  }),
+  component: EvenementsPage,
 });
 
-function EventsPage() {
-  const events = publicEvents.filter((event) => event.status !== "TERMINE");
+function EvenementsPage() {
+  const account = null;
+  const events = publicEvents;
+  const audience: Audience = "public";
+  const upcoming = events.filter((e) => e.status !== "TERMINE");
+  const past = events.filter((e) => e.status === "TERMINE");
+
   return (
     <>
-      <PageHero eyebrow="Agenda AE2V" title="Événements" intro="Retrouve les rendez-vous qui font vivre le campus. Les inscriptions et informations pratiques sont annoncées sur Discord." />
-      <Section number={1} ghost="AGENDA" title="À venir">
-        {events.length === 0 ? <p className="border-2 border-dashed border-ae2v-black/30 p-8">La programmation arrive bientôt sur Discord.</p> : <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{events.map((event) => <li key={event.id} className="border-2 border-ae2v-black bg-card p-5"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase"><span className="bg-ae2v-green px-2 py-1 text-ae2v-black">{eventStatusLabels[event.status]}</span><span>{event.capacity ? `${event.capacity} places` : "Places limitées"}</span></div><h2 className="mt-5 font-impact text-3xl uppercase">{event.title}</h2><p className="mt-3 flex items-center gap-2 text-sm"><CalendarDays className="size-4" aria-hidden="true" />{event.date} · portes {event.doors}</p><p className="mt-2 flex items-center gap-2 text-sm"><MapPin className="size-4" aria-hidden="true" />{event.place}</p><p className="mt-4 text-sm text-muted-foreground">{event.description}</p><Link to="/contact" className="mt-6 inline-flex min-h-11 items-center gap-2 border-2 border-ae2v-black px-4 text-sm font-bold uppercase hover:bg-ae2v-red hover:text-white">Infos et inscription <ArrowUpRight className="size-4" aria-hidden="true" /></Link></li>)}</ul>}
+      <PageHero
+        eyebrow="Billetterie"
+        title="Événements"
+        intro="Soirées, afterworks, tournois et gala. Tarif réduit pour les adhérents, billet nominatif avec QR code."
+      >
+        {!account && (
+          <Button asChild size="lg">
+            <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">Rejoindre Discord pour les informations d'inscription</a>
+          </Button>
+        )}
+      </PageHero>
+
+      <Section
+        number={1}
+        ghost="AGENDA"
+        title="À venir"
+        intro={
+          account
+            ? `Tarifs affichés pour ton statut : ${audience === "adherent" ? "membre cotisant" : "membre non cotisant (réductions réservées aux cotisants)"}.`
+            : "Inscris-toi directement au tarif public ; connecte-toi seulement pour accéder aux tarifs cotisant ou bureau."
+        }
+      >
+        <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {upcoming.map((event, index) => (
+            <li key={event.id} className="h-full">
+              <EventCard
+                event={event}
+                audience={audience}
+                connected={Boolean(account)}
+                index={index}
+              />
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section
+        number={2}
+        ghost="ARCHIVES"
+        title="Événements passés"
+        tone="dark"
+        intro="L'historique reste consultable : il alimente ton espace et les billets déjà utilisés."
+      >
+        <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {past.map((event, index) => (
+            <li key={event.id} className="h-full">
+              <EventCard
+                event={event}
+                audience={audience}
+                connected={Boolean(account)}
+                index={index}
+              />
+            </li>
+          ))}
+        </ul>
       </Section>
     </>
   );

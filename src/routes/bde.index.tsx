@@ -1,15 +1,208 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, MessageCircle } from "lucide-react";
+import {
+  ArrowUpRight,
+  Shield,
+  Zap,
+  Users,
+  Target,
+  Sparkles,
+  Award,
+  HeartHandshake,
+  ChevronRight,
+  BookOpen,
+} from "lucide-react";
 
 import { PageHero } from "@/components/layout/page-hero";
-import { Section, HardCard } from "@/components/layout/section";
+import { Reveal } from "@/components/brand/reveal";
+import { SectionNumber, TapeLabel } from "@/components/brand";
+import { HardCard, Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
+import { publicEvents } from "@/data/events";
+import { teamMembers } from "@/data/team";
 
 export const Route = createFileRoute("/bde/")({
-  head: () => ({ meta: [{ title: "Le BDE — AE2V" }, { name: "description", content: "Découvrir l'association étudiante AE2V." }] }),
-  component: BdePage,
+  head: () => ({
+    meta: [
+      { title: "Le BDE — AE2V Vélizy" },
+      {
+        name: "description",
+        content:
+          "Découvrez le BDE AE2V : son rôle, ses actions et l'équipe du bureau étudiant de l'IUT de Vélizy.",
+      },
+      { property: "og:title", content: "Le BDE — AE2V Vélizy" },
+      { property: "og:description", content: "Missions et équipe du bureau étudiant AE2V." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "/bde" },
+    ],
+    links: [{ rel: "canonical", href: "/bde" }],
+  }),
+  component: BdeIndex,
 });
 
-function BdePage() {
-  return <><PageHero eyebrow="L'association étudiante" title="Le BDE AE2V" intro="Une équipe étudiante qui anime la vie de campus, crée des événements et rassemble les étudiants de Vélizy." /><Section number={1} ghost="MISSION" title="Faire vivre le campus"><div className="grid gap-5 md:grid-cols-3"><HardCard eyebrow="Événements" title="Des moments ensemble">Soirées, sorties, tournois et rencontres pour créer des souvenirs sur le campus.</HardCard><HardCard eyebrow="Collectif" title="Une association ouverte">Les projets se construisent avec les étudiants, au rythme de leurs idées et de leurs envies.</HardCard><HardCard eyebrow="Communauté" title="Un point de rencontre">Le Discord AE2V centralise les échanges, les annonces et les opportunités de participation.</HardCard></div></Section><section className="bg-ae2v-black px-4 py-16 text-ae2v-offwhite md:px-6"><div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 md:flex-row md:items-center"><div><MessageCircle className="size-8 text-ae2v-green" aria-hidden="true" /><h2 className="mt-4 font-impact text-4xl uppercase">Envie de participer ?</h2><p className="mt-2 max-w-xl text-sm text-ae2v-offwhite/75">Rejoins-nous sur Discord pour échanger avec l'équipe et découvrir les prochains projets.</p></div><Button asChild size="lg"><a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">Rejoindre Discord <ArrowUpRight aria-hidden="true" /></a></Button></div></section><div className="mx-auto flex max-w-5xl flex-wrap gap-3 px-4 py-12 md:px-6"><Button asChild><Link to="/bde/association">L'association</Link></Button><Button asChild variant="black"><Link to="/bde/equipe">L'équipe</Link></Button><Button asChild variant="secondary"><Link to="/evenements">Les événements</Link></Button></div></>;
+const bdeNavCards = [
+  {
+    to: "/bde/association",
+    label: "L'association & Gouvernance",
+    badge: "Missions & Statuts",
+    text: "Ce qu'est l'AE2V, notre rôle de représentation, notre fonctionnement transparent et notre charte associative.",
+  },
+  {
+    to: "/bde/equipe",
+    label: "L'Équipe du Bureau",
+    badge: "Cartes de visite",
+    text: "Rencontrez les membres du bureau 2026-2027 et accédez à leurs cartes de visite et adresses nominatives @ae2v.fr.",
+  },
+];
+
+const pillars = [
+  {
+    icon: Zap,
+    title: "Animation du Campus",
+    desc: "Soirées d'intégration, afterworks, tournois e-sport, gala annuel et temps forts pour dynamiser la vie étudiante.",
+  },
+  {
+    icon: Shield,
+    title: "Représentation Étudiante",
+    desc: "Porte-parole des étudiants auprès de la direction de l'IUT, du CROUS et des instances universitaires.",
+  },
+  {
+    icon: HeartHandshake,
+    title: "Avantages & Partenariats",
+    desc: "Négociation de réductions exclusives chez les commerçants de Vélizy et tarifs préférentiels pour les cotisants.",
+  },
+  {
+    icon: Target,
+    title: "Transparence & Rigueur",
+    desc: "Gestion comptable claire, billetterie sécurisée et décisions prises en Assemblée Générale.",
+  },
+];
+
+function BdeIndex() {
+  const teamCount = teamMembers.length;
+  const eventCount = publicEvents.length;
+
+  return (
+    <>
+      <PageHero
+        eyebrow="Association Étudiante IUT Vélizy"
+        title="Le BDE AE2V"
+        intro="AE2V fait vivre le campus de Vélizy : événements, entraide, partenariats, représentation et projets étudiants."
+      />
+
+      {/* KPI Bar */}
+      <section className="border-b-2 border-ae2v-black bg-card py-8">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5">
+              <p className="font-impact text-3xl text-ae2v-black">
+                {teamCount === null ? "…" : teamCount} Membres du bureau
+              </p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Équipe du bureau 2026-2027
+              </p>
+            </div>
+            <div className="border-2 border-ae2v-black bg-ae2v-offwhite p-5">
+              <p className="font-impact text-3xl text-ae2v-green">
+                {eventCount === null ? "…" : eventCount} Événements
+              </p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Programmés cette année
+              </p>
+            </div>
+            <div className="border-2 border-ae2v-black bg-ae2v-black p-5 text-white">
+              <p className="font-impact text-3xl text-ae2v-green">100%</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-ae2v-offwhite/80">
+                Géré par les étudiants
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 1: Navigation Principale */}
+      <Section number={1} ghost="SECTIONS" title="Explorer le BDE">
+        <ul className="grid gap-6 md:grid-cols-3">
+          {bdeNavCards.map((card, index) => (
+            <Reveal as="li" key={card.to} delay={index * 90}>
+              <Link
+                to={card.to}
+                className="group flex h-full flex-col justify-between border-2 border-ae2v-black bg-card p-6 transition-transform motion-safe:hover:-translate-y-1 hover:bg-ae2v-black hover:text-ae2v-offwhite"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <SectionNumber value={index + 1} tone="red" />
+                    <span className="border-2 border-ae2v-black bg-ae2v-green px-2 py-0.5 text-[0.65rem] font-bold uppercase text-ae2v-black group-hover:border-ae2v-green">
+                      {card.badge}
+                    </span>
+                  </div>
+                  <h2 className="mt-6 font-impact text-2xl uppercase leading-tight">
+                    {card.label}
+                  </h2>
+                  <p className="mt-3 text-sm text-muted-foreground group-hover:text-ae2v-offwhite/80">
+                    {card.text}
+                  </p>
+                </div>
+                <div className="mt-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-ae2v-red group-hover:text-ae2v-green">
+                  <span>Découvrir</span>
+                  <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                </div>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
+      </Section>
+
+      {/* Section 2: Nos Piliers d'Action */}
+      <Section number={2} ghost="ENGAGEMENT" title="Nos 4 Piliers d'Action" tone="dark">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {pillars.map((p, i) => {
+            const Icon = p.icon;
+            return (
+              <Reveal key={p.title} delay={i * 80}>
+                <div className="h-full border-2 border-ae2v-offwhite/20 bg-ae2v-black p-6 text-ae2v-offwhite">
+                  <Icon className="size-8 text-ae2v-green mb-4" />
+                  <h3 className="font-impact text-xl uppercase tracking-wide text-ae2v-offwhite">
+                    {p.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-ae2v-offwhite/75">{p.desc}</p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* Section 3: Appel à Action / Participation */}
+      <Section
+        number={3}
+        ghost="REJOINDRE"
+        title="Participer à la vie du BDE"
+        intro="L'AE2V est ouverte à tous les étudiants de l'IUT. Adhérer ou s'investir dans le bureau permet d'enrichir son expérience associative."
+      >
+        <div className="grid gap-6 md:grid-cols-2">
+          <HardCard eyebrow="Pour les étudiants" title="Devenir adhérent cotisant">
+            Tu souhaites rejoindre l'AE2V ou participer à la vie du campus ? Échange avec nous directement sur Discord.
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">Rejoindre Discord</a>
+              </Button>
+              <Button asChild variant="secondary" size="lg">
+                <Link to="/contact">Nous contacter</Link>
+              </Button>
+            </div>
+          </HardCard>
+
+          <HardCard eyebrow="Pour les passionnés" title="S'investir dans le Bureau">
+            Envie de concevoir les événements, de créer, d'aider à la gestion ou de représenter les
+            étudiants ? Écris au bureau pour découvrir les possibilités d'implication.
+            <div className="mt-6">
+              <Button asChild variant="black" size="lg">
+                <Link to="/contact">Écrire au bureau</Link>
+              </Button>
+            </div>
+          </HardCard>
+        </div>
+      </Section>
+    </>
+  );
 }

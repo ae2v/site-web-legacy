@@ -98,7 +98,7 @@ function ConfidentialitePage() {
         <ul className="space-y-1">
           <li>
             Membres habilités du bureau AE2V, strictement selon leur rôle (adhésions, événements,
-            boutique, trésorerie).
+            événements et vie associative).
           </li>
           <li>
             Hébergeur : {legalInfo.host.name} ({legalInfo.host.company}) — {legalInfo.host.region}.

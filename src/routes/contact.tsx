@@ -1,15 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Facebook, Instagram, Mail, MessageCircle } from "lucide-react";
 
+import { SectionHeading, TapeLabel } from "@/components/brand";
+import { LinksSection } from "@/components/layout/links-section";
 import { PageHero } from "@/components/layout/page-hero";
-import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "Contact — AE2V" },
-      { name: "description", content: "Contacter l'AE2V par email, Discord ou sur les réseaux sociaux." },
+      {
+        name: "description",
+        content:
+          "Contacter l'AE2V : email du bureau et réseaux sociaux de l'association étudiante de Vélizy.",
+      },
+      { property: "og:title", content: "Contact — AE2V" },
+      { property: "og:description", content: "Contacter le bureau de l'AE2V." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "/contact" },
     ],
+    links: [{ rel: "canonical", href: "/contact" }],
   }),
   component: ContactPage,
 });
@@ -17,26 +26,31 @@ export const Route = createFileRoute("/contact")({
 function ContactPage() {
   return (
     <>
-      <PageHero eyebrow="Nous écrire" title="Contact" intro="Une question, un projet ou envie de nous rejoindre ? Retrouve-nous sur nos canaux publics." />
-      <section id="nos-liens" className="mx-auto grid w-full max-w-5xl gap-4 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
-        <a className="flex min-h-32 flex-col justify-between border-2 border-ae2v-black bg-card p-6 transition hover:-translate-y-1 hover:bg-ae2v-red hover:text-white" href="mailto:ae2v.asso@gmail.com">
-          <Mail className="size-7" aria-hidden="true" />
-          <span className="mt-6 font-impact text-2xl uppercase">ae2v.asso@gmail.com</span>
-        </a>
-        <a className="flex min-h-32 flex-col justify-between border-2 border-ae2v-black bg-ae2v-green p-6 text-ae2v-black transition hover:-translate-y-1" href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">
-          <MessageCircle className="size-7" aria-hidden="true" />
-          <span className="mt-6 font-impact text-2xl uppercase">Discord AE2V</span>
-        </a>
-        <a className="flex min-h-32 flex-col justify-between border-2 border-ae2v-black bg-card p-6 transition hover:-translate-y-1 hover:bg-ae2v-red hover:text-white" href="https://www.instagram.com/bde.velizy/" target="_blank" rel="noreferrer">
-          <Instagram className="size-7" aria-hidden="true" />
-          <span className="mt-6 font-impact text-2xl uppercase">Instagram</span>
-        </a>
-        <a className="flex min-h-32 flex-col justify-between border-2 border-ae2v-black bg-card p-6 transition hover:-translate-y-1 hover:bg-ae2v-red hover:text-white" href="https://www.facebook.com/Ae2velizy" target="_blank" rel="noreferrer">
-          <Facebook className="size-7" aria-hidden="true" />
-          <span className="mt-6 font-impact text-2xl uppercase">Facebook</span>
-        </a>
+      <PageHero
+        eyebrow="Nous écrire"
+        title="Contact"
+        intro="Une question sur l'adhésion, un événement, un partenariat ? Écris au bureau."
+      />
+
+      <section
+        id="formulaire-contact"
+        aria-labelledby="ae2v-formulaire"
+        className="mx-auto w-full max-w-7xl scroll-mt-28 px-4 py-14 md:px-6 md:py-20"
+      >
+        <TapeLabel tone="red">Écrire au bureau</TapeLabel>
+        <SectionHeading as="h2" size="md" ghost="CONTACT" className="mt-5">
+          <span id="ae2v-formulaire">Formulaire de contact</span>
+        </SectionHeading>
+        <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
+          Pour toute question ou envie de participer, contacte-nous par email ou rejoins directement notre Discord.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a href="mailto:ae2v.asso@gmail.com" className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-red px-5 font-bold uppercase text-ae2v-offwhite hover:bg-ae2v-black">Envoyer un email</a>
+          <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-green px-5 font-bold uppercase text-ae2v-black hover:bg-ae2v-black hover:text-ae2v-offwhite">Rejoindre Discord</a>
+        </div>
       </section>
-      <div className="flex justify-center pb-16"><Button asChild size="lg"><a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">Rejoindre le Discord</a></Button></div>
+
+      <LinksSection id="nos-liens" className="scroll-mt-28 border-t-2 border-ae2v-black" />
     </>
   );
 }

@@ -76,7 +76,7 @@ const faqList = [
   {
     question: "Quelle est la différence entre membre adhérent et cotisant ?",
     answer:
-      "L'adhésion valide votre dossier étudiant. La cotisation (à partir de 3 € / an) débloque les avantages tarifaires réduits sur les événements, le bar BDE et la boutique.",
+      "Rejoins-nous sur Discord pour découvrir les projets et les avantages proposés par l'association.",
   },
   {
     question: "Comment sont prises les décisions au BDE ?",

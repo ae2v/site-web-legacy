@@ -87,13 +87,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "AE2V, l'association étudiante de Vélizy : événements, adhésion, boutique et avantages. Always further, together.",
+          "AE2V, l'association étudiante de Vélizy : événements, projets et vie de campus. Always further, together.",
       },
       { name: "author", content: "AE2V" },
       { property: "og:title", content: "AE2V — BDE de Vélizy" },
       {
         property: "og:description",
-        content: "Événements, adhésion, boutique et avantages étudiants. Always further, together.",
+        content: "Événements, projets et vie de campus à Vélizy. Always further, together.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
