@@ -68,8 +68,10 @@ function CardFront({
   titleId?: string;
   compact?: boolean;
 }) {
+  const isDirection = member.poles.includes("Direction");
+  const accent = isDirection ? "text-[#6f8f00]" : member.isOfficer ? "text-ae2v-green" : "text-ae2v-red";
   return (
-    <div className={cn("relative flex h-full w-full overflow-hidden border-2 bg-ae2v-offwhite text-ae2v-black", member.isOfficer ? "border-ae2v-green border-4" : "border-ae2v-black")}>
+    <div className={cn("relative flex h-full w-full overflow-hidden border-2 bg-ae2v-offwhite text-ae2v-black", isDirection ? "border-[#6f8f00]" : member.isOfficer ? "border-ae2v-green border-4" : "border-ae2v-black")}>
       <GrainOverlay opacity={0.05} />
 
       <div className="relative w-[38%] shrink-0 overflow-hidden border-r-2 border-ae2v-black bg-ae2v-black">
@@ -88,7 +90,7 @@ function CardFront({
             alt=""
             className={cn("w-auto", compact ? "h-5" : "h-8")}
           />
-          <CrossMarker className={member.isOfficer ? "text-ae2v-green" : "text-ae2v-red"} size={compact ? 12 : 16} />
+          <CrossMarker className={accent} size={compact ? 12 : 16} />
         </div>
 
         <div className="min-w-0">
@@ -107,7 +109,7 @@ function CardFront({
           <p
             className={cn(
               "mt-1 font-bold tracking-[0.08em] uppercase",
-              member.isOfficer ? "text-ae2v-green" : "text-ae2v-red",
+              accent,
               compact ? "text-[0.62rem]" : "text-sm",
             )}
           >
