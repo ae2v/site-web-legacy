@@ -162,7 +162,7 @@ export function publicRecordToEvent(record: PublicEventRecord): Ae2vEvent {
   };
 }
 
-export const publicEvents: Ae2vEvent[] = [
+const catalogEvents: Ae2vEvent[] = [
   {
     id: "soiree-integration",
     title: "Soirée d'intégration",
@@ -344,10 +344,34 @@ export const publicEvents: Ae2vEvent[] = [
   },
 ];
 
+const integrationEvent = catalogEvents.find((event) => event.id === "soiree-integration");
+
+export const publicEvents: Ae2vEvent[] = integrationEvent
+  ? [
+      {
+        ...integrationEvent,
+        date: "Après la rentrée",
+        isoDate: "",
+        doors: "",
+        place: "",
+        address: "",
+        summary: "Quelque chose se prépare pour commencer l'année ensemble.",
+        description: "Une première rencontre se prépare. Les détails seront révélés prochainement sur nos canaux officiels.",
+        capacity: 0,
+        registered: 0,
+        registrationOpensAt: "",
+        registrationClosesAt: "",
+        status: "BIENTOT",
+        waitlist: false,
+        tiers: [],
+      },
+    ]
+  : [];
+
 export const eventStatusLabels: Record<EventStatus, string> = {
   NON_PUBLIE: "Brouillon / Non publié",
   OUVERT: "Inscriptions ouvertes",
-  BIENTOT: "Bientôt disponible",
+  BIENTOT: "À venir",
   COMPLET: "Complet",
   TERMINE: "Terminé / Archivé",
 };

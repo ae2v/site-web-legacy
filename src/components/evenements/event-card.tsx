@@ -1,10 +1,8 @@
-import { Link } from "@tanstack/react-router";
 import { CalendarDays, MapPin } from "lucide-react";
 
 import { Reveal } from "@/components/brand/reveal";
 import { eventStatusLabels, type Ae2vEvent } from "@/data/events";
-import { fillPercent, remainingSeats, tierForAudience, type Audience } from "@/lib/event-pricing";
-import { formatCents } from "@/lib/public-format";
+import type { Audience } from "@/lib/event-pricing";
 import { cn } from "@/lib/utils";
 
 const statusTone: Record<Ae2vEvent["status"], string> = {
@@ -33,10 +31,6 @@ export function EventCard({
   /** Version condensée (accueil) : visuel plus court, sans résumé ni jauge. */
   compact?: boolean;
 }) {
-  const tier = tierForAudience(event, audience);
-  const remaining = remainingSeats(event);
-  const fill = fillPercent(event);
-
   return (
     <Reveal delay={index * 70}>
       <article className="group relative flex h-full flex-col border-2 border-ae2v-black bg-ae2v-offwhite text-ae2v-black transition-transform duration-200 motion-safe:group-hover:-translate-y-1 motion-safe:hover:-translate-y-1">
@@ -79,15 +73,7 @@ export function EventCard({
               compact ? "text-[clamp(1.15rem,2.2vw,1.5rem)]" : "text-[clamp(1.4rem,3vw,2rem)]",
             )}
           >
-            <Link
-              to="/evenements/$eventId"
-              params={{ eventId: event.id }}
-              data-cursor="interactive"
-              data-cursor-label="Voir l'événement"
-              className="ae2v-focus after:absolute after:inset-0 after:content-['']"
-            >
-              {event.title}
-            </Link>
+            {event.title}
           </h3>
 
           <dl className={cn("mt-2 space-y-1", compact ? "text-xs" : "mt-3 space-y-1.5 text-sm")}>
@@ -95,41 +81,17 @@ export function EventCard({
               <CalendarDays aria-hidden="true" className="size-4 shrink-0 text-ae2v-red" />
               <dt className="sr-only">Date</dt>
               <dd>
-                {event.date} · {event.doors}
+                {event.date}{event.doors ? ` · ${event.doors}` : ""}
               </dd>
             </div>
-            <div className="flex items-center gap-2">
+            {event.place && <div className="flex items-center gap-2">
               <MapPin aria-hidden="true" className="size-4 shrink-0 text-ae2v-red" />
               <dt className="sr-only">Lieu</dt>
               <dd>{compact ? event.place : `${event.place} · ${event.address}`}</dd>
-            </div>
+            </div>}
           </dl>
 
           {!compact && <p className="mt-3 text-sm text-ae2v-black/80">{event.summary}</p>}
-
-          {!compact && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-[0.65rem] font-bold tracking-[0.14em] uppercase">
-                <span>Jauge</span>
-                <span>
-                  {event.registered}/{event.capacity} · {remaining} place{remaining > 1 ? "s" : ""}
-                </span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={fill}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`Remplissage de ${event.title}`}
-                className="mt-1.5 h-2.5 w-full border-2 border-ae2v-black bg-ae2v-offwhite"
-              >
-                <div
-                  className={fill >= 100 ? "h-full bg-ae2v-red" : "h-full bg-ae2v-green"}
-                  style={{ width: `${fill}%` }}
-                />
-              </div>
-            </div>
-          )}
 
           <div
             className={cn(
@@ -137,26 +99,7 @@ export function EventCard({
               compact ? "pt-3" : "pt-4",
             )}
           >
-            <p className="leading-tight">
-              <span
-                className={cn("block font-impact text-ae2v-red", compact ? "text-xl" : "text-2xl")}
-              >
-                {tier ? (tier.priceCents === 0 ? "Gratuit" : formatCents(tier.priceCents)) : "—"}
-              </span>
-              <span className="text-[0.65rem] font-bold tracking-[0.14em] text-ae2v-black/70 uppercase">
-                {connected
-                  ? audience === "adherent"
-                    ? "ton tarif cotisant"
-                    : "ton tarif bureau"
-                  : "tarif public"}
-              </span>
-            </p>
-            <span
-              aria-hidden="true"
-              className="border-2 border-ae2v-black bg-ae2v-black px-3 py-2 text-xs font-bold uppercase text-ae2v-offwhite transition-colors group-hover:bg-ae2v-red"
-            >
-              Voir la page
-            </span>
+            <p className="font-impact text-xl text-ae2v-red uppercase">À venir</p>
           </div>
         </div>
       </article>

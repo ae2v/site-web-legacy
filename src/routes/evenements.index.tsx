@@ -34,14 +34,13 @@ function EvenementsPage() {
   const events = publicEvents;
   const audience: Audience = "public";
   const upcoming = events.filter((e) => e.status !== "TERMINE");
-  const past = events.filter((e) => e.status === "TERMINE");
 
   return (
     <>
       <PageHero
-        eyebrow="Billetterie"
+        eyebrow="Agenda AE2V"
         title="Événements"
-        intro="Soirées, afterworks, tournois et gala. Tarif réduit pour les adhérents, billet nominatif avec QR code."
+        intro="Une nouvelle soirée se prépare pour après la rentrée. Les informations seront dévoilées prochainement."
       >
         {!account && (
           <Button asChild size="lg">
@@ -54,11 +53,7 @@ function EvenementsPage() {
         number={1}
         ghost="AGENDA"
         title="À venir"
-        intro={
-          account
-            ? `Tarifs affichés pour ton statut : ${audience === "adherent" ? "membre cotisant" : "membre non cotisant (réductions réservées aux cotisants)"}.`
-            : "Inscris-toi directement au tarif public ; connecte-toi seulement pour accéder aux tarifs cotisant ou bureau."
-        }
+        intro="Un rendez-vous se prépare. Les détails arriveront bientôt sur nos canaux officiels."
       >
         <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {upcoming.map((event, index) => (
@@ -74,26 +69,6 @@ function EvenementsPage() {
         </ul>
       </Section>
 
-      <Section
-        number={2}
-        ghost="ARCHIVES"
-        title="Événements passés"
-        tone="dark"
-        intro="L'historique reste consultable : il alimente ton espace et les billets déjà utilisés."
-      >
-        <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {past.map((event, index) => (
-            <li key={event.id} className="h-full">
-              <EventCard
-                event={event}
-                audience={audience}
-                connected={Boolean(account)}
-                index={index}
-              />
-            </li>
-          ))}
-        </ul>
-      </Section>
     </>
   );
 }
