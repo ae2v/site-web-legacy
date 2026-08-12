@@ -54,16 +54,6 @@ const missionsList = [
     desc: "Développer des partenariats locaux stratégiques (restauration, auto-école, loisirs) débloquant des tarifs préférentiels exclusifs pour les membres.",
   },
   {
-    title: "4. Gestion Comptable Rigoureuse",
-    desc: "Chaque euro collecté par la cotisation ou les billets est comptabilisé, audité et réinvesti directement dans les services et soirées de l'association.",
-  },
-  {
-    title: "5. Favoriser l'Entraide",
-    desc: "Faciliter le parrainage des premières années par les anciens, le partage de cours et l'intégration de tous au sein du campus de Vélizy.",
-  },
-  {
-    title: "6. Éco-responsabilité & Inclusivité",
-    desc: "Mettre à disposition des ecocups réutilisables, prévoir des navettes de sécurité gratuites et veiller au respect des personnes lors de nos événements.",
   },
 ];
 
@@ -81,7 +71,7 @@ const faqList = [
   {
     question: "Comment sont prises les décisions au BDE ?",
     answer:
-      "Les décisions stratégiques et budgétaires sont discutées lors des réunions hebdomadaires du bureau et votées en Assemblée Générale.",
+      "Les décisions stratégiques et budgétaires sont discutées lors des réunions régulières du bureau et votées en Assemblée Générale.",
   },
   {
     question: "Comment candidater pour rejoindre le bureau ?",
@@ -102,7 +92,7 @@ function AssociationPage() {
       />
 
       {/* Section 1: Nos Missions */}
-      <Section number={1} ghost="MISSIONS" title="Nos 6 Axes d'Engagement">
+      <Section number={1} ghost="MISSIONS" title="Nos 3 Axes d'Engagement">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {missionsList.map((mission, index) => (
             <Reveal key={mission.title} delay={index * 60}>
@@ -124,44 +114,9 @@ function AssociationPage() {
         </div>
       </Section>
 
-      {/* Section 2: Schéma de Gouvernance */}
-      <Section number={2} ghost="STRUCTURE" title="Structure & Gouvernance" tone="dark">
-        <div className="border-2 border-ae2v-offwhite/20 bg-ae2v-black p-6 md:p-8 text-ae2v-offwhite">
-          <h3 className="font-impact text-2xl uppercase text-ae2v-green mb-2">
-            Organigramme & Prise de Décision
-          </h3>
-          <p className="text-sm opacity-85 max-w-3xl mb-8">
-            Le bureau exécutif est élu chaque année scolaire lors de l'Assemblée Générale. Il
-            s'appuie sur une équipe opérationnelle et des bénévoles actifs.
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="border-2 border-ae2v-offwhite/30 bg-card/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-ae2v-green">
-                Niveau 1 — Bureau Exécutif
-              </p>
-              <h4 className="font-impact text-xl mt-1">Présidence & Trésorerie</h4>
-              <p className="mt-2 text-xs opacity-75">
-                Pilotage légal, direction stratégique, budget global et représentation auprès de
-                l'IUT.
-              </p>
-            </div>
-            <div className="border-2 border-ae2v-offwhite/30 bg-card/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-ae2v-green">
-                Niveau 3 — Adhérents & Promo
-              </p>
-              <h4 className="font-impact text-xl mt-1">Assemblée Générale</h4>
-              <p className="mt-2 text-xs opacity-75">
-                Vote des budgets, validation des rapports d'activité et élection annuelle du bureau.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Section>
-
       {/* Section 3: Transparence & Documents Légal */}
       <Section
-        number={3}
+        number={2}
         ghost="DOCUMENTS"
         title="Transparence & Documents de l'Association"
         intro="Retrouvez ci-dessous les informations légales et les règles de fonctionnement de l'association AE2V."
@@ -171,40 +126,52 @@ function AssociationPage() {
             <dl className="grid gap-2 text-xs sm:grid-cols-2 mt-3 font-mono">
               <div>
                 <dt className="opacity-70 uppercase font-sans">Nom officiel :</dt>
-                <dd className="font-bold">AE2V (Association Étudiante Vélizy)</dd>
+                <dd className="font-bold">ASSOCIATION ETUDIANTE DE VELIZY-VILLACOUBLAY.</dd>
               </div>
               <div>
-                <dt className="opacity-70 uppercase font-sans">Régime juridique :</dt>
-                <dd className="font-bold">Association Loi 1901</dd>
+                <dt className="opacity-70 uppercase font-sans">Numéro RNA :</dt>
+                <dd className="font-bold">W784003407</dd>
               </div>
               <div>
+                <dt className="opacity-70 uppercase font-sans">N° de parution :</dt>
+                <dd className="font-bold">20120047</dd>
+              </div>
+              <div>
+                <dt className="opacity-70 uppercase font-sans">N° d'annonce :</dt>
+                <dd className="font-bold">1402</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="opacity-70 uppercase font-sans">Objet :</dt>
+                <dd className="font-bold">Organisation d'évènements extra-scolaires afin de créer et entretenir les liens entre les étudiants des différents départements de l'IUT de Vélizy.</dd>
+              </div>
+              <div className="sm:col-span-2">
                 <dt className="opacity-70 uppercase font-sans">Siège social :</dt>
-                <dd className="font-bold">IUT de Vélizy — 10-12 Rampe Bouvines</dd>
+                <dd className="font-bold">5e étage, appartement 517, 5 rue Paul Dautier, 78140 Vélizy-Villacoublay</dd>
               </div>
               <div>
-                <dt className="opacity-70 uppercase font-sans">Domaine E-mail :</dt>
-                <dd className="font-bold text-ae2v-red">@ae2v.fr</dd>
+                <dt className="opacity-70 uppercase font-sans">Date de déclaration :</dt>
+                <dd className="font-bold">4 novembre 2012</dd>
+              </div>
+              <div>
+                <dt className="opacity-70 uppercase font-sans">Lieu :</dt>
+                <dd className="font-bold">Préfecture</dd>
+              </div>
+              <div>
+                <dt className="opacity-70 uppercase font-sans">Domaines :</dt>
+                <dd className="font-bold">Éducation, formation · Associations d'étudiants et d'élèves</dd>
+              </div>
+              <div>
+                <dt className="opacity-70 uppercase font-sans">Localisation :</dt>
+                <dd className="font-bold">Yvelines</dd>
               </div>
             </dl>
           </HardCard>
 
-          <HardCard eyebrow="Charte & Statuts" title="Consultation des Statuts">
-            L'association applique une politique stricte de transparence comptable. Les comptes
-            rendus financiers et bilans annuels sont présentés lors de chaque AG.
+          <HardCard eyebrow="Journal officiel" title="Liens de l'annonce">
+            Retrouvez la publication officielle de l'association et son justificatif PDF sur le site du Journal officiel.
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                size="sm"
-                variant="black"
-                onClick={() =>
-                  notifySite("Les statuts sont consultables au bureau de l’AE2V sur rendez-vous.")
-                }
-              >
-                <FileText className="size-4" />
-                Demander les statuts (PDF)
-              </Button>
-              <Button size="sm" variant="secondary" asChild>
-                <Link to="/contact">Contacter le secrétaire</Link>
-              </Button>
+              <Button size="sm" variant="black" asChild><a href="https://www.journal-officiel.gouv.fr/pages/associations-detail-annonce/?q.id=id:201200471402" target="_blank" rel="noreferrer">Voir l'annonce</a></Button>
+              <Button size="sm" variant="secondary" asChild><a href="https://compte.journal-officiel.gouv.fr/pages/verification_pdf/?source=jo_associations&q=id:201200471402" target="_blank" rel="noreferrer">Télécharger le justificatif PDF</a></Button>
             </div>
           </HardCard>
         </div>
