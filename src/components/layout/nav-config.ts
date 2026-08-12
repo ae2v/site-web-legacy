@@ -12,6 +12,7 @@ export const publicNav: NavItem[] = [
   { to: "/", label: "Accueil", description: "Page d'accueil de l'AE2V." },
   { to: "/bde", label: "Le BDE", description: "L'association, ses actions et son équipe." },
   { to: "/evenements", label: "Événements", description: "Soirées, gala, afterworks et sorties." },
+  { to: "/adherer", label: "Adhérer", description: "Rejoindre l'AE2V via Discord." },
 ];
 
 export const secondaryNav: NavItem[] = [
