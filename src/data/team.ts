@@ -1,4 +1,5 @@
 /** Données publiques de l'équipe AE2V. */
+import bastianPortrait from "@/assets/team/bastian-noel.png";
 export type TeamPole =
   "Direction" | "Communication" | "Numérique" | "Finance" | "Événementiel" | "Partenarial";
 
@@ -124,6 +125,7 @@ export const teamMembers: TeamMember[] = [
       roleTitles: ["Responsable de l’infrastructure numérique", "Webmaster adjoint"],
       showDefaultPoleTitles: false,
       personalAe2vEmail: "bastian.noel@ae2v.fr",
+      photoUrl: bastianPortrait,
     },
   ),
   member("loan-jean", "Loan JEAN", "Responsable Web & Discord", ["Numérique", "Communication"], {
