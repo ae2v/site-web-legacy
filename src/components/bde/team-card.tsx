@@ -69,9 +69,9 @@ function CardFront({
   compact?: boolean;
 }) {
   const isDirection = member.poles.includes("Direction");
-  const accent = isDirection ? "text-[#6f8f00]" : member.isOfficer ? "text-ae2v-green" : "text-ae2v-red";
+  const accent = isDirection ? "text-[#9fbe06]" : member.isOfficer ? "text-ae2v-green" : "text-ae2v-red";
   return (
-    <div className={cn("relative flex h-full w-full overflow-hidden border-2 bg-ae2v-offwhite text-ae2v-black", isDirection ? "border-[#6f8f00]" : member.isOfficer ? "border-ae2v-green border-4" : "border-ae2v-black")}>
+    <div className={cn("relative flex h-full w-full overflow-hidden border-2 bg-ae2v-offwhite text-ae2v-black", isDirection ? "border-[#9fbe06]" : member.isOfficer ? "border-ae2v-green border-4" : "border-ae2v-black")}>
       <GrainOverlay opacity={0.05} />
 
       <div className="relative w-[38%] shrink-0 overflow-hidden border-r-2 border-ae2v-black bg-ae2v-black">
