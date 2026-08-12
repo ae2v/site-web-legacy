@@ -116,7 +116,7 @@ function AssociationPage() {
       <Section
         number={2}
         ghost="DOCUMENTS"
-        title="Transparence & Documents de l'Association"
+        title="Documents de l'Association"
         intro="Retrouvez ci-dessous les informations légales et les règles de fonctionnement de l'association AE2V."
       >
         <div className="grid gap-6 md:grid-cols-2">
