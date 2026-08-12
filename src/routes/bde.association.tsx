@@ -53,8 +53,6 @@ const missionsList = [
     title: "3. Négocier des Avantages",
     desc: "Développer des partenariats locaux stratégiques (restauration, auto-école, loisirs) débloquant des tarifs préférentiels exclusifs pour les membres.",
   },
-  {
-  },
 ];
 
 const faqList = [
