@@ -340,14 +340,6 @@ function Index() {
                 >
                   <Link to="/bde/equipe">Découvrir l’équipe</Link>
                 </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="black"
-                  className="border-2 border-ae2v-offwhite/40"
-                >
-                  <Link to="/bde/equipe">L'équipe</Link>
-                </Button>
               </div>
             </Reveal>
 
