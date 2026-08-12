@@ -3,7 +3,7 @@ import { Facebook, Instagram, Mail } from "lucide-react";
 
 import { Logo } from "@/components/brand/Logo";
 import { DiagonalStripe, DotCloud } from "@/components/brand";
-import { accountNav, legalNav, publicNav, secondaryNav } from "./nav-config";
+import { legalNav, publicNav, secondaryNav } from "./nav-config";
 
 /**
  * Pied de page public AE2V — noir, marques techniques, rappel de marque.
@@ -23,15 +23,14 @@ export function SiteFooter() {
         <div>
           <Logo variant="vertical" tone="white" alt="" className="h-32 w-auto" />
           <p className="mt-4 max-w-xs text-sm text-ae2v-offwhite/70">
-            Association étudiante de Vélizy. Événements, adhésion, boutique et avantages pour les
-            étudiants.
+            Association étudiante de Vélizy. Événements, vie de campus et projets étudiants.
           </p>
         </div>
 
         <nav aria-label="Plan du site">
           <h2 className="font-impact text-2xl uppercase">Naviguer</h2>
           <ul className="mt-4 flex flex-col gap-1">
-            {[...publicNav, ...secondaryNav, accountNav].map((item) => (
+            {[...publicNav, ...secondaryNav].map((item) => (
               <li key={item.to}>
                 <Link
                   to={item.to}
@@ -47,6 +46,9 @@ export function SiteFooter() {
         <div>
           <h2 className="font-impact text-2xl uppercase">Nos liens</h2>
           <ul className="mt-4 flex flex-col gap-1">
+            <li>
+              <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green">Discord AE2V</a>
+            </li>
             <li>
               <a
                 href="mailto:ae2v.asso@gmail.com"
@@ -84,7 +86,7 @@ export function SiteFooter() {
                 hash="formulaire-contact"
                 className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ae2v-green"
               >
-                Formulaire de contact
+                Nous contacter
               </Link>
             </li>
             <li>
@@ -117,14 +119,6 @@ export function SiteFooter() {
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  to="/setup"
-                  className="tap-44 inline-flex items-center text-xs tracking-[0.1em] uppercase text-ae2v-offwhite/50 hover:text-ae2v-green"
-                >
-                  ⚙ Configuration
-                </Link>
-              </li>
             </ul>
           </nav>
         </div>

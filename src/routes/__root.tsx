@@ -14,8 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { BrandCursor } from "@/components/brand/cursor";
-import { SessionBar } from "@/components/layout/session-bar";
-import { DemoSessionProvider } from "@/lib/demo-session";
 import { SiteFeedbackProvider } from "@/components/ui/site-feedback";
 
 function NotFoundComponent() {
@@ -147,17 +145,11 @@ function RootComponent() {
       </a>
       <BrandCursor />
       <SiteFeedbackProvider>
-        <DemoSessionProvider>
-          <div className="flex min-h-screen flex-col bg-background text-foreground">
-            <SessionBar />
-            <SiteHeader />
-            <main id="contenu" className="flex-1">
-              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              <Outlet />
-            </main>
-            <SiteFooter />
-          </div>
-        </DemoSessionProvider>
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <SiteHeader />
+          <main id="contenu" className="flex-1"><Outlet /></main>
+          <SiteFooter />
+        </div>
       </SiteFeedbackProvider>
     </QueryClientProvider>
   );

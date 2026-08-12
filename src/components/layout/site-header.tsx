@@ -1,23 +1,20 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Menu, X, UserRound } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/Logo";
 import { DiagonalStripe } from "@/components/brand";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { publicNav } from "./nav-config";
-import { useDemoSession } from "@/lib/demo-session";
 
 /**
  * En-tête public AE2V.
  * - rouge dominant, géométrie carrée ;
- * - une seule action primaire visible (Adhérer) ;
+ * - une seule action primaire visible (Discord) ;
  * - cibles tactiles >= 44px, menu mobile déroulant.
  */
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const { account } = useDemoSession();
 
   return (
     <header data-cursor-scheme="light" className="sticky top-0 z-50 bg-ae2v-red text-ae2v-offwhite">
@@ -54,19 +51,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {!account && (
-            <>
-              <Button asChild variant="black" size="sm" className="hidden h-11 sm:inline-flex">
-                <Link to="/connexion">
-                  <UserRound aria-hidden="true" />
-                  Se connecter
-                </Link>
-              </Button>
-              <Button asChild size="sm" className="hidden h-11 md:inline-flex">
-                <Link to="/adherer">Adhérer</Link>
-              </Button>
-            </>
-          )}
+          <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" className="hidden h-11 items-center bg-ae2v-green px-4 text-sm font-bold uppercase tracking-[0.08em] text-ae2v-black sm:inline-flex">Rejoindre Discord</a>
 
           <button
             type="button"
@@ -105,20 +90,7 @@ export function SiteHeader() {
               ))}
             </ul>
 
-            {!account && (
-              <>
-                <Button asChild className="mt-4 w-full" size="lg">
-                  <Link to="/adherer" onClick={() => setOpen(false)}>
-                    Adhérer à l'AE2V
-                  </Link>
-                </Button>
-                <Button asChild className="mt-2 w-full" size="lg" variant="black">
-                  <Link to="/connexion" onClick={() => setOpen(false)}>
-                    Se connecter
-                  </Link>
-                </Button>
-              </>
-            )}
+            <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" onClick={() => setOpen(false)} className="mt-4 flex min-h-12 items-center justify-center bg-ae2v-green px-4 font-bold uppercase text-ae2v-black">Rejoindre le Discord AE2V</a>
           </nav>
         </div>
       )}

@@ -86,7 +86,7 @@ const faqList = [
   {
     question: "Comment candidater pour rejoindre le bureau ?",
     answer:
-      "Rendez-vous sur votre espace étudiant (`/espace`) ou utilisez le formulaire de contact pour rejoindre le bureau.",
+      "Rendez-vous sur Discord ou utilisez la page contact pour rejoindre le bureau.",
   },
 ];
 

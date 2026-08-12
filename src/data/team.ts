@@ -17,7 +17,6 @@ export type TeamMember = {
   roleEmail: string | null;
   personalAe2vEmail: string | null;
   bio: string | null;
-  isDemo: boolean;
   isPlaceholder: boolean;
   publicVisible: boolean;
 };
@@ -94,7 +93,6 @@ function member(
     roleEmail: options.roleEmail ?? null,
     personalAe2vEmail: options.personalAe2vEmail ?? null,
     bio: options.bio ?? null,
-    isDemo: false,
     isPlaceholder: options.photoUrl == null,
     publicVisible: true,
   };

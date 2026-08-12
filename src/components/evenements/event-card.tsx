@@ -4,7 +4,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { Reveal } from "@/components/brand/reveal";
 import { eventStatusLabels, type Ae2vEvent } from "@/data/events";
 import { fillPercent, remainingSeats, tierForAudience, type Audience } from "@/lib/event-pricing";
-import { formatCents } from "@/lib/demo-session";
+import { formatCents } from "@/lib/public-format";
 import { cn } from "@/lib/utils";
 
 const statusTone: Record<Ae2vEvent["status"], string> = {

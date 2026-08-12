@@ -1,2 +1,0 @@
-ALTER TABLE "TeamMember" ADD COLUMN "polesJson" TEXT NOT NULL DEFAULT '[]';
-ALTER TABLE "TeamMember" ADD COLUMN "showDefaultPoleTitles" BOOLEAN NOT NULL DEFAULT true;

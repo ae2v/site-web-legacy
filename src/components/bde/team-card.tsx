@@ -415,12 +415,6 @@ function BusinessCardDialog({
         aria-labelledby={titleId}
         className="relative w-full max-w-[680px]"
       >
-        {member.isDemo && (
-          <div className="mb-3">
-            <TapeLabel tone="black">Profil</TapeLabel>
-          </div>
-        )}
-
         {/* Scène 3D : la carte se décolle puis se retourne comme un objet. */}
         <div
           ref={sceneRef}

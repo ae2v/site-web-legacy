@@ -1,8 +1,5 @@
 /**
- * Événements de DÉMONSTRATION AE2V.
- * Données fictives destinées à valider les parcours (tarifs par type de membre,
- * jauge, fenêtre d'inscription, état d'inscription selon la session).
- * Aucune de ces dates / lieux n'est réelle.
+ * Événements publiés par l'AE2V.
  */
 
 import afterworkImg from "@/assets/events/afterwork.jpg";
@@ -39,7 +36,7 @@ export type EventCustomSection = {
 
 export type Ae2vEvent = {
   id: string;
-  /** Identifiant interne PostgreSQL, absent pour les événements de démonstration. */
+  /** Identifiant interne éventuel utilisé par une source distante. */
   serverId?: string;
   title: string;
   kind: string;
@@ -50,7 +47,7 @@ export type Ae2vEvent = {
   address: string;
   summary: string;
   description: string;
-  /** Visuel de démonstration (image générée). */
+  /** Visuel public de l'événement. */
   image: string;
   /** Déroulé indicatif de la journée / soirée. */
   program: EventProgramStep[];
@@ -67,7 +64,6 @@ export type Ae2vEvent = {
   status: EventStatus;
   waitlist: boolean;
   tiers: EventTier[];
-  isDemo: boolean;
 };
 
 export type PublicEventRecord = {
@@ -163,11 +159,10 @@ export function publicRecordToEvent(record: PublicEventRecord): Ae2vEvent {
     status: record.status,
     waitlist: record.waitlist,
     tiers: normalizeEventTiers(record.tiers),
-    isDemo: false,
   };
 }
 
-export const demoEvents: Ae2vEvent[] = [
+export const publicEvents: Ae2vEvent[] = [
   {
     id: "soiree-integration",
     title: "Soirée d'intégration",
@@ -215,7 +210,6 @@ export const demoEvents: Ae2vEvent[] = [
         note: "Créneau de tenue de poste obligatoire.",
       },
     ],
-    isDemo: true,
   },
   {
     id: "afterwork-octobre",
@@ -251,7 +245,6 @@ export const demoEvents: Ae2vEvent[] = [
       { id: "adh", label: "Tarif cotisant", priceCents: 0, audience: "adherent" },
       { id: "pub", label: "Tarif public", priceCents: 700, audience: "public" },
     ],
-    isDemo: true,
   },
   {
     id: "tournoi-esport",
@@ -284,7 +277,6 @@ export const demoEvents: Ae2vEvent[] = [
     status: "COMPLET",
     waitlist: true,
     tiers: [{ id: "adh", label: "Tarif cotisant", priceCents: 0, audience: "adherent" }],
-    isDemo: true,
   },
   {
     id: "gala",
@@ -321,7 +313,6 @@ export const demoEvents: Ae2vEvent[] = [
       { id: "adh", label: "Tarif cotisant", priceCents: 2500, audience: "adherent" },
       { id: "pub", label: "Tarif public / accompagnant", priceCents: 4000, audience: "public" },
     ],
-    isDemo: true,
   },
   {
     id: "weekend-integration",
@@ -350,7 +341,6 @@ export const demoEvents: Ae2vEvent[] = [
     status: "TERMINE",
     waitlist: false,
     tiers: [{ id: "adh", label: "Tarif cotisant", priceCents: 3500, audience: "adherent" }],
-    isDemo: true,
   },
 ];
 
@@ -362,8 +352,6 @@ export const eventStatusLabels: Record<EventStatus, string> = {
   TERMINE: "Terminé / Archivé",
 };
 
-import { getDynamicEvents } from "@/lib/dynamic-store";
-
 export function findEvent(id: string): Ae2vEvent | undefined {
-  return getDynamicEvents().find((e) => e.id === id);
+  return publicEvents.find((e) => e.id === id);
 }

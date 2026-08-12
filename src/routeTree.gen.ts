@@ -12,54 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdhererRouteImport } from './routes/adherer'
 import { Route as BdeRouteImport } from './routes/bde'
-import { Route as BoutiqueRouteImport } from './routes/boutique'
-import { Route as BureauRouteImport } from './routes/bureau'
-import { Route as ConditionsVenteRouteImport } from './routes/conditions-vente'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
-import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as EspaceRouteImport } from './routes/espace'
 import { Route as EvenementsRouteImport } from './routes/evenements'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
-import { Route as RemboursementsRouteImport } from './routes/remboursements'
-import { Route as SetupRouteImport } from './routes/setup'
 import { Route as BdeIndexRouteImport } from './routes/bde.index'
 import { Route as BdeAssociationRouteImport } from './routes/bde.association'
 import { Route as BdeEquipeRouteImport } from './routes/bde.equipe'
-import { Route as BureauIndexRouteImport } from './routes/bureau.index'
-import { Route as BureauDossierIdRouteImport } from './routes/bureau.$dossierId'
-import { Route as BureauBoutiqueRouteImport } from './routes/bureau.boutique'
-import { Route as BureauCandidaturesRouteImport } from './routes/bureau.candidatures'
-import { Route as BureauDemandesRouteImport } from './routes/bureau.demandes'
-import { Route as BureauEquipeRouteImport } from './routes/bureau.equipe'
-import { Route as BureauEvenementsRouteImport } from './routes/bureau.evenements'
-import { Route as BureauExportsRouteImport } from './routes/bureau.exports'
-import { Route as BureauFacturesRouteImport } from './routes/bureau.factures'
-import { Route as BureauMessagesRouteImport } from './routes/bureau.messages'
-import { Route as BureauParametresRouteImport } from './routes/bureau.parametres'
-import { Route as BureauPersonnesRouteImport } from './routes/bureau.personnes'
-import { Route as BureauScannerRouteImport } from './routes/bureau.scanner'
 import { Route as EvenementsIndexRouteImport } from './routes/evenements.index'
-import { Route as EvenementsEventIdRouteImport } from './routes/evenements.$eventId'
-import { Route as AdhesionCorrectionTokenRouteImport } from './routes/adhesion.correction.$token'
-import { Route as BureauBoutiqueIndexRouteImport } from './routes/bureau.boutique.index'
-import { Route as BureauBoutiqueCommandesRouteImport } from './routes/bureau.boutique.commandes'
-import { Route as BureauEvenementsIndexRouteImport } from './routes/bureau.evenements.index'
-import { Route as BureauFacturesIndexRouteImport } from './routes/bureau.factures.index'
-import { Route as BureauFacturesInvoiceIdRouteImport } from './routes/bureau.factures.$invoiceId'
-import { Route as BureauPersonnesIndexRouteImport } from './routes/bureau.personnes.index'
-import { Route as BureauPersonnesPersonIdRouteImport } from './routes/bureau.personnes.$personId'
-import { Route as EmailDesinscriptionTokenRouteImport } from './routes/email.desinscription.$token'
-import { Route as BureauBoutiqueCommandesIndexRouteImport } from './routes/bureau.boutique.commandes.index'
-import { Route as BureauBoutiqueCommandesOrderIdRouteImport } from './routes/bureau.boutique.commandes.$orderId'
-import { Route as BureauEvenementsEventIdCheckinsRouteImport } from './routes/bureau.evenements.$eventId.checkins'
-import { Route as BureauEvenementsEventIdParticipantsRouteImport } from './routes/bureau.evenements.$eventId.participants'
-import { Route as BureauPersonnesPersonIdAdhesionsRouteImport } from './routes/bureau.personnes.$personId.adhesions'
-import { Route as BureauPersonnesPersonIdCommandesRouteImport } from './routes/bureau.personnes.$personId.commandes'
-import { Route as BureauPersonnesPersonIdEvenementsRouteImport } from './routes/bureau.personnes.$personId.evenements'
-import { Route as BureauPersonnesPersonIdFacturesRouteImport } from './routes/bureau.personnes.$personId.factures'
-import { Route as BureauPersonnesPersonIdMessagesRouteImport } from './routes/bureau.personnes.$personId.messages'
-import { Route as BureauPersonnesPersonIdPaiementsRouteImport } from './routes/bureau.personnes.$personId.paiements'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,39 +36,14 @@ const BdeRoute = BdeRouteImport.update({
   path: '/bde',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BoutiqueRoute = BoutiqueRouteImport.update({
-  id: '/boutique',
-  path: '/boutique',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BureauRoute = BureauRouteImport.update({
-  id: '/bureau',
-  path: '/bureau',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConditionsVenteRoute = ConditionsVenteRouteImport.update({
-  id: '/conditions-vente',
-  path: '/conditions-vente',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
   id: '/confidentialite',
   path: '/confidentialite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConnexionRoute = ConnexionRouteImport.update({
-  id: '/connexion',
-  path: '/connexion',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EspaceRoute = EspaceRouteImport.update({
-  id: '/espace',
-  path: '/espace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EvenementsRoute = EvenementsRouteImport.update({
@@ -119,16 +54,6 @@ const EvenementsRoute = EvenementsRouteImport.update({
 const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
   id: '/mentions-legales',
   path: '/mentions-legales',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RemboursementsRoute = RemboursementsRouteImport.update({
-  id: '/remboursements',
-  path: '/remboursements',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BdeIndexRoute = BdeIndexRouteImport.update({
@@ -146,339 +71,49 @@ const BdeEquipeRoute = BdeEquipeRouteImport.update({
   path: '/equipe',
   getParentRoute: () => BdeRoute,
 } as any)
-const BureauIndexRoute = BureauIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauDossierIdRoute = BureauDossierIdRouteImport.update({
-  id: '/$dossierId',
-  path: '/$dossierId',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauBoutiqueRoute = BureauBoutiqueRouteImport.update({
-  id: '/boutique',
-  path: '/boutique',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauCandidaturesRoute = BureauCandidaturesRouteImport.update({
-  id: '/candidatures',
-  path: '/candidatures',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauDemandesRoute = BureauDemandesRouteImport.update({
-  id: '/demandes',
-  path: '/demandes',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauEquipeRoute = BureauEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauEvenementsRoute = BureauEvenementsRouteImport.update({
-  id: '/evenements',
-  path: '/evenements',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauExportsRoute = BureauExportsRouteImport.update({
-  id: '/exports',
-  path: '/exports',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauFacturesRoute = BureauFacturesRouteImport.update({
-  id: '/factures',
-  path: '/factures',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauMessagesRoute = BureauMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauParametresRoute = BureauParametresRouteImport.update({
-  id: '/parametres',
-  path: '/parametres',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauPersonnesRoute = BureauPersonnesRouteImport.update({
-  id: '/personnes',
-  path: '/personnes',
-  getParentRoute: () => BureauRoute,
-} as any)
-const BureauScannerRoute = BureauScannerRouteImport.update({
-  id: '/scanner',
-  path: '/scanner',
-  getParentRoute: () => BureauRoute,
-} as any)
 const EvenementsIndexRoute = EvenementsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => EvenementsRoute,
 } as any)
-const EvenementsEventIdRoute = EvenementsEventIdRouteImport.update({
-  id: '/$eventId',
-  path: '/$eventId',
-  getParentRoute: () => EvenementsRoute,
-} as any)
-const AdhesionCorrectionTokenRoute = AdhesionCorrectionTokenRouteImport.update({
-  id: '/adhesion/correction/$token',
-  path: '/adhesion/correction/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BureauBoutiqueIndexRoute = BureauBoutiqueIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BureauBoutiqueRoute,
-} as any)
-const BureauBoutiqueCommandesRoute = BureauBoutiqueCommandesRouteImport.update({
-  id: '/commandes',
-  path: '/commandes',
-  getParentRoute: () => BureauBoutiqueRoute,
-} as any)
-const BureauEvenementsIndexRoute = BureauEvenementsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BureauEvenementsRoute,
-} as any)
-const BureauFacturesIndexRoute = BureauFacturesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BureauFacturesRoute,
-} as any)
-const BureauFacturesInvoiceIdRoute = BureauFacturesInvoiceIdRouteImport.update({
-  id: '/$invoiceId',
-  path: '/$invoiceId',
-  getParentRoute: () => BureauFacturesRoute,
-} as any)
-const BureauPersonnesIndexRoute = BureauPersonnesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BureauPersonnesRoute,
-} as any)
-const BureauPersonnesPersonIdRoute = BureauPersonnesPersonIdRouteImport.update({
-  id: '/$personId',
-  path: '/$personId',
-  getParentRoute: () => BureauPersonnesRoute,
-} as any)
-const EmailDesinscriptionTokenRoute =
-  EmailDesinscriptionTokenRouteImport.update({
-    id: '/email/desinscription/$token',
-    path: '/email/desinscription/$token',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const BureauBoutiqueCommandesIndexRoute =
-  BureauBoutiqueCommandesIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => BureauBoutiqueCommandesRoute,
-  } as any)
-const BureauBoutiqueCommandesOrderIdRoute =
-  BureauBoutiqueCommandesOrderIdRouteImport.update({
-    id: '/$orderId',
-    path: '/$orderId',
-    getParentRoute: () => BureauBoutiqueCommandesRoute,
-  } as any)
-const BureauEvenementsEventIdCheckinsRoute =
-  BureauEvenementsEventIdCheckinsRouteImport.update({
-    id: '/$eventId/checkins',
-    path: '/$eventId/checkins',
-    getParentRoute: () => BureauEvenementsRoute,
-  } as any)
-const BureauEvenementsEventIdParticipantsRoute =
-  BureauEvenementsEventIdParticipantsRouteImport.update({
-    id: '/$eventId/participants',
-    path: '/$eventId/participants',
-    getParentRoute: () => BureauEvenementsRoute,
-  } as any)
-const BureauPersonnesPersonIdAdhesionsRoute =
-  BureauPersonnesPersonIdAdhesionsRouteImport.update({
-    id: '/adhesions',
-    path: '/adhesions',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
-const BureauPersonnesPersonIdCommandesRoute =
-  BureauPersonnesPersonIdCommandesRouteImport.update({
-    id: '/commandes',
-    path: '/commandes',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
-const BureauPersonnesPersonIdEvenementsRoute =
-  BureauPersonnesPersonIdEvenementsRouteImport.update({
-    id: '/evenements',
-    path: '/evenements',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
-const BureauPersonnesPersonIdFacturesRoute =
-  BureauPersonnesPersonIdFacturesRouteImport.update({
-    id: '/factures',
-    path: '/factures',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
-const BureauPersonnesPersonIdMessagesRoute =
-  BureauPersonnesPersonIdMessagesRouteImport.update({
-    id: '/messages',
-    path: '/messages',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
-const BureauPersonnesPersonIdPaiementsRoute =
-  BureauPersonnesPersonIdPaiementsRouteImport.update({
-    id: '/paiements',
-    path: '/paiements',
-    getParentRoute: () => BureauPersonnesPersonIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
   '/bde': typeof BdeRouteWithChildren
-  '/boutique': typeof BoutiqueRoute
-  '/bureau': typeof BureauRouteWithChildren
-  '/conditions-vente': typeof ConditionsVenteRoute
   '/confidentialite': typeof ConfidentialiteRoute
-  '/connexion': typeof ConnexionRoute
   '/contact': typeof ContactRoute
-  '/espace': typeof EspaceRoute
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
-  '/remboursements': typeof RemboursementsRoute
-  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
-  '/bureau/$dossierId': typeof BureauDossierIdRoute
-  '/bureau/boutique': typeof BureauBoutiqueRouteWithChildren
-  '/bureau/candidatures': typeof BureauCandidaturesRoute
-  '/bureau/demandes': typeof BureauDemandesRoute
-  '/bureau/equipe': typeof BureauEquipeRoute
-  '/bureau/evenements': typeof BureauEvenementsRouteWithChildren
-  '/bureau/exports': typeof BureauExportsRoute
-  '/bureau/factures': typeof BureauFacturesRouteWithChildren
-  '/bureau/messages': typeof BureauMessagesRoute
-  '/bureau/parametres': typeof BureauParametresRoute
-  '/bureau/personnes': typeof BureauPersonnesRouteWithChildren
-  '/bureau/scanner': typeof BureauScannerRoute
-  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde/': typeof BdeIndexRoute
-  '/bureau/': typeof BureauIndexRoute
   '/evenements/': typeof EvenementsIndexRoute
-  '/adhesion/correction/$token': typeof AdhesionCorrectionTokenRoute
-  '/bureau/boutique/commandes': typeof BureauBoutiqueCommandesRouteWithChildren
-  '/bureau/factures/$invoiceId': typeof BureauFacturesInvoiceIdRoute
-  '/bureau/personnes/$personId': typeof BureauPersonnesPersonIdRouteWithChildren
-  '/email/desinscription/$token': typeof EmailDesinscriptionTokenRoute
-  '/bureau/boutique/': typeof BureauBoutiqueIndexRoute
-  '/bureau/evenements/': typeof BureauEvenementsIndexRoute
-  '/bureau/factures/': typeof BureauFacturesIndexRoute
-  '/bureau/personnes/': typeof BureauPersonnesIndexRoute
-  '/bureau/boutique/commandes/$orderId': typeof BureauBoutiqueCommandesOrderIdRoute
-  '/bureau/evenements/$eventId/checkins': typeof BureauEvenementsEventIdCheckinsRoute
-  '/bureau/evenements/$eventId/participants': typeof BureauEvenementsEventIdParticipantsRoute
-  '/bureau/personnes/$personId/adhesions': typeof BureauPersonnesPersonIdAdhesionsRoute
-  '/bureau/personnes/$personId/commandes': typeof BureauPersonnesPersonIdCommandesRoute
-  '/bureau/personnes/$personId/evenements': typeof BureauPersonnesPersonIdEvenementsRoute
-  '/bureau/personnes/$personId/factures': typeof BureauPersonnesPersonIdFacturesRoute
-  '/bureau/personnes/$personId/messages': typeof BureauPersonnesPersonIdMessagesRoute
-  '/bureau/personnes/$personId/paiements': typeof BureauPersonnesPersonIdPaiementsRoute
-  '/bureau/boutique/commandes/': typeof BureauBoutiqueCommandesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
-  '/boutique': typeof BoutiqueRoute
-  '/conditions-vente': typeof ConditionsVenteRoute
   '/confidentialite': typeof ConfidentialiteRoute
-  '/connexion': typeof ConnexionRoute
   '/contact': typeof ContactRoute
-  '/espace': typeof EspaceRoute
   '/mentions-legales': typeof MentionsLegalesRoute
-  '/remboursements': typeof RemboursementsRoute
-  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
-  '/bureau/$dossierId': typeof BureauDossierIdRoute
-  '/bureau/candidatures': typeof BureauCandidaturesRoute
-  '/bureau/demandes': typeof BureauDemandesRoute
-  '/bureau/equipe': typeof BureauEquipeRoute
-  '/bureau/exports': typeof BureauExportsRoute
-  '/bureau/messages': typeof BureauMessagesRoute
-  '/bureau/parametres': typeof BureauParametresRoute
-  '/bureau/scanner': typeof BureauScannerRoute
-  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde': typeof BdeIndexRoute
-  '/bureau': typeof BureauIndexRoute
   '/evenements': typeof EvenementsIndexRoute
-  '/adhesion/correction/$token': typeof AdhesionCorrectionTokenRoute
-  '/bureau/factures/$invoiceId': typeof BureauFacturesInvoiceIdRoute
-  '/bureau/personnes/$personId': typeof BureauPersonnesPersonIdRouteWithChildren
-  '/email/desinscription/$token': typeof EmailDesinscriptionTokenRoute
-  '/bureau/boutique': typeof BureauBoutiqueIndexRoute
-  '/bureau/evenements': typeof BureauEvenementsIndexRoute
-  '/bureau/factures': typeof BureauFacturesIndexRoute
-  '/bureau/personnes': typeof BureauPersonnesIndexRoute
-  '/bureau/boutique/commandes/$orderId': typeof BureauBoutiqueCommandesOrderIdRoute
-  '/bureau/evenements/$eventId/checkins': typeof BureauEvenementsEventIdCheckinsRoute
-  '/bureau/evenements/$eventId/participants': typeof BureauEvenementsEventIdParticipantsRoute
-  '/bureau/personnes/$personId/adhesions': typeof BureauPersonnesPersonIdAdhesionsRoute
-  '/bureau/personnes/$personId/commandes': typeof BureauPersonnesPersonIdCommandesRoute
-  '/bureau/personnes/$personId/evenements': typeof BureauPersonnesPersonIdEvenementsRoute
-  '/bureau/personnes/$personId/factures': typeof BureauPersonnesPersonIdFacturesRoute
-  '/bureau/personnes/$personId/messages': typeof BureauPersonnesPersonIdMessagesRoute
-  '/bureau/personnes/$personId/paiements': typeof BureauPersonnesPersonIdPaiementsRoute
-  '/bureau/boutique/commandes': typeof BureauBoutiqueCommandesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
   '/bde': typeof BdeRouteWithChildren
-  '/boutique': typeof BoutiqueRoute
-  '/bureau': typeof BureauRouteWithChildren
-  '/conditions-vente': typeof ConditionsVenteRoute
   '/confidentialite': typeof ConfidentialiteRoute
-  '/connexion': typeof ConnexionRoute
   '/contact': typeof ContactRoute
-  '/espace': typeof EspaceRoute
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
-  '/remboursements': typeof RemboursementsRoute
-  '/setup': typeof SetupRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
-  '/bureau/$dossierId': typeof BureauDossierIdRoute
-  '/bureau/boutique': typeof BureauBoutiqueRouteWithChildren
-  '/bureau/candidatures': typeof BureauCandidaturesRoute
-  '/bureau/demandes': typeof BureauDemandesRoute
-  '/bureau/equipe': typeof BureauEquipeRoute
-  '/bureau/evenements': typeof BureauEvenementsRouteWithChildren
-  '/bureau/exports': typeof BureauExportsRoute
-  '/bureau/factures': typeof BureauFacturesRouteWithChildren
-  '/bureau/messages': typeof BureauMessagesRoute
-  '/bureau/parametres': typeof BureauParametresRoute
-  '/bureau/personnes': typeof BureauPersonnesRouteWithChildren
-  '/bureau/scanner': typeof BureauScannerRoute
-  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde/': typeof BdeIndexRoute
-  '/bureau/': typeof BureauIndexRoute
   '/evenements/': typeof EvenementsIndexRoute
-  '/adhesion/correction/$token': typeof AdhesionCorrectionTokenRoute
-  '/bureau/boutique/commandes': typeof BureauBoutiqueCommandesRouteWithChildren
-  '/bureau/factures/$invoiceId': typeof BureauFacturesInvoiceIdRoute
-  '/bureau/personnes/$personId': typeof BureauPersonnesPersonIdRouteWithChildren
-  '/email/desinscription/$token': typeof EmailDesinscriptionTokenRoute
-  '/bureau/boutique/': typeof BureauBoutiqueIndexRoute
-  '/bureau/evenements/': typeof BureauEvenementsIndexRoute
-  '/bureau/factures/': typeof BureauFacturesIndexRoute
-  '/bureau/personnes/': typeof BureauPersonnesIndexRoute
-  '/bureau/boutique/commandes/$orderId': typeof BureauBoutiqueCommandesOrderIdRoute
-  '/bureau/evenements/$eventId/checkins': typeof BureauEvenementsEventIdCheckinsRoute
-  '/bureau/evenements/$eventId/participants': typeof BureauEvenementsEventIdParticipantsRoute
-  '/bureau/personnes/$personId/adhesions': typeof BureauPersonnesPersonIdAdhesionsRoute
-  '/bureau/personnes/$personId/commandes': typeof BureauPersonnesPersonIdCommandesRoute
-  '/bureau/personnes/$personId/evenements': typeof BureauPersonnesPersonIdEvenementsRoute
-  '/bureau/personnes/$personId/factures': typeof BureauPersonnesPersonIdFacturesRoute
-  '/bureau/personnes/$personId/messages': typeof BureauPersonnesPersonIdMessagesRoute
-  '/bureau/personnes/$personId/paiements': typeof BureauPersonnesPersonIdPaiementsRoute
-  '/bureau/boutique/commandes/': typeof BureauBoutiqueCommandesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -486,171 +121,48 @@ export interface FileRouteTypes {
     | '/'
     | '/adherer'
     | '/bde'
-    | '/boutique'
-    | '/bureau'
-    | '/conditions-vente'
     | '/confidentialite'
-    | '/connexion'
     | '/contact'
-    | '/espace'
     | '/evenements'
     | '/mentions-legales'
-    | '/remboursements'
-    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
-    | '/bureau/$dossierId'
-    | '/bureau/boutique'
-    | '/bureau/candidatures'
-    | '/bureau/demandes'
-    | '/bureau/equipe'
-    | '/bureau/evenements'
-    | '/bureau/exports'
-    | '/bureau/factures'
-    | '/bureau/messages'
-    | '/bureau/parametres'
-    | '/bureau/personnes'
-    | '/bureau/scanner'
-    | '/evenements/$eventId'
     | '/bde/'
-    | '/bureau/'
     | '/evenements/'
-    | '/adhesion/correction/$token'
-    | '/bureau/boutique/commandes'
-    | '/bureau/factures/$invoiceId'
-    | '/bureau/personnes/$personId'
-    | '/email/desinscription/$token'
-    | '/bureau/boutique/'
-    | '/bureau/evenements/'
-    | '/bureau/factures/'
-    | '/bureau/personnes/'
-    | '/bureau/boutique/commandes/$orderId'
-    | '/bureau/evenements/$eventId/checkins'
-    | '/bureau/evenements/$eventId/participants'
-    | '/bureau/personnes/$personId/adhesions'
-    | '/bureau/personnes/$personId/commandes'
-    | '/bureau/personnes/$personId/evenements'
-    | '/bureau/personnes/$personId/factures'
-    | '/bureau/personnes/$personId/messages'
-    | '/bureau/personnes/$personId/paiements'
-    | '/bureau/boutique/commandes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/adherer'
-    | '/boutique'
-    | '/conditions-vente'
     | '/confidentialite'
-    | '/connexion'
     | '/contact'
-    | '/espace'
     | '/mentions-legales'
-    | '/remboursements'
-    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
-    | '/bureau/$dossierId'
-    | '/bureau/candidatures'
-    | '/bureau/demandes'
-    | '/bureau/equipe'
-    | '/bureau/exports'
-    | '/bureau/messages'
-    | '/bureau/parametres'
-    | '/bureau/scanner'
-    | '/evenements/$eventId'
     | '/bde'
-    | '/bureau'
     | '/evenements'
-    | '/adhesion/correction/$token'
-    | '/bureau/factures/$invoiceId'
-    | '/bureau/personnes/$personId'
-    | '/email/desinscription/$token'
-    | '/bureau/boutique'
-    | '/bureau/evenements'
-    | '/bureau/factures'
-    | '/bureau/personnes'
-    | '/bureau/boutique/commandes/$orderId'
-    | '/bureau/evenements/$eventId/checkins'
-    | '/bureau/evenements/$eventId/participants'
-    | '/bureau/personnes/$personId/adhesions'
-    | '/bureau/personnes/$personId/commandes'
-    | '/bureau/personnes/$personId/evenements'
-    | '/bureau/personnes/$personId/factures'
-    | '/bureau/personnes/$personId/messages'
-    | '/bureau/personnes/$personId/paiements'
-    | '/bureau/boutique/commandes'
   id:
     | '__root__'
     | '/'
     | '/adherer'
     | '/bde'
-    | '/boutique'
-    | '/bureau'
-    | '/conditions-vente'
     | '/confidentialite'
-    | '/connexion'
     | '/contact'
-    | '/espace'
     | '/evenements'
     | '/mentions-legales'
-    | '/remboursements'
-    | '/setup'
     | '/bde/association'
     | '/bde/equipe'
-    | '/bureau/$dossierId'
-    | '/bureau/boutique'
-    | '/bureau/candidatures'
-    | '/bureau/demandes'
-    | '/bureau/equipe'
-    | '/bureau/evenements'
-    | '/bureau/exports'
-    | '/bureau/factures'
-    | '/bureau/messages'
-    | '/bureau/parametres'
-    | '/bureau/personnes'
-    | '/bureau/scanner'
-    | '/evenements/$eventId'
     | '/bde/'
-    | '/bureau/'
     | '/evenements/'
-    | '/adhesion/correction/$token'
-    | '/bureau/boutique/commandes'
-    | '/bureau/factures/$invoiceId'
-    | '/bureau/personnes/$personId'
-    | '/email/desinscription/$token'
-    | '/bureau/boutique/'
-    | '/bureau/evenements/'
-    | '/bureau/factures/'
-    | '/bureau/personnes/'
-    | '/bureau/boutique/commandes/$orderId'
-    | '/bureau/evenements/$eventId/checkins'
-    | '/bureau/evenements/$eventId/participants'
-    | '/bureau/personnes/$personId/adhesions'
-    | '/bureau/personnes/$personId/commandes'
-    | '/bureau/personnes/$personId/evenements'
-    | '/bureau/personnes/$personId/factures'
-    | '/bureau/personnes/$personId/messages'
-    | '/bureau/personnes/$personId/paiements'
-    | '/bureau/boutique/commandes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdhererRoute: typeof AdhererRoute
   BdeRoute: typeof BdeRouteWithChildren
-  BoutiqueRoute: typeof BoutiqueRoute
-  BureauRoute: typeof BureauRouteWithChildren
-  ConditionsVenteRoute: typeof ConditionsVenteRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
-  ConnexionRoute: typeof ConnexionRoute
   ContactRoute: typeof ContactRoute
-  EspaceRoute: typeof EspaceRoute
   EvenementsRoute: typeof EvenementsRouteWithChildren
   MentionsLegalesRoute: typeof MentionsLegalesRoute
-  RemboursementsRoute: typeof RemboursementsRoute
-  SetupRoute: typeof SetupRoute
-  AdhesionCorrectionTokenRoute: typeof AdhesionCorrectionTokenRoute
-  EmailDesinscriptionTokenRoute: typeof EmailDesinscriptionTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -676,27 +188,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BdeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/boutique': {
-      id: '/boutique'
-      path: '/boutique'
-      fullPath: '/boutique'
-      preLoaderRoute: typeof BoutiqueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bureau': {
-      id: '/bureau'
-      path: '/bureau'
-      fullPath: '/bureau'
-      preLoaderRoute: typeof BureauRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/conditions-vente': {
-      id: '/conditions-vente'
-      path: '/conditions-vente'
-      fullPath: '/conditions-vente'
-      preLoaderRoute: typeof ConditionsVenteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/confidentialite': {
       id: '/confidentialite'
       path: '/confidentialite'
@@ -704,25 +195,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfidentialiteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/connexion': {
-      id: '/connexion'
-      path: '/connexion'
-      fullPath: '/connexion'
-      preLoaderRoute: typeof ConnexionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/contact': {
       id: '/contact'
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/espace': {
-      id: '/espace'
-      path: '/espace'
-      fullPath: '/espace'
-      preLoaderRoute: typeof EspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/evenements': {
@@ -737,20 +214,6 @@ declare module '@tanstack/react-router' {
       path: '/mentions-legales'
       fullPath: '/mentions-legales'
       preLoaderRoute: typeof MentionsLegalesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/remboursements': {
-      id: '/remboursements'
-      path: '/remboursements'
-      fullPath: '/remboursements'
-      preLoaderRoute: typeof RemboursementsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bde/': {
@@ -774,243 +237,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BdeEquipeRouteImport
       parentRoute: typeof BdeRoute
     }
-    '/bureau/': {
-      id: '/bureau/'
-      path: '/'
-      fullPath: '/bureau/'
-      preLoaderRoute: typeof BureauIndexRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/$dossierId': {
-      id: '/bureau/$dossierId'
-      path: '/$dossierId'
-      fullPath: '/bureau/$dossierId'
-      preLoaderRoute: typeof BureauDossierIdRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/boutique': {
-      id: '/bureau/boutique'
-      path: '/boutique'
-      fullPath: '/bureau/boutique'
-      preLoaderRoute: typeof BureauBoutiqueRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/candidatures': {
-      id: '/bureau/candidatures'
-      path: '/candidatures'
-      fullPath: '/bureau/candidatures'
-      preLoaderRoute: typeof BureauCandidaturesRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/demandes': {
-      id: '/bureau/demandes'
-      path: '/demandes'
-      fullPath: '/bureau/demandes'
-      preLoaderRoute: typeof BureauDemandesRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/equipe': {
-      id: '/bureau/equipe'
-      path: '/equipe'
-      fullPath: '/bureau/equipe'
-      preLoaderRoute: typeof BureauEquipeRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/evenements': {
-      id: '/bureau/evenements'
-      path: '/evenements'
-      fullPath: '/bureau/evenements'
-      preLoaderRoute: typeof BureauEvenementsRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/exports': {
-      id: '/bureau/exports'
-      path: '/exports'
-      fullPath: '/bureau/exports'
-      preLoaderRoute: typeof BureauExportsRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/factures': {
-      id: '/bureau/factures'
-      path: '/factures'
-      fullPath: '/bureau/factures'
-      preLoaderRoute: typeof BureauFacturesRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/messages': {
-      id: '/bureau/messages'
-      path: '/messages'
-      fullPath: '/bureau/messages'
-      preLoaderRoute: typeof BureauMessagesRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/parametres': {
-      id: '/bureau/parametres'
-      path: '/parametres'
-      fullPath: '/bureau/parametres'
-      preLoaderRoute: typeof BureauParametresRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/personnes': {
-      id: '/bureau/personnes'
-      path: '/personnes'
-      fullPath: '/bureau/personnes'
-      preLoaderRoute: typeof BureauPersonnesRouteImport
-      parentRoute: typeof BureauRoute
-    }
-    '/bureau/scanner': {
-      id: '/bureau/scanner'
-      path: '/scanner'
-      fullPath: '/bureau/scanner'
-      preLoaderRoute: typeof BureauScannerRouteImport
-      parentRoute: typeof BureauRoute
-    }
     '/evenements/': {
       id: '/evenements/'
       path: '/'
       fullPath: '/evenements/'
       preLoaderRoute: typeof EvenementsIndexRouteImport
       parentRoute: typeof EvenementsRoute
-    }
-    '/evenements/$eventId': {
-      id: '/evenements/$eventId'
-      path: '/$eventId'
-      fullPath: '/evenements/$eventId'
-      preLoaderRoute: typeof EvenementsEventIdRouteImport
-      parentRoute: typeof EvenementsRoute
-    }
-    '/adhesion/correction/$token': {
-      id: '/adhesion/correction/$token'
-      path: '/adhesion/correction/$token'
-      fullPath: '/adhesion/correction/$token'
-      preLoaderRoute: typeof AdhesionCorrectionTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bureau/boutique/': {
-      id: '/bureau/boutique/'
-      path: '/'
-      fullPath: '/bureau/boutique/'
-      preLoaderRoute: typeof BureauBoutiqueIndexRouteImport
-      parentRoute: typeof BureauBoutiqueRoute
-    }
-    '/bureau/boutique/commandes': {
-      id: '/bureau/boutique/commandes'
-      path: '/commandes'
-      fullPath: '/bureau/boutique/commandes'
-      preLoaderRoute: typeof BureauBoutiqueCommandesRouteImport
-      parentRoute: typeof BureauBoutiqueRoute
-    }
-    '/bureau/evenements/': {
-      id: '/bureau/evenements/'
-      path: '/'
-      fullPath: '/bureau/evenements/'
-      preLoaderRoute: typeof BureauEvenementsIndexRouteImport
-      parentRoute: typeof BureauEvenementsRoute
-    }
-    '/bureau/factures/': {
-      id: '/bureau/factures/'
-      path: '/'
-      fullPath: '/bureau/factures/'
-      preLoaderRoute: typeof BureauFacturesIndexRouteImport
-      parentRoute: typeof BureauFacturesRoute
-    }
-    '/bureau/factures/$invoiceId': {
-      id: '/bureau/factures/$invoiceId'
-      path: '/$invoiceId'
-      fullPath: '/bureau/factures/$invoiceId'
-      preLoaderRoute: typeof BureauFacturesInvoiceIdRouteImport
-      parentRoute: typeof BureauFacturesRoute
-    }
-    '/bureau/personnes/': {
-      id: '/bureau/personnes/'
-      path: '/'
-      fullPath: '/bureau/personnes/'
-      preLoaderRoute: typeof BureauPersonnesIndexRouteImport
-      parentRoute: typeof BureauPersonnesRoute
-    }
-    '/bureau/personnes/$personId': {
-      id: '/bureau/personnes/$personId'
-      path: '/$personId'
-      fullPath: '/bureau/personnes/$personId'
-      preLoaderRoute: typeof BureauPersonnesPersonIdRouteImport
-      parentRoute: typeof BureauPersonnesRoute
-    }
-    '/email/desinscription/$token': {
-      id: '/email/desinscription/$token'
-      path: '/email/desinscription/$token'
-      fullPath: '/email/desinscription/$token'
-      preLoaderRoute: typeof EmailDesinscriptionTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bureau/boutique/commandes/': {
-      id: '/bureau/boutique/commandes/'
-      path: '/'
-      fullPath: '/bureau/boutique/commandes/'
-      preLoaderRoute: typeof BureauBoutiqueCommandesIndexRouteImport
-      parentRoute: typeof BureauBoutiqueCommandesRoute
-    }
-    '/bureau/boutique/commandes/$orderId': {
-      id: '/bureau/boutique/commandes/$orderId'
-      path: '/$orderId'
-      fullPath: '/bureau/boutique/commandes/$orderId'
-      preLoaderRoute: typeof BureauBoutiqueCommandesOrderIdRouteImport
-      parentRoute: typeof BureauBoutiqueCommandesRoute
-    }
-    '/bureau/evenements/$eventId/checkins': {
-      id: '/bureau/evenements/$eventId/checkins'
-      path: '/$eventId/checkins'
-      fullPath: '/bureau/evenements/$eventId/checkins'
-      preLoaderRoute: typeof BureauEvenementsEventIdCheckinsRouteImport
-      parentRoute: typeof BureauEvenementsRoute
-    }
-    '/bureau/evenements/$eventId/participants': {
-      id: '/bureau/evenements/$eventId/participants'
-      path: '/$eventId/participants'
-      fullPath: '/bureau/evenements/$eventId/participants'
-      preLoaderRoute: typeof BureauEvenementsEventIdParticipantsRouteImport
-      parentRoute: typeof BureauEvenementsRoute
-    }
-    '/bureau/personnes/$personId/adhesions': {
-      id: '/bureau/personnes/$personId/adhesions'
-      path: '/adhesions'
-      fullPath: '/bureau/personnes/$personId/adhesions'
-      preLoaderRoute: typeof BureauPersonnesPersonIdAdhesionsRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
-    }
-    '/bureau/personnes/$personId/commandes': {
-      id: '/bureau/personnes/$personId/commandes'
-      path: '/commandes'
-      fullPath: '/bureau/personnes/$personId/commandes'
-      preLoaderRoute: typeof BureauPersonnesPersonIdCommandesRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
-    }
-    '/bureau/personnes/$personId/evenements': {
-      id: '/bureau/personnes/$personId/evenements'
-      path: '/evenements'
-      fullPath: '/bureau/personnes/$personId/evenements'
-      preLoaderRoute: typeof BureauPersonnesPersonIdEvenementsRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
-    }
-    '/bureau/personnes/$personId/factures': {
-      id: '/bureau/personnes/$personId/factures'
-      path: '/factures'
-      fullPath: '/bureau/personnes/$personId/factures'
-      preLoaderRoute: typeof BureauPersonnesPersonIdFacturesRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
-    }
-    '/bureau/personnes/$personId/messages': {
-      id: '/bureau/personnes/$personId/messages'
-      path: '/messages'
-      fullPath: '/bureau/personnes/$personId/messages'
-      preLoaderRoute: typeof BureauPersonnesPersonIdMessagesRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
-    }
-    '/bureau/personnes/$personId/paiements': {
-      id: '/bureau/personnes/$personId/paiements'
-      path: '/paiements'
-      fullPath: '/bureau/personnes/$personId/paiements'
-      preLoaderRoute: typeof BureauPersonnesPersonIdPaiementsRouteImport
-      parentRoute: typeof BureauPersonnesPersonIdRoute
     }
   }
 }
@@ -1029,150 +261,11 @@ const BdeRouteChildren: BdeRouteChildren = {
 
 const BdeRouteWithChildren = BdeRoute._addFileChildren(BdeRouteChildren)
 
-interface BureauBoutiqueCommandesRouteChildren {
-  BureauBoutiqueCommandesOrderIdRoute: typeof BureauBoutiqueCommandesOrderIdRoute
-  BureauBoutiqueCommandesIndexRoute: typeof BureauBoutiqueCommandesIndexRoute
-}
-
-const BureauBoutiqueCommandesRouteChildren: BureauBoutiqueCommandesRouteChildren =
-  {
-    BureauBoutiqueCommandesOrderIdRoute: BureauBoutiqueCommandesOrderIdRoute,
-    BureauBoutiqueCommandesIndexRoute: BureauBoutiqueCommandesIndexRoute,
-  }
-
-const BureauBoutiqueCommandesRouteWithChildren =
-  BureauBoutiqueCommandesRoute._addFileChildren(
-    BureauBoutiqueCommandesRouteChildren,
-  )
-
-interface BureauBoutiqueRouteChildren {
-  BureauBoutiqueCommandesRoute: typeof BureauBoutiqueCommandesRouteWithChildren
-  BureauBoutiqueIndexRoute: typeof BureauBoutiqueIndexRoute
-}
-
-const BureauBoutiqueRouteChildren: BureauBoutiqueRouteChildren = {
-  BureauBoutiqueCommandesRoute: BureauBoutiqueCommandesRouteWithChildren,
-  BureauBoutiqueIndexRoute: BureauBoutiqueIndexRoute,
-}
-
-const BureauBoutiqueRouteWithChildren = BureauBoutiqueRoute._addFileChildren(
-  BureauBoutiqueRouteChildren,
-)
-
-interface BureauEvenementsRouteChildren {
-  BureauEvenementsIndexRoute: typeof BureauEvenementsIndexRoute
-  BureauEvenementsEventIdCheckinsRoute: typeof BureauEvenementsEventIdCheckinsRoute
-  BureauEvenementsEventIdParticipantsRoute: typeof BureauEvenementsEventIdParticipantsRoute
-}
-
-const BureauEvenementsRouteChildren: BureauEvenementsRouteChildren = {
-  BureauEvenementsIndexRoute: BureauEvenementsIndexRoute,
-  BureauEvenementsEventIdCheckinsRoute: BureauEvenementsEventIdCheckinsRoute,
-  BureauEvenementsEventIdParticipantsRoute:
-    BureauEvenementsEventIdParticipantsRoute,
-}
-
-const BureauEvenementsRouteWithChildren =
-  BureauEvenementsRoute._addFileChildren(BureauEvenementsRouteChildren)
-
-interface BureauFacturesRouteChildren {
-  BureauFacturesInvoiceIdRoute: typeof BureauFacturesInvoiceIdRoute
-  BureauFacturesIndexRoute: typeof BureauFacturesIndexRoute
-}
-
-const BureauFacturesRouteChildren: BureauFacturesRouteChildren = {
-  BureauFacturesInvoiceIdRoute: BureauFacturesInvoiceIdRoute,
-  BureauFacturesIndexRoute: BureauFacturesIndexRoute,
-}
-
-const BureauFacturesRouteWithChildren = BureauFacturesRoute._addFileChildren(
-  BureauFacturesRouteChildren,
-)
-
-interface BureauPersonnesPersonIdRouteChildren {
-  BureauPersonnesPersonIdAdhesionsRoute: typeof BureauPersonnesPersonIdAdhesionsRoute
-  BureauPersonnesPersonIdCommandesRoute: typeof BureauPersonnesPersonIdCommandesRoute
-  BureauPersonnesPersonIdEvenementsRoute: typeof BureauPersonnesPersonIdEvenementsRoute
-  BureauPersonnesPersonIdFacturesRoute: typeof BureauPersonnesPersonIdFacturesRoute
-  BureauPersonnesPersonIdMessagesRoute: typeof BureauPersonnesPersonIdMessagesRoute
-  BureauPersonnesPersonIdPaiementsRoute: typeof BureauPersonnesPersonIdPaiementsRoute
-}
-
-const BureauPersonnesPersonIdRouteChildren: BureauPersonnesPersonIdRouteChildren =
-  {
-    BureauPersonnesPersonIdAdhesionsRoute:
-      BureauPersonnesPersonIdAdhesionsRoute,
-    BureauPersonnesPersonIdCommandesRoute:
-      BureauPersonnesPersonIdCommandesRoute,
-    BureauPersonnesPersonIdEvenementsRoute:
-      BureauPersonnesPersonIdEvenementsRoute,
-    BureauPersonnesPersonIdFacturesRoute: BureauPersonnesPersonIdFacturesRoute,
-    BureauPersonnesPersonIdMessagesRoute: BureauPersonnesPersonIdMessagesRoute,
-    BureauPersonnesPersonIdPaiementsRoute:
-      BureauPersonnesPersonIdPaiementsRoute,
-  }
-
-const BureauPersonnesPersonIdRouteWithChildren =
-  BureauPersonnesPersonIdRoute._addFileChildren(
-    BureauPersonnesPersonIdRouteChildren,
-  )
-
-interface BureauPersonnesRouteChildren {
-  BureauPersonnesPersonIdRoute: typeof BureauPersonnesPersonIdRouteWithChildren
-  BureauPersonnesIndexRoute: typeof BureauPersonnesIndexRoute
-}
-
-const BureauPersonnesRouteChildren: BureauPersonnesRouteChildren = {
-  BureauPersonnesPersonIdRoute: BureauPersonnesPersonIdRouteWithChildren,
-  BureauPersonnesIndexRoute: BureauPersonnesIndexRoute,
-}
-
-const BureauPersonnesRouteWithChildren = BureauPersonnesRoute._addFileChildren(
-  BureauPersonnesRouteChildren,
-)
-
-interface BureauRouteChildren {
-  BureauDossierIdRoute: typeof BureauDossierIdRoute
-  BureauBoutiqueRoute: typeof BureauBoutiqueRouteWithChildren
-  BureauCandidaturesRoute: typeof BureauCandidaturesRoute
-  BureauDemandesRoute: typeof BureauDemandesRoute
-  BureauEquipeRoute: typeof BureauEquipeRoute
-  BureauEvenementsRoute: typeof BureauEvenementsRouteWithChildren
-  BureauExportsRoute: typeof BureauExportsRoute
-  BureauFacturesRoute: typeof BureauFacturesRouteWithChildren
-  BureauMessagesRoute: typeof BureauMessagesRoute
-  BureauParametresRoute: typeof BureauParametresRoute
-  BureauPersonnesRoute: typeof BureauPersonnesRouteWithChildren
-  BureauScannerRoute: typeof BureauScannerRoute
-  BureauIndexRoute: typeof BureauIndexRoute
-}
-
-const BureauRouteChildren: BureauRouteChildren = {
-  BureauDossierIdRoute: BureauDossierIdRoute,
-  BureauBoutiqueRoute: BureauBoutiqueRouteWithChildren,
-  BureauCandidaturesRoute: BureauCandidaturesRoute,
-  BureauDemandesRoute: BureauDemandesRoute,
-  BureauEquipeRoute: BureauEquipeRoute,
-  BureauEvenementsRoute: BureauEvenementsRouteWithChildren,
-  BureauExportsRoute: BureauExportsRoute,
-  BureauFacturesRoute: BureauFacturesRouteWithChildren,
-  BureauMessagesRoute: BureauMessagesRoute,
-  BureauParametresRoute: BureauParametresRoute,
-  BureauPersonnesRoute: BureauPersonnesRouteWithChildren,
-  BureauScannerRoute: BureauScannerRoute,
-  BureauIndexRoute: BureauIndexRoute,
-}
-
-const BureauRouteWithChildren =
-  BureauRoute._addFileChildren(BureauRouteChildren)
-
 interface EvenementsRouteChildren {
-  EvenementsEventIdRoute: typeof EvenementsEventIdRoute
   EvenementsIndexRoute: typeof EvenementsIndexRoute
 }
 
 const EvenementsRouteChildren: EvenementsRouteChildren = {
-  EvenementsEventIdRoute: EvenementsEventIdRoute,
   EvenementsIndexRoute: EvenementsIndexRoute,
 }
 
@@ -1184,19 +277,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdhererRoute: AdhererRoute,
   BdeRoute: BdeRouteWithChildren,
-  BoutiqueRoute: BoutiqueRoute,
-  BureauRoute: BureauRouteWithChildren,
-  ConditionsVenteRoute: ConditionsVenteRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
-  ConnexionRoute: ConnexionRoute,
   ContactRoute: ContactRoute,
-  EspaceRoute: EspaceRoute,
   EvenementsRoute: EvenementsRouteWithChildren,
   MentionsLegalesRoute: MentionsLegalesRoute,
-  RemboursementsRoute: RemboursementsRoute,
-  SetupRoute: SetupRoute,
-  AdhesionCorrectionTokenRoute: AdhesionCorrectionTokenRoute,
-  EmailDesinscriptionTokenRoute: EmailDesinscriptionTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
