@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdhererRouteImport } from './routes/adherer'
 import { Route as BdeRouteImport } from './routes/bde'
-import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EvenementsRouteImport } from './routes/evenements'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
@@ -34,11 +33,6 @@ const AdhererRoute = AdhererRouteImport.update({
 const BdeRoute = BdeRouteImport.update({
   id: '/bde',
   path: '/bde',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConfidentialiteRoute = ConfidentialiteRouteImport.update({
-  id: '/confidentialite',
-  path: '/confidentialite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -81,7 +75,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
   '/bde': typeof BdeRouteWithChildren
-  '/confidentialite': typeof ConfidentialiteRoute
   '/contact': typeof ContactRoute
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
@@ -93,7 +86,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
-  '/confidentialite': typeof ConfidentialiteRoute
   '/contact': typeof ContactRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/bde/association': typeof BdeAssociationRoute
@@ -106,7 +98,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/adherer': typeof AdhererRoute
   '/bde': typeof BdeRouteWithChildren
-  '/confidentialite': typeof ConfidentialiteRoute
   '/contact': typeof ContactRoute
   '/evenements': typeof EvenementsRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
@@ -121,7 +112,6 @@ export interface FileRouteTypes {
     | '/'
     | '/adherer'
     | '/bde'
-    | '/confidentialite'
     | '/contact'
     | '/evenements'
     | '/mentions-legales'
@@ -133,7 +123,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/adherer'
-    | '/confidentialite'
     | '/contact'
     | '/mentions-legales'
     | '/bde/association'
@@ -145,7 +134,6 @@ export interface FileRouteTypes {
     | '/'
     | '/adherer'
     | '/bde'
-    | '/confidentialite'
     | '/contact'
     | '/evenements'
     | '/mentions-legales'
@@ -159,7 +147,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdhererRoute: typeof AdhererRoute
   BdeRoute: typeof BdeRouteWithChildren
-  ConfidentialiteRoute: typeof ConfidentialiteRoute
   ContactRoute: typeof ContactRoute
   EvenementsRoute: typeof EvenementsRouteWithChildren
   MentionsLegalesRoute: typeof MentionsLegalesRoute
@@ -186,13 +173,6 @@ declare module '@tanstack/react-router' {
       path: '/bde'
       fullPath: '/bde'
       preLoaderRoute: typeof BdeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/confidentialite': {
-      id: '/confidentialite'
-      path: '/confidentialite'
-      fullPath: '/confidentialite'
-      preLoaderRoute: typeof ConfidentialiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -277,7 +257,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdhererRoute: AdhererRoute,
   BdeRoute: BdeRouteWithChildren,
-  ConfidentialiteRoute: ConfidentialiteRoute,
   ContactRoute: ContactRoute,
   EvenementsRoute: EvenementsRouteWithChildren,
   MentionsLegalesRoute: MentionsLegalesRoute,

@@ -21,5 +21,4 @@ export const secondaryNav: NavItem[] = [
 
 export const legalNav = [
   { to: "/mentions-legales", label: "Mentions légales" },
-  { to: "/confidentialite", label: "Confidentialité" },
 ] as const;

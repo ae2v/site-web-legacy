@@ -126,14 +126,10 @@ function MentionsPage() {
         </p>
       </LegalBlock>
 
-      <LegalBlock title="7. Données personnelles et cookies">
+      <LegalBlock title="7. Données et cookies">
         <p>
-          Le traitement des données personnelles est détaillé dans la{" "}
-          <a className="ae2v-link font-bold text-ae2v-red" href="/confidentialite">
-            politique de confidentialité
-          </a>
-          . Le site n'utilise <strong>aucun cookie de mesure d'audience ni de publicité</strong> :
-          aucun bandeau de consentement n'est donc requis à ce jour.
+          Cette version publique ne propose ni compte, ni formulaire connecté, ni espace personnel.
+          Elle n'utilise <strong>aucun cookie de mesure d'audience ni de publicité</strong>.
         </p>
       </LegalBlock>
 
