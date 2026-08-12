@@ -10,20 +10,20 @@ import { PageHero } from "@/components/layout/page-hero";
  */
 export const legalInfo = {
   siteName: "AE2V",
-  legalName: "AE2V — Association des Étudiants de Vélizy",
+  legalName: "ASSOCIATION ETUDIANTE DE VELIZY-VILLACOUBLAY",
   status: "Association loi 1901",
   /** TODO bureau : n° RNA (W…) figurant sur le récépissé de déclaration en préfecture. */
-  rna: null as string | null,
+  rna: "W784003407",
   /** TODO bureau : n° SIRET si l'association en possède un. */
   siret: null as string | null,
   /** TODO bureau : adresse du siège social déclarée en préfecture. */
-  address: null as string | null,
+  address: "5e étage, appartement 517, 5 rue Paul Dautier, 78140 Vélizy-Villacoublay",
   /** TODO bureau : nom du/de la président·e en exercice (directeur·rice de la publication). */
   publicationDirector: null as string | null,
-  contactEmail: "contact@ae2v.fr",
-  /** Le site est conçu, publié et maintenu par l'association elle-même. */
-  webmaster: "Le pôle Communication / Web de l'AE2V (webmestre interne à l'association)",
-  webmasterEmail: "contact@ae2v.fr",
+  contactEmail: "ae2v.asso@gmail.com",
+  /** Le site public a été conçu et développé par Bastian NOËL. */
+  webmaster: "Bastian NOËL",
+  webmasterEmail: "ae2v.asso@gmail.com",
   host: {
     name: "Oracle Cloud Infrastructure (OCI)",
     company: "Oracle France SAS",

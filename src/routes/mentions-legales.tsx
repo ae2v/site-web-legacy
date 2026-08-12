@@ -67,7 +67,8 @@ function MentionsPage() {
 
       <LegalBlock title="3. Conception et webmestre">
         <p>
-          Le site est conçu, développé et administré <strong>par l'association elle-même</strong> :{" "}
+          Le site est conçu et développé par <strong>Bastian NOËL</strong> pour l'AE2V. La
+          publication et l'administration du contenu restent assurées par l'association :{" "}
           {legalInfo.webmaster}. Aucune prestation externe n'assure la maintenance éditoriale.
         </p>
         <p>
