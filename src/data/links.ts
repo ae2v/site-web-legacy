@@ -19,8 +19,8 @@ export const ae2vLinks: Ae2vLink[] = [
     id: "discord",
     label: "Discord",
     detail: "Rejoins la communauté AE2V",
-    href: null,
-    status: "Invitation à venir",
+    href: "https://discord.gg/z85wnSmdnH",
+    external: true,
     icon: "discord",
   },
   {
@@ -40,13 +40,6 @@ export const ae2vLinks: Ae2vLink[] = [
     icon: "facebook",
   },
   {
-    id: "contact-form",
-    label: "Formulaire de contact",
-    detail: "Écrire au bureau depuis le site",
-    href: "/contact#formulaire-contact",
-    icon: "mail",
-  },
-  {
     id: "mail",
     label: "Nous écrire",
     detail: "ae2v.asso@gmail.com",
@@ -57,8 +50,7 @@ export const ae2vLinks: Ae2vLink[] = [
     id: "site",
     label: "Site officiel",
     detail: "ae2v.fr",
-    href: null,
-    status: "En cours",
+    href: "/",
     icon: "globe",
   },
 ];

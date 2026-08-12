@@ -398,7 +398,7 @@ function Index() {
       <section className="mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-20">
         <Reveal className="grid gap-4 md:grid-cols-2">
           <a
-            href="https://www.instagram.com/ae2v_officiel/"
+            href="https://www.instagram.com/bde.velizy/"
             target="_blank"
             rel="noreferrer"
             className="tap-44 group flex items-center justify-between border-2 border-ae2v-black bg-card p-6 transition-colors hover:bg-ae2v-red hover:text-ae2v-offwhite"
