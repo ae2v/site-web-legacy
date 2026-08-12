@@ -8,6 +8,7 @@ import { addAuditLog } from "@/lib/dynamic-store";
 import { useServerFn } from "@tanstack/react-start";
 import { createInvoiceServer } from "@/lib/server-functions/billing";
 import { updatePaymentStatusServer } from "@/lib/server-functions/people";
+import { notifySite } from "@/components/ui/site-feedback";
 
 export type PaymentModalProps = {
   isOpen: boolean;
@@ -184,7 +185,7 @@ export function PaymentModal({
       setProcessing(false);
     } catch {
       setProcessing(false);
-      alert("Erreur lors de la génération de la facture.");
+      notifySite("Erreur lors de la génération de la facture.", { kind: "error" });
     }
   }
 

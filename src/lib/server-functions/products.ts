@@ -11,7 +11,9 @@ const productSchema = z.object({
   priceMemberCents: z.number().int().nonnegative().max(10_000_000),
   pricePublicCents: z.number().int().nonnegative().max(10_000_000),
   badge: z.string().trim().max(80).nullable().optional(),
-  image: z.string().trim().max(500).nullable().optional(),
+  // Les visuels importés sont recadrés côté client en JPEG carré avant
+  // d'arriver ici. La limite protège la server function sans imposer d'URL.
+  image: z.string().trim().max(600_000).nullable().optional(),
   sizes: z.array(z.string().trim().min(1).max(30)).max(20),
   helloAssoUrl: z.string().url().max(500).nullable().optional(),
   active: z.boolean(),

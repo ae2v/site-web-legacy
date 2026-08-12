@@ -417,7 +417,7 @@ function BusinessCardDialog({
       >
         {member.isDemo && (
           <div className="mb-3">
-            <TapeLabel tone="black">Fiche de démonstration</TapeLabel>
+            <TapeLabel tone="black">Profil</TapeLabel>
           </div>
         )}
 

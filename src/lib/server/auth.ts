@@ -24,6 +24,7 @@ function sessionConfig() {
 
 export type ServerActor = {
   id: string;
+  demo: boolean;
   role: "MEMBRE" | "BUREAU" | "TRESORIER" | "PRESIDENT";
   firstName: string;
   lastName: string;
@@ -40,14 +41,22 @@ export async function getServerActor(): Promise<ServerActor | null> {
 
   const user = await getPrisma().user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, firstName: true, lastName: true, email: true, roleTitle: true },
+    select: {
+      id: true,
+      demo: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      roleTitle: true,
+    },
   });
   return user;
 }
 
 export async function requireBureauActor(required: "read" | "write" | "finance" = "read") {
   const actor = await getServerActor();
-  if (!actor || !["BUREAU", "TRESORIER", "PRESIDENT"].includes(actor.role)) {
+  if (!actor || actor.demo || !["BUREAU", "TRESORIER", "PRESIDENT"].includes(actor.role)) {
     throw new Response("Accès bureau refusé", { status: 403 });
   }
   if (required === "finance" && !["TRESORIER", "PRESIDENT"].includes(actor.role)) {

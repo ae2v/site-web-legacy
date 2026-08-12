@@ -18,7 +18,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { generateRandom2026Code } from "@/lib/id-generator";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUserServer } from "@/lib/server-functions/auth";
 
@@ -106,10 +105,19 @@ export type DemoPayment = {
 
 export type DemoAccount = {
   id: string;
+  demo?: boolean;
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string | null;
+  studentId?: string | null;
+  groupe?: string | null;
+  interestsJson?: string;
+  volunteer?: string | null;
+  message?: string | null;
+  rgpdAcceptedAt?: string | null;
+  statutsAcceptedAt?: string | null;
   role: DemoRole;
   pole?: string;
   roleTitle?: string;
@@ -138,9 +146,18 @@ export type DemoAccount = {
 
 export type RemoteAccount = {
   id: string;
+  demo: boolean;
   email: string;
   firstName: string;
   lastName: string;
+  phone: string | null;
+  studentId: string | null;
+  groupe: string | null;
+  interestsJson: string;
+  volunteer: string | null;
+  message: string | null;
+  rgpdAcceptedAt: string | Date | null;
+  statutsAcceptedAt: string | Date | null;
   role: "MEMBRE" | "BUREAU" | "TRESORIER" | "PRESIDENT";
   pole: string | null;
   roleTitle: string | null;
@@ -191,14 +208,25 @@ export type RemoteAccount = {
 };
 
 function remoteToDemoAccount(user: RemoteAccount): DemoAccount {
+  const serializeDate = (value: string | Date | null) =>
+    value instanceof Date ? value.toISOString() : value;
   const bureauRole: DemoRole =
     user.role === "MEMBRE" ? "membre" : user.role === "BUREAU" ? "bureau" : "bureau_admin";
   return {
     id: user.id,
+    demo: user.demo,
     email: user.email,
     password: "",
     firstName: user.firstName,
     lastName: user.lastName,
+    phone: user.phone,
+    studentId: user.studentId,
+    groupe: user.groupe,
+    interestsJson: user.interestsJson,
+    volunteer: user.volunteer,
+    message: user.message,
+    rgpdAcceptedAt: serializeDate(user.rgpdAcceptedAt),
+    statutsAcceptedAt: serializeDate(user.statutsAcceptedAt),
     role: bureauRole,
     ...(user.pole ? { pole: user.pole } : {}),
     ...(user.roleTitle ? { roleTitle: user.roleTitle } : {}),
@@ -263,145 +291,8 @@ function normalizeRemoteOrderStatus(status: string): DemoOrder["status"] {
 
 const YEAR = "2026-2027";
 
-export const demoAccounts: DemoAccount[] = [
-  {
-    id: "acc-noa",
-    email: "noa.demo@etu.uvsq.fr",
-    password: "demo1234",
-    firstName: "Noa",
-    lastName: "Perrin",
-    role: "membre",
-    departement: "MMI",
-    niveau: "1re année",
-    contributionCents: 0,
-    schoolYear: YEAR,
-    membershipStatus: "VALIDE",
-    contributionStatus: "NON_COTISANT",
-    requestedAt: "05/09/2026",
-    validatedAt: "07/09/2026",
-    memberSince: "07/09/2026",
-    cardCode: "AE2V-2026-USR-7K9P2M4X",
-    tickets: [],
-    orders: [],
-    invoices: [],
-    emailPrefs: ["Événements"],
-  },
-  {
-    id: "acc-ines",
-    email: "ines.demo@etu.uvsq.fr",
-    password: "demo1234",
-    firstName: "Inès",
-    lastName: "Faure",
-    role: "adherent",
-    departement: "Informatique",
-    niveau: "2e année",
-    contributionCents: 1200,
-    schoolYear: YEAR,
-    membershipStatus: "VALIDE",
-    contributionStatus: "COTISANT",
-    requestedAt: "02/09/2026",
-    validatedAt: "12/09/2026",
-    memberSince: "12/09/2026",
-    cardCode: "AE2V-2026-USR-3R8W1L9V",
-    tickets: [
-      {
-        id: "tk-1",
-        eventId: "soiree-integration",
-        eventTitle: "Soirée d'intégration",
-        date: "Jeudi 24 septembre 2026 · 21h00",
-        place: "Le Hangar — Vélizy",
-        tier: "Tarif cotisant",
-        priceCents: 800,
-        code: "AE2V-2026-TK-9F3K2210",
-        status: "valide",
-      },
-      {
-        id: "tk-2",
-        eventId: "tournoi-esport",
-        eventTitle: "Tournoi e-sport",
-        date: "Mercredi 14 octobre 2026 · 14h00",
-        place: "Amphi B — IUT de Vélizy",
-        tier: "Tarif cotisant",
-        priceCents: 0,
-        code: "AE2V-2026-TK-4B7Z1077",
-        status: "utilise",
-      },
-    ],
-    orders: [
-      {
-        id: "CMD-2026-0148",
-        date: "02/10/2026",
-        status: "Prête",
-        lines: [
-          { name: "Sweat AE2V", variant: "Taille M · Rouge", qty: 1, priceCents: 3200 },
-          { name: "Tote bag", variant: "Unique", qty: 1, priceCents: 900 },
-        ],
-      },
-    ],
-    invoices: [],
-    emailPrefs: ["Événements", "Boutique", "Partenariats"],
-  },
-  {
-    id: "acc-hugo",
-    email: "hugo.demo@ae2v.fr",
-    password: "demo1234",
-    firstName: "Hugo",
-    lastName: "Nguyen",
-    role: "bureau",
-    pole: "Événementiel",
-    roleTitle: "Membre du pôle événementiel",
-    departement: "GEII",
-    niveau: "2e année",
-    contributionCents: 1200,
-    schoolYear: YEAR,
-    membershipStatus: "VALIDE",
-    contributionStatus: "COTISANT",
-    requestedAt: "01/09/2026",
-    validatedAt: "03/09/2026",
-    memberSince: "03/09/2026",
-    cardCode: "AE2V-2026-USR-8M2P5N9Q",
-    tickets: [
-      {
-        id: "tk-3",
-        eventId: "gala",
-        eventTitle: "Gala de fin d'année",
-        date: "Vendredi 12 juin 2027 · 19h30",
-        place: "Salle Ravel — Vélizy",
-        tier: "Tarif cotisant",
-        priceCents: 2500,
-        code: "AE2V-2026-TK-1QT83390",
-        status: "valide",
-      },
-    ],
-    orders: [],
-    invoices: [],
-    emailPrefs: ["Événements", "Vie du bureau"],
-  },
-  {
-    id: "acc-camille",
-    email: "presidence@ae2v.fr",
-    password: "demo1234",
-    firstName: "Camille",
-    lastName: "Rousseau",
-    role: "bureau_admin",
-    pole: "Direction",
-    roleTitle: "Présidente",
-    departement: "TC",
-    niveau: "3e année",
-    contributionCents: 2000,
-    schoolYear: YEAR,
-    membershipStatus: "VALIDE",
-    contributionStatus: "COTISANT",
-    requestedAt: "30/08/2026",
-    validatedAt: "01/09/2026",
-    memberSince: "01/09/2026",
-    cardCode: "AE2V-2026-USR-1A4C7E9K",
-    tickets: [],
-    orders: [],
-    invoices: [],
-    emailPrefs: ["Événements", "Vie du bureau", "Partenariats"],
-  },
-];
+/** Les profils sont désormais exclusivement chargés depuis la session serveur. */
+export const demoAccounts: DemoAccount[] = [];
 
 /* -------------------------------------------------------------------------- */
 /*  Dossiers d'adhésion (back-office de démonstration)                         */
@@ -746,13 +637,11 @@ type DemoState = {
   customAccounts: DemoAccount[];
 };
 
-const STORAGE_KEY = "ae2v-demo-session-v2";
-
 const defaultState: DemoState = {
   accountId: null,
-  dossiers: initialDossiers,
-  candidatures: initialCandidatures,
-  messages: initialMessages,
+  dossiers: [],
+  candidatures: [],
+  messages: [],
   customAccounts: [],
 };
 
@@ -801,36 +690,11 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
   const getCurrentUser = useServerFn(getCurrentUserServer);
 
   useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as Partial<DemoState>;
-          setState({
-            accountId: parsed.accountId ?? null,
-            dossiers: Array.isArray(parsed.dossiers) ? parsed.dossiers : defaultState.dossiers,
-            candidatures: Array.isArray(parsed.candidatures)
-              ? parsed.candidatures
-              : defaultState.candidatures,
-            messages: Array.isArray(parsed.messages) ? parsed.messages : defaultState.messages,
-            customAccounts: Array.isArray(parsed.customAccounts)
-              ? parsed.customAccounts
-              : defaultState.customAccounts,
-          });
-        }
-      }
-    } catch {
-      /* stockage indisponible : on reste sur l'état par défaut */
-    }
     setReady(true);
   }, []);
 
   useEffect(() => {
-    if (
-      !ready ||
-      state.accountId?.startsWith("acc-") ||
-      state.customAccounts.some((account) => account.id === state.accountId)
-    ) {
+    if (!ready) {
       if (ready) setSessionResolved(true);
       return;
     }
@@ -851,7 +715,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {
-        // Sans session serveur, les profils de démonstration restent disponibles.
+        if (active) setState((current) => ({ ...current, accountId: null, customAccounts: [] }));
       })
       .finally(() => {
         if (active) setSessionResolved(true);
@@ -859,24 +723,10 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [getCurrentUser, ready, state.accountId, state.customAccounts]);
-
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [state, ready]);
+  }, [getCurrentUser, ready]);
 
   const account = useMemo(
-    () =>
-      demoAccounts.find((a) => a.id === state.accountId) ??
-      state.customAccounts.find((a) => a.id === state.accountId) ??
-      null,
+    () => state.customAccounts.find((a) => a.id === state.accountId) ?? null,
     [state.accountId, state.customAccounts],
   );
 
@@ -893,7 +743,7 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
     role: account?.role ?? null,
     isBureau: account?.role === "bureau" || account?.role === "bureau_admin",
     can,
-    signIn: (accountId) => setState((s) => ({ ...s, accountId })),
+    signIn: () => undefined,
     signInRemote: (user) => {
       const remoteAccount = remoteToDemoAccount(user);
       setState((s) => ({
@@ -905,73 +755,14 @@ export function DemoSessionProvider({ children }: { children: ReactNode }) {
         ],
       }));
     },
-    signInWithCredentials: (email, password) => {
-      const normalizedEmail = email.trim().toLowerCase();
-      const allAccounts = [...demoAccounts, ...state.customAccounts];
-      const found = allAccounts.find(
-        (a) => a.email.toLowerCase() === normalizedEmail && a.password === password,
-      );
-      if (!found) return { ok: false, error: "Identifiants inconnus ou mot de passe incorrect." };
-      setState((s) => ({ ...s, accountId: found.id }));
-      return { ok: true };
-    },
-    signUp: ({ email, password, firstName, lastName, departement, niveau }) => {
-      const normalizedEmail = email.trim().toLowerCase();
-      const allAccounts = [...demoAccounts, ...state.customAccounts];
-      if (allAccounts.some((a) => a.email.toLowerCase() === normalizedEmail)) {
-        return { ok: false, error: "Un compte existe déjà avec cette adresse e-mail." };
-      }
-      const accountId = `acc-user-${Date.now()}`;
-      const cardCode = generateRandom2026Code("USR");
-      const today = new Date().toLocaleDateString("fr-FR");
-      const newAccount: DemoAccount = {
-        id: accountId,
-        email: normalizedEmail,
-        password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        role: "membre",
-        departement,
-        niveau,
-        contributionCents: 0,
-        schoolYear: "2026-2027",
-        membershipStatus: "EN_ATTENTE",
-        contributionStatus: "NON_COTISANT",
-        requestedAt: today,
-        validatedAt: null,
-        memberSince: null,
-        cardCode,
-        tickets: [],
-        orders: [],
-        emailPrefs: [],
-      };
-      // Auto-crée un dossier EN_ATTENTE pour que le bureau le voit
-      const newDossier: Dossier = {
-        id: `ADH-${new Date().getFullYear()}-${String(400 + Math.floor(Math.random() * 100))}`,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: normalizedEmail,
-        phone: "",
-        studentId: "",
-        departement,
-        niveau,
-        contributionCents: 0,
-        contributionStatus: "NON_COTISANT",
-        emailPrefs: [],
-        submittedAt: today,
-        validatedAt: null,
-        memberSince: null,
-        status: "EN_ATTENTE",
-        note: "Compte créé depuis le formulaire d'inscription.",
-      };
-      setState((s) => ({
-        ...s,
-        accountId: newAccount.id,
-        customAccounts: [...(s.customAccounts ?? []), newAccount],
-        dossiers: [newDossier, ...(s.dossiers ?? [])],
-      }));
-      return { ok: true };
-    },
+    signInWithCredentials: () => ({
+      ok: false,
+      error: "Utilise le formulaire de connexion sécurisé.",
+    }),
+    signUp: () => ({
+      ok: false,
+      error: "Utilise le formulaire d'inscription sécurisé.",
+    }),
     signOut: () => setState((s) => ({ ...s, accountId: null })),
     dossiers: state.dossiers ?? [],
     addDossier: (newDossier) =>

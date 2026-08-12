@@ -48,7 +48,7 @@ export function ProductGrid() {
               <div className="relative overflow-hidden border-b-2 border-ae2v-black bg-white">
                 <img
                   src={product.image}
-                  alt={`${product.name} — visuel de démonstration`}
+                  alt={`${product.name} — visuel produit`}
                   width={900}
                   height={900}
                   loading="lazy"
@@ -105,9 +105,7 @@ export function ProductGrid() {
       </ul>
 
       <div className="mt-8 flex flex-wrap items-center gap-4 border-2 border-dashed border-ae2v-black/30 p-4">
-        <TapeLabel tone="green">
-          {import.meta.env.DEV ? "Articles de démonstration" : "Catalogue indicatif"}
-        </TapeLabel>
+        <TapeLabel tone="green">Catalogue indicatif</TapeLabel>
         <p className="text-sm text-ae2v-black/75">
           Les visuels et tarifs sont indicatifs : la vente réelle se fait sur la boutique officielle
           HelloAsso de l’AE2V.

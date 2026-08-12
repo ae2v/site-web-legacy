@@ -16,6 +16,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { BrandCursor } from "@/components/brand/cursor";
 import { SessionBar } from "@/components/layout/session-bar";
 import { DemoSessionProvider } from "@/lib/demo-session";
+import { SiteFeedbackProvider } from "@/components/ui/site-feedback";
 
 function NotFoundComponent() {
   return (
@@ -40,36 +41,38 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+    <div className="flex min-h-screen items-center justify-center bg-background px-4" role="alert">
+      <div className="w-full max-w-md border-2 border-ae2v-black bg-card p-6 text-center shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-ae2v-red">AE2V</p>
+        <h1 className="mt-3 font-impact text-3xl uppercase tracking-tight text-foreground">
+          La page n’a pas pu être chargée
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-3 text-sm text-muted-foreground">
+          Une erreur temporaire est survenue. Réessayez ou revenez à l’accueil.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              void router
+                .invalidate()
+                .then(() => reset())
+                .catch(() => window.location.reload());
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Try again
+            Réessayer
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Go home
+            Retour à l’accueil
           </a>
         </div>
       </div>
@@ -143,17 +146,19 @@ function RootComponent() {
         Aller au contenu
       </a>
       <BrandCursor />
-      <DemoSessionProvider>
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
-          <SessionBar />
-          <SiteHeader />
-          <main id="contenu" className="flex-1">
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
-          </main>
-          <SiteFooter />
-        </div>
-      </DemoSessionProvider>
+      <SiteFeedbackProvider>
+        <DemoSessionProvider>
+          <div className="flex min-h-screen flex-col bg-background text-foreground">
+            <SessionBar />
+            <SiteHeader />
+            <main id="contenu" className="flex-1">
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+            </main>
+            <SiteFooter />
+          </div>
+        </DemoSessionProvider>
+      </SiteFeedbackProvider>
     </QueryClientProvider>
   );
 }

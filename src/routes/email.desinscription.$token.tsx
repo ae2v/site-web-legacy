@@ -29,7 +29,7 @@ function UnsubscribePage() {
   const unsubscribe = useServerFn(unsubscribeEmailServer);
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
-  async function confirm() {
+  async function submitUnsubscribe() {
     setState("loading");
     try {
       await unsubscribe({ data: { token, category: search.category } });
@@ -75,7 +75,7 @@ function UnsubscribePage() {
               className="mt-6"
               variant="black"
               disabled={state === "loading"}
-              onClick={() => void confirm()}
+              onClick={() => void submitUnsubscribe()}
             >
               {state === "loading"
                 ? "Enregistrement…"

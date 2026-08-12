@@ -196,12 +196,11 @@ function EspacePage() {
               Tu n'es pas connecté
             </h3>
             <p className="mt-4 max-w-xl text-sm text-muted-foreground">
-              Des comptes de démonstration sont disponibles (membre cotisant, membre non cotisant,
-              bureau) pour tester l'ensemble des parcours.
+              Connecte-toi pour accéder à tes données personnelles et à tes actions disponibles.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link to="/connexion">Se connecter (démo)</Link>
+                <Link to="/connexion">Se connecter</Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
                 <Link to="/adherer">Adhérer</Link>

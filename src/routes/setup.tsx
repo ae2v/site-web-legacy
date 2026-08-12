@@ -132,7 +132,7 @@ function SetupPage() {
                   onChange={(e) => setConfig({ ...config, demoModeEnabled: e.target.checked })}
                 />
                 <label htmlFor="toggle-demo" className="text-sm font-bold">
-                  Activer le mode comptes de démonstration rapide
+                  Autoriser les données de prévisualisation locales
                 </label>
               </div>
 
@@ -282,8 +282,9 @@ function SetupPage() {
               </div>
 
               <p className="border-2 border-ae2v-red bg-ae2v-red/10 p-3 text-xs font-bold text-ae2v-black">
-                Ces paramètres sont indicatifs pour la démo. Aucun mot de passe n’est conservé dans
-                le navigateur et aucun envoi ne part directement depuis cette page.
+                Ces paramètres sont indicatifs pour la configuration locale. Aucun mot de passe
+                n’est conservé dans le navigateur et aucun envoi ne part directement depuis cette
+                page.
               </p>
               <Button onClick={handleSaveConfig} className="mt-4 w-full">
                 <Save aria-hidden="true" />

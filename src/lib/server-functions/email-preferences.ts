@@ -427,125 +427,164 @@ export type BureauEmailListRow = {
   volunteer: string | null;
 };
 
+const bureauEmailListFiltersObjectSchema = z.object({
+  category: categorySchema.optional(),
+  membershipStatus: z.enum(["DEMANDE_SOUMISE", "A_CORRIGER", "MEMBRE_VALIDE", "REFUSE"]).optional(),
+  departement: z.string().trim().max(120).optional(),
+  niveau: z.string().trim().max(80).optional(),
+  schoolYear: z
+    .string()
+    .regex(/^\d{4}-\d{4}$/)
+    .optional(),
+  volunteer: z.enum(["oui", "peut-etre", "non"]).optional(),
+});
+
+const bureauEmailListFiltersSchema = bureauEmailListFiltersObjectSchema.optional();
+
+export type BureauEmailListFilters = z.infer<typeof bureauEmailListFiltersSchema>;
+
+async function loadBureauEmailLists(data?: BureauEmailListFilters): Promise<BureauEmailListRow[]> {
+  await requireBureauActor("read");
+  const prisma = getPrisma();
+  const [users, dossiers] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        ...(data?.schoolYear ? { schoolYear: data.schoolYear } : {}),
+        ...(data?.membershipStatus ? { membershipStatus: data.membershipStatus } : {}),
+        ...(data?.departement ? { departement: data.departement } : {}),
+        ...(data?.niveau ? { niveau: data.niveau } : {}),
+      },
+      select: {
+        email: true,
+        firstName: true,
+        lastName: true,
+        schoolYear: true,
+        membershipStatus: true,
+        emailPrefs: true,
+        emailUnsubscribedAt: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    prisma.dossier.findMany({
+      where: {
+        ...(data?.schoolYear ? { schoolYear: data.schoolYear } : {}),
+        ...(data?.membershipStatus ? { status: data.membershipStatus } : {}),
+        ...(data?.departement ? { departement: data.departement } : {}),
+        ...(data?.niveau ? { niveau: data.niveau } : {}),
+      },
+      select: {
+        email: true,
+        firstName: true,
+        lastName: true,
+        status: true,
+        schoolYear: true,
+        emailPrefsJson: true,
+        emailUnsubscribedAt: true,
+        volunteer: true,
+        submittedAt: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ]);
+  const rows = new Map<string, BureauEmailListRow>();
+  const dossierByEmail = new Map(
+    dossiers.map((dossier) => [dossier.email.trim().toLowerCase(), dossier]),
+  );
+  for (const user of users) {
+    const unsubscribed = Boolean(user.emailUnsubscribedAt);
+    const optedInCategories = normalizeEmailCategories(user.emailPrefs, false);
+    const categories = normalizeEmailCategories(user.emailPrefs, unsubscribed);
+    const rowKey = user.email.trim().toLowerCase();
+    const relatedDossier = dossierByEmail.get(rowKey);
+    if (optedInCategories.length === 0 && !unsubscribed) continue;
+    // Un listing exploitable pour une diffusion ne doit jamais réinclure une
+    // personne ayant demandé sa désinscription globale.
+    if (unsubscribed) continue;
+    if (data?.category && !categories.includes(data.category)) continue;
+    if (data?.volunteer && relatedDossier?.volunteer !== data.volunteer) continue;
+    rows.set(rowKey, {
+      id: user.email,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      schoolYear: user.schoolYear,
+      membershipStatus: user.membershipStatus,
+      categories,
+      unsubscribed,
+      source: "USER",
+      volunteer: relatedDossier?.volunteer ?? null,
+    });
+  }
+  for (const dossier of dossiers) {
+    const rowKey = dossier.email.trim().toLowerCase();
+    if (rows.has(rowKey)) continue;
+    let parsed: string[] = [];
+    try {
+      const value: unknown = JSON.parse(dossier.emailPrefsJson);
+      if (Array.isArray(value))
+        parsed = value.filter((item): item is string => typeof item === "string");
+    } catch {
+      parsed = [];
+    }
+    const unsubscribed = Boolean(dossier.emailUnsubscribedAt);
+    const categories = normalizeEmailCategories(parsed, unsubscribed);
+    if (unsubscribed) continue;
+    if (parsed.length === 0 && !unsubscribed) continue;
+    if (data?.category && !categories.includes(data.category)) continue;
+    if (data?.volunteer && dossier.volunteer !== data.volunteer) continue;
+    rows.set(rowKey, {
+      id: dossier.email,
+      email: dossier.email,
+      firstName: dossier.firstName,
+      lastName: dossier.lastName,
+      schoolYear: dossier.schoolYear,
+      membershipStatus: dossier.status,
+      categories,
+      unsubscribed,
+      source: "DOSSIER",
+      volunteer: dossier.volunteer,
+    });
+  }
+  return [...rows.values()];
+}
+
 export const getBureauEmailListsServer = createServerFn({ method: "GET" })
+  .validator(bureauEmailListFiltersSchema)
+  .handler(async ({ data }): Promise<BureauEmailListRow[]> => loadBureauEmailLists(data));
+
+function csvEscape(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
+}
+
+/**
+ * Export serveur dynamique : une catégorie est obligatoire pour empêcher la
+ * génération accidentelle d'un fichier contenant toutes les adresses opt-in.
+ */
+export const downloadBureauEmailListServer = createServerFn({ method: "GET" })
   .validator(
-    z
-      .object({
-        category: categorySchema.optional(),
-        membershipStatus: z
-          .enum(["DEMANDE_SOUMISE", "A_CORRIGER", "MEMBRE_VALIDE", "REFUSE"])
-          .optional(),
-        departement: z.string().trim().max(120).optional(),
-        niveau: z.string().trim().max(80).optional(),
-        schoolYear: z
-          .string()
-          .regex(/^\d{4}-\d{4}$/)
-          .optional(),
-        volunteer: z.enum(["oui", "peut-etre", "non"]).optional(),
-      })
-      .optional(),
+    bureauEmailListFiltersObjectSchema.extend({
+      category: categorySchema,
+    }),
   )
-  .handler(async ({ data }): Promise<BureauEmailListRow[]> => {
-    await requireBureauActor("read");
-    const prisma = getPrisma();
-    const [users, dossiers] = await Promise.all([
-      prisma.user.findMany({
-        where: {
-          ...(data?.schoolYear ? { schoolYear: data.schoolYear } : {}),
-          ...(data?.membershipStatus ? { membershipStatus: data.membershipStatus } : {}),
-          ...(data?.departement ? { departement: data.departement } : {}),
-          ...(data?.niveau ? { niveau: data.niveau } : {}),
-        },
-        select: {
-          email: true,
-          firstName: true,
-          lastName: true,
-          schoolYear: true,
-          membershipStatus: true,
-          emailPrefs: true,
-          emailUnsubscribedAt: true,
-        },
-        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-      }),
-      prisma.dossier.findMany({
-        where: {
-          ...(data?.schoolYear ? { schoolYear: data.schoolYear } : {}),
-          ...(data?.membershipStatus ? { status: data.membershipStatus } : {}),
-          ...(data?.departement ? { departement: data.departement } : {}),
-          ...(data?.niveau ? { niveau: data.niveau } : {}),
-        },
-        select: {
-          email: true,
-          firstName: true,
-          lastName: true,
-          status: true,
-          schoolYear: true,
-          emailPrefsJson: true,
-          emailUnsubscribedAt: true,
-          volunteer: true,
-          submittedAt: true,
-        },
-        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-      }),
-    ]);
-    const rows = new Map<string, BureauEmailListRow>();
-    const dossierByEmail = new Map(
-      dossiers.map((dossier) => [dossier.email.trim().toLowerCase(), dossier]),
-    );
-    for (const user of users) {
-      const unsubscribed = Boolean(user.emailUnsubscribedAt);
-      const optedInCategories = normalizeEmailCategories(user.emailPrefs, false);
-      const categories = normalizeEmailCategories(user.emailPrefs, unsubscribed);
-      const rowKey = user.email.trim().toLowerCase();
-      const relatedDossier = dossierByEmail.get(rowKey);
-      if (optedInCategories.length === 0 && !unsubscribed) continue;
-      // Un listing exploitable pour une diffusion ne doit jamais réinclure une
-      // personne ayant demandé sa désinscription globale.
-      if (unsubscribed) continue;
-      if (data?.category && !categories.includes(data.category)) continue;
-      if (data?.volunteer && relatedDossier?.volunteer !== data.volunteer) continue;
-      rows.set(rowKey, {
-        id: user.email,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        schoolYear: user.schoolYear,
-        membershipStatus: user.membershipStatus,
-        categories,
-        unsubscribed,
-        source: "USER",
-        volunteer: relatedDossier?.volunteer ?? null,
-      });
-    }
-    for (const dossier of dossiers) {
-      const rowKey = dossier.email.trim().toLowerCase();
-      if (rows.has(rowKey)) continue;
-      let parsed: string[] = [];
-      try {
-        const value: unknown = JSON.parse(dossier.emailPrefsJson);
-        if (Array.isArray(value))
-          parsed = value.filter((item): item is string => typeof item === "string");
-      } catch {
-        parsed = [];
-      }
-      const unsubscribed = Boolean(dossier.emailUnsubscribedAt);
-      const categories = normalizeEmailCategories(parsed, unsubscribed);
-      if (unsubscribed) continue;
-      if (parsed.length === 0 && !unsubscribed) continue;
-      if (data?.category && !categories.includes(data.category)) continue;
-      if (data?.volunteer && dossier.volunteer !== data.volunteer) continue;
-      rows.set(rowKey, {
-        id: dossier.email,
-        email: dossier.email,
-        firstName: dossier.firstName,
-        lastName: dossier.lastName,
-        schoolYear: dossier.schoolYear,
-        membershipStatus: dossier.status,
-        categories,
-        unsubscribed,
-        source: "DOSSIER",
-        volunteer: dossier.volunteer,
-      });
-    }
-    return [...rows.values()];
+  .handler(async ({ data }) => {
+    const rows = await loadBureauEmailLists(data);
+    const lines = [
+      ["Nom", "E-mail", "Catégories actives", "Source", "Volontariat"].map(csvEscape).join(","),
+      ...rows.map((row) =>
+        [
+          `${row.firstName} ${row.lastName}`,
+          row.email,
+          row.categories.join(" | "),
+          row.source,
+          row.volunteer ?? "",
+        ]
+          .map(csvEscape)
+          .join(","),
+      ),
+    ];
+    return {
+      category: data.category,
+      count: rows.length,
+      csv: "\uFEFF" + lines.join("\n"),
+    };
   });

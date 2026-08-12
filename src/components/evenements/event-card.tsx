@@ -71,7 +71,7 @@ export function EventCard({
 
         <div className={cn("flex flex-1 flex-col", compact ? "p-4" : "p-5")}>
           <p className="text-[0.65rem] font-bold tracking-[0.18em] text-ae2v-red uppercase">
-            {event.kind} · démonstration
+            {event.kind}
           </p>
           <h3
             className={cn(

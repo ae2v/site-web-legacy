@@ -1,34 +1,31 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { LogIn } from "lucide-react";
-
 import { TapeLabel } from "@/components/brand";
 import { PageHero } from "@/components/layout/page-hero";
-import { HardCard, Section } from "@/components/layout/section";
+import { Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
-import {
-  contributionStatusLabels,
-  demoAccounts,
-  membershipStatusLabels,
-  roleLabels,
-  useDemoSession,
-} from "@/lib/demo-session";
+import { roleLabels, useDemoSession } from "@/lib/demo-session";
 import type { RemoteAccount } from "@/lib/demo-session";
-import { signInServer, signOutServer, signUpServer } from "@/lib/server-functions/auth";
+import {
+  getCurrentUserServer,
+  quickSignInServer,
+  signInServer,
+  signOutServer,
+  signUpServer,
+} from "@/lib/server-functions/auth";
 
 export const Route = createFileRoute("/connexion")({
   head: () => ({
     meta: [
-      { title: "Connexion démo — AE2V" },
+      { title: "Connexion — AE2V" },
       {
         name: "description",
-        content:
-          "Page de connexion de démonstration AE2V : tester les parcours membre cotisant, non cotisant et bureau.",
+        content: "Page de connexion AE2V pour les adhérents et les membres du bureau.",
       },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "Connexion démo — AE2V" },
-      { property: "og:description", content: "Connexion de démonstration AE2V." },
+      { property: "og:title", content: "Connexion — AE2V" },
+      { property: "og:description", content: "Connexion AE2V pour les adhérents et le bureau." },
       { property: "og:type", content: "website" },
     ],
   }),
@@ -41,8 +38,10 @@ const inputClass =
 function ConnexionPage() {
   const navigate = useNavigate();
   const session = useDemoSession();
-  const { account, signIn, signInRemote, signInWithCredentials, signOut, signUp } = session;
+  const { account, signInRemote, signOut } = session;
   const remoteSignIn = useServerFn(signInServer);
+  const remoteQuickSignIn = useServerFn(quickSignInServer);
+  const remoteCurrentUser = useServerFn(getCurrentUserServer);
   const remoteSignOut = useServerFn(signOutServer);
   const remoteSignUp = useServerFn(signUpServer);
 
@@ -54,10 +53,29 @@ function ConnexionPage() {
   const [departement, setDepartement] = useState("Informatique");
   const [niveau, setNiveau] = useState("1re année");
   const [error, setError] = useState<string | null>(null);
+  const [quickLoading, setQuickLoading] = useState<string | null>(null);
 
-  function quickLogin(id: string) {
-    signIn(id);
-    void navigate({ to: "/espace" });
+  async function onQuickSignIn(key: "president" | "bureau" | "cotisant" | "non-cotisant") {
+    setQuickLoading(key);
+    setError(null);
+    try {
+      const result = await remoteQuickSignIn({ data: { key } });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      const current = await remoteCurrentUser();
+      if (!current.ok) {
+        setError("Connexion rapide indisponible. Réessaie dans un instant.");
+        return;
+      }
+      signInRemote(current.user);
+      void navigate({ to: "/espace" });
+    } catch {
+      setError("Connexion rapide indisponible. Réessaie dans un instant.");
+    } finally {
+      setQuickLoading(null);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -71,10 +89,10 @@ function ConnexionPage() {
           remoteUser = remote.user;
           result = { ok: true };
         } else {
-          result = signInWithCredentials(email, password);
+          result = { ok: false, error: "Connexion indisponible. Réessaie dans un instant." };
         }
       } catch {
-        result = signInWithCredentials(email, password);
+        result = { ok: false, error: "Connexion indisponible. Réessaie dans un instant." };
       }
       if (result.ok) {
         if (remoteUser) signInRemote(remoteUser);
@@ -103,13 +121,7 @@ function ConnexionPage() {
         void navigate({ to: "/espace" });
         return;
       } catch {
-        const res = signUp({ email, password, firstName, lastName, departement, niveau });
-        if (!res.ok) {
-          setError(res.error ?? "Erreur lors de l'inscription.");
-          return;
-        }
-        setError(null);
-        void navigate({ to: "/espace" });
+        setError("Inscription indisponible. Réessaie dans un instant.");
       }
     }
   }
@@ -119,14 +131,14 @@ function ConnexionPage() {
       <PageHero
         eyebrow="Espace membre"
         title="Connexion & Inscription"
-        intro="Connecte-toi à ton compte étudiant AE2V ou utilise l'un des profils de démonstration préconfigurés."
+        intro="Connecte-toi à ton compte adhérent ou membre du bureau AE2V."
       />
 
       <Section
-        number={1}
-        ghost="PROFILS"
-        title="Comptes de démonstration rapide"
-        intro="Choisis un profil préconfiguré pour tester les parcours (étudiant, cotisant, bureau)."
+        ghost="ACCÈS"
+        title="Accès à ton compte"
+        tone="dark"
+        intro="Connecte-toi directement à ton espace AE2V."
       >
         {account ? (
           <div className="mb-8 border-2 border-ae2v-black bg-ae2v-green p-5 text-ae2v-black">
@@ -147,53 +159,6 @@ function ConnexionPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {demoAccounts.map((demo) => (
-            <HardCard
-              key={demo.id}
-              eyebrow={`${roleLabels[demo.role]} · ${contributionStatusLabels[demo.contributionStatus]}`}
-              title={`${demo.firstName} ${demo.lastName}`}
-              tone={demo.role === "bureau_admin" ? "green" : "light"}
-            >
-              <ul className="space-y-1">
-                <li>
-                  <strong>Formation :</strong> {demo.departement} · {demo.niveau}
-                </li>
-                <li>
-                  <strong>Adhésion :</strong> {membershipStatusLabels[demo.membershipStatus]}
-                </li>
-                <li>
-                  <strong>Cotisation :</strong> {contributionStatusLabels[demo.contributionStatus]}
-                  {demo.contributionCents > 0
-                    ? ` · ${(demo.contributionCents / 100).toFixed(2)} €`
-                    : ""}
-                </li>
-                <li>
-                  <strong>Droits :</strong>{" "}
-                  {demo.role === "bureau_admin"
-                    ? "consulter, corriger et valider les dossiers"
-                    : demo.role === "bureau"
-                      ? "consulter et corriger, sans validation"
-                      : "espace étudiant uniquement"}
-                </li>
-                <li className="pt-1 text-xs opacity-70">{demo.email} · mot de passe : demo1234</li>
-              </ul>
-              <Button className="mt-4 w-full" onClick={() => quickLogin(demo.id)}>
-                <LogIn aria-hidden="true" />
-                Se connecter comme {demo.firstName}
-              </Button>
-            </HardCard>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        number={2}
-        ghost="COMPTE"
-        title={mode === "login" ? "Connexion à votre compte" : "Créer un compte étudiant"}
-        tone="dark"
-        intro="Créez votre compte personnel ou connectez-vous avec vos identifiants."
-      >
         <div className="mb-6 flex gap-2">
           <Button
             variant={mode === "login" ? "red" : "outline"}
@@ -334,6 +299,38 @@ function ConnexionPage() {
             {mode === "login" ? "Se connecter" : "S'inscrire"}
           </Button>
         </form>
+
+        {mode === "login" ? (
+          <div className="mt-8 max-w-md border-2 border-ae2v-black/70 bg-ae2v-black/10 p-5 text-ae2v-offwhite">
+            <TapeLabel tone="red">Accès rapides</TapeLabel>
+            <p className="mt-4 text-sm text-ae2v-offwhite/80">
+              Ouvre un compte réel de la base pour tester rapidement les différents espaces.
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {[
+                ["president", "Président", "Compte bureau dirigeant"],
+                ["bureau", "Membre du bureau", "Compte bureau"],
+                ["cotisant", "Adhérent cotisant", "Compte adhérent"],
+                ["non-cotisant", "Adhérent non cotisant", "Compte adhérent"],
+              ].map(([key, label, description]) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={quickLoading !== null}
+                  onClick={() =>
+                    onQuickSignIn(key as "president" | "bureau" | "cotisant" | "non-cotisant")
+                  }
+                  className="border border-ae2v-offwhite/40 bg-ae2v-black px-3 py-3 text-left transition hover:border-ae2v-red disabled:cursor-wait disabled:opacity-60"
+                >
+                  <span className="block text-sm font-bold">
+                    {quickLoading === key ? "Connexion…" : label}
+                  </span>
+                  <span className="mt-1 block text-xs text-ae2v-offwhite/65">{description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Section>
     </>
   );

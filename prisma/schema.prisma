@@ -47,8 +47,17 @@ model User {
   id                   String             @id @default(cuid())
   email                String             @unique
   password             String?
+  demo                 Boolean            @default(false)
   firstName            String
   lastName             String
+  phone                String?
+  studentId            String?
+  groupe               String?
+  interestsJson        String             @default("[]")
+  volunteer            String?
+  message              String?
+  rgpdAcceptedAt       DateTime?
+  statutsAcceptedAt    DateTime?
   role                 Role               @default(MEMBRE)
   pole                 String?
   roleTitle            String?

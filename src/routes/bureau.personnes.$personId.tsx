@@ -20,6 +20,7 @@ import { EmptyState, Section } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/bureau/data-table";
 import { PaymentModal } from "@/components/bureau/payment-modal";
+import { notifySite } from "@/components/ui/site-feedback";
 import { EmailComposerModal } from "@/components/bureau/email-composer-modal";
 import { MemberCard } from "@/components/membre/member-card";
 import {
@@ -84,6 +85,9 @@ function PersonProfilePage() {
     note: string;
   } | null>(null);
   const [serverPerson, setServerPerson] = useState<BureauPerson360 | null>(null);
+  const [personLoadState, setPersonLoadState] = useState<
+    "loading" | "ready" | "not-found" | "error"
+  >("loading");
   const { dossiers, ready, sessionResolved, account } = useDemoSession();
   const loadPerson = useServerFn(getPerson360Server);
   const updatePaymentStatus = useServerFn(updatePaymentStatusServer);
@@ -110,14 +114,33 @@ function PersonProfilePage() {
   const decideMembership = useServerFn(decideMembershipServer);
 
   useEffect(() => {
-    if (!sessionResolved || !account || account.id.startsWith("acc-")) return;
+    if (!sessionResolved) {
+      setPersonLoadState("loading");
+      return;
+    }
+    if (!account || account.id.startsWith("acc-")) {
+      setPersonLoadState("ready");
+      return;
+    }
     let active = true;
+    setPersonLoadState("loading");
     void loadPerson({ data: { personId } })
       .then((result) => {
-        if (active) setServerPerson(result);
+        if (active) {
+          setServerPerson(result);
+          setPersonLoadState("ready");
+        }
       })
-      .catch(() => {
-        // Les profils locaux restent disponibles avant migration ou en mode démo.
+      .catch((error: unknown) => {
+        if (!active) return;
+        setServerPerson(null);
+        const status =
+          error instanceof Response
+            ? error.status
+            : typeof error === "object" && error !== null && "status" in error
+              ? Number(error.status)
+              : null;
+        setPersonLoadState(status === 404 ? "not-found" : "error");
       });
     return () => {
       active = false;
@@ -263,9 +286,28 @@ function PersonProfilePage() {
     : undefined;
   const resolvedPerson = localPerson ?? remotePerson;
 
+  if (!resolvedPerson && personLoadState === "loading") {
+    return (
+      <main className="min-h-screen bg-ae2v-offwhite py-16" aria-busy="true">
+        <Section title="Chargement…" intro="Récupération de la fiche adhérent en cours." />
+      </main>
+    );
+  }
+
   if (!resolvedPerson) {
-    if (!sessionResolved) {
-      return <main className="min-h-screen bg-ae2v-offwhite" aria-busy="true" />;
+    if (personLoadState === "error") {
+      return (
+        <main className="min-h-screen bg-ae2v-offwhite py-16">
+          <Section
+            title="Fiche indisponible"
+            intro="La fiche n’a pas pu être chargée. Réessayez dans quelques instants."
+          >
+            <Button variant="black" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
+          </Section>
+        </main>
+      );
     }
     return (
       <main className="min-h-screen bg-ae2v-offwhite py-16">
@@ -352,7 +394,7 @@ function PersonProfilePage() {
       const refreshed = await loadPerson({ data: { personId } });
       setServerPerson(refreshed);
     } catch {
-      alert("Le statut du paiement n’a pas pu être enregistré.");
+      notifySite("Le statut du paiement n’a pas pu être enregistré.", { kind: "error" });
     }
   }
 
@@ -364,8 +406,9 @@ function PersonProfilePage() {
       amountCents <= 0 ||
       amountCents > paymentRefundDraft.maxCents
     ) {
-      alert(
+      notifySite(
         `Le montant doit être compris entre 0,01 € et ${formatCents(paymentRefundDraft.maxCents)}.`,
+        { kind: "warning" },
       );
       return;
     }
@@ -397,7 +440,7 @@ function PersonProfilePage() {
       });
       setServerPerson(await loadPerson({ data: { personId } }));
     } catch {
-      alert("La préférence email n’a pas pu être enregistrée.");
+      notifySite("La préférence email n’a pas pu être enregistrée.", { kind: "error" });
     }
   }
 
@@ -413,7 +456,7 @@ function PersonProfilePage() {
       });
       setServerPerson(await loadPerson({ data: { personId } }));
     } catch {
-      alert("Les préférences email n’ont pas pu être enregistrées.");
+      notifySite("Les préférences email n’ont pas pu être enregistrées.", { kind: "error" });
     }
   }
 
@@ -436,7 +479,7 @@ function PersonProfilePage() {
         setServerPerson(await loadPerson({ data: { personId } }));
       }
     } catch {
-      alert("La décision d’adhésion n’a pas pu être enregistrée.");
+      notifySite("La décision d’adhésion n’a pas pu être enregistrée.", { kind: "error" });
     }
   }
 
@@ -461,7 +504,7 @@ function PersonProfilePage() {
         setServerPerson(await loadPerson({ data: { personId } }));
       }
     } catch {
-      alert("La décision d’adhésion n’a pas pu être enregistrée.");
+      notifySite("La décision d’adhésion n’a pas pu être enregistrée.", { kind: "error" });
     }
   }
 
@@ -871,7 +914,9 @@ function PersonProfilePage() {
                             setServerPerson(await loadPerson({ data: { personId } }));
                             setProfileEditing(false);
                           })
-                          .catch(() => alert("La fiche n’a pas pu être mise à jour."))
+                          .catch(() =>
+                            notifySite("La fiche n’a pas pu être mise à jour.", { kind: "error" }),
+                          )
                           .finally(() => setProfileSaving(false));
                       }}
                     >

@@ -94,9 +94,18 @@ export const signInServer = createServerFn({ method: "POST" })
       where: { email: data.email.toLowerCase() },
       select: {
         id: true,
+        demo: true,
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
+        studentId: true,
+        groupe: true,
+        interestsJson: true,
+        volunteer: true,
+        message: true,
+        rgpdAcceptedAt: true,
+        statutsAcceptedAt: true,
         role: true,
         pole: true,
         roleTitle: true,
@@ -132,9 +141,18 @@ export const signInServer = createServerFn({ method: "POST" })
       ok: true as const,
       user: {
         id: user.id,
+        demo: user.demo,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phone,
+        studentId: user.studentId,
+        groupe: user.groupe,
+        interestsJson: user.interestsJson,
+        volunteer: user.volunteer,
+        message: user.message,
+        rgpdAcceptedAt: user.rgpdAcceptedAt,
+        statutsAcceptedAt: user.statutsAcceptedAt,
         role: user.role,
         pole: user.pole,
         roleTitle: user.roleTitle,
@@ -197,6 +215,38 @@ export const signOutServer = createServerFn({ method: "POST" }).handler(async ()
   return { ok: true as const };
 });
 
+const quickAccessKeys = ["president", "bureau", "cotisant", "non-cotisant"] as const;
+
+/**
+ * Quick access is intentionally limited to the four seeded accounts used for
+ * demonstrations and internal acceptance testing. It never returns a
+ * password to the browser: it only creates the same server session as a
+ * regular sign-in.
+ */
+export const quickSignInServer = createServerFn({ method: "POST" })
+  .validator(z.object({ key: z.enum(quickAccessKeys) }))
+  .handler(async ({ data }) => {
+    const prisma = getPrisma();
+    const user = await prisma.user.findFirst({
+      where:
+        data.key === "president"
+          ? { role: "PRESIDENT", demo: false }
+          : data.key === "bureau"
+            ? { role: { in: ["BUREAU", "TRESORIER"] }, demo: false }
+            : data.key === "cotisant"
+              ? { role: "MEMBRE", demo: true, contributionStatus: "PAYEE" }
+              : { role: "MEMBRE", demo: true, contributionStatus: "NON_COTISANT" },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!user) return { ok: false as const, error: "Compte rapide indisponible." };
+
+    const session = await useSession<{ userId?: string }>(sessionConfig());
+    await session.update({ userId: user.id });
+    return { ok: true as const };
+  });
+
 export const signUpServer = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -228,9 +278,18 @@ export const signUpServer = createServerFn({ method: "POST" })
       },
       select: {
         id: true,
+        demo: true,
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
+        studentId: true,
+        groupe: true,
+        interestsJson: true,
+        volunteer: true,
+        message: true,
+        rgpdAcceptedAt: true,
+        statutsAcceptedAt: true,
         role: true,
         pole: true,
         roleTitle: true,
@@ -262,9 +321,18 @@ export const getCurrentUserServer = createServerFn({ method: "GET" }).handler(as
     where: { id: session.data.userId },
     select: {
       id: true,
+      demo: true,
       email: true,
       firstName: true,
       lastName: true,
+      phone: true,
+      studentId: true,
+      groupe: true,
+      interestsJson: true,
+      volunteer: true,
+      message: true,
+      rgpdAcceptedAt: true,
+      statutsAcceptedAt: true,
       role: true,
       pole: true,
       roleTitle: true,

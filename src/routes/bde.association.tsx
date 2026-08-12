@@ -19,6 +19,7 @@ import { Reveal } from "@/components/brand/reveal";
 import { CrossMarker, TapeLabel } from "@/components/brand";
 import { Section, HardCard } from "@/components/layout/section";
 import { Button } from "@/components/ui/button";
+import { notifySite } from "@/components/ui/site-feedback";
 
 export const Route = createFileRoute("/bde/association")({
   head: () => ({
@@ -194,7 +195,9 @@ function AssociationPage() {
               <Button
                 size="sm"
                 variant="black"
-                onClick={() => alert("Statuts consultables au bureau de l'AE2V sur rendez-vous.")}
+                onClick={() =>
+                  notifySite("Les statuts sont consultables au bureau de l’AE2V sur rendez-vous.")
+                }
               >
                 <FileText className="size-4" />
                 Demander les statuts (PDF)

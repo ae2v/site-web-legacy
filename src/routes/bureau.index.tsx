@@ -107,6 +107,8 @@ import { EmailComposerModal } from "@/components/bureau/email-composer-modal";
 import { downloadInvoicePdf } from "@/lib/invoice-pdf";
 import { PersonSheetModal, type UnifiedPerson } from "@/components/bureau/person-sheet-modal";
 import { PaymentModal } from "@/components/bureau/payment-modal";
+import { BureauModal } from "@/components/bureau/bureau-modal";
+import { confirmSite, notifySite } from "@/components/ui/site-feedback";
 import {
   getBureauBillingServer,
   importHelloAssoOrderServer,
@@ -122,9 +124,11 @@ import {
   type BureauServerMember,
 } from "@/lib/server-functions/people";
 import {
+  downloadBureauEmailListServer,
   getBureauEmailListsServer,
   EMAIL_CATEGORIES,
   type BureauEmailListRow,
+  type EmailCategory,
 } from "@/lib/server-functions/email-preferences";
 import {
   getTeamMembersServer,
@@ -183,7 +187,6 @@ function fuzzyScore(query: string, candidate: string): number {
   }
   return 1 - previous[b.length]! / Math.max(a.length, b.length);
 }
-
 function opaqueMemberCode(value: string): string {
   let hash = 2166136261;
   for (const char of value) {
@@ -191,25 +194,6 @@ function opaqueMemberCode(value: string): string {
     hash = Math.imul(hash, 16777619);
   }
   return `AE2V-2026-MBR-${(hash >>> 0).toString(36).toUpperCase().padStart(8, "0")}`;
-}
-
-function downloadEmailsCsv(
-  rows: { name: string; email: string; preferences: string[]; source: string }[],
-) {
-  const escape = (value: string) => `"${value.replaceAll('"', '""')}"`;
-  const lines = [
-    ["Nom", "E-mail", "Préférences", "Source"].map(escape).join(","),
-    ...rows.map((row) =>
-      [row.name, row.email, row.preferences.join(" | "), row.source].map(escape).join(","),
-    ),
-  ];
-  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `ae2v-listing-emails-${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 function invoiceExportRows(rows: Invoice[]) {
@@ -389,6 +373,7 @@ function BureauPage() {
   const getPerson360 = useServerFn(getPerson360Server);
   const updatePaymentStatus = useServerFn(updatePaymentStatusServer);
   const getBureauEmailLists = useServerFn(getBureauEmailListsServer);
+  const downloadBureauEmailList = useServerFn(downloadBureauEmailListServer);
   const getTeamMembers = useServerFn(getTeamMembersServer);
   const saveTeamMember = useServerFn(saveTeamMemberServer);
   const reorderTeamMembers = useServerFn(reorderTeamMembersServer);
@@ -459,7 +444,7 @@ function BureauPage() {
   const [messageSort, setMessageSort] = useState<"RECENT" | "ANCIEN">("RECENT");
   const [showValidatedMemberships, setShowValidatedMemberships] = useState(false);
   const [poleFilter, setPoleFilter] = useState("TOUS");
-  const [emailCategoryFilter, setEmailCategoryFilter] = useState("TOUS");
+  const [emailCategoryFilter, setEmailCategoryFilter] = useState<EmailCategory>("EVENEMENTS");
   const [emailMembershipFilter, setEmailMembershipFilter] = useState("TOUS");
   const [emailDepartementFilter, setEmailDepartementFilter] = useState("TOUS");
   const [emailNiveauFilter, setEmailNiveauFilter] = useState("TOUS");
@@ -483,6 +468,52 @@ function BureauPage() {
     await navigator.clipboard?.writeText(url);
     setCopiedShareLink(`${kind}:${id}`);
     window.setTimeout(() => setCopiedShareLink(null), 2200);
+  }
+
+  async function downloadThematicEmailList(category: EmailCategory) {
+    if (!isRemoteSession) {
+      notifySite("Les listes email sont disponibles après connexion à la base du bureau.", {
+        kind: "info",
+      });
+      return;
+    }
+    setEmailDownloadingCategory(category);
+    try {
+      const result = await downloadBureauEmailList({
+        data: {
+          category,
+          ...(emailMembershipFilter !== "TOUS"
+            ? {
+                membershipStatus: emailMembershipFilter as
+                  "DEMANDE_SOUMISE" | "A_CORRIGER" | "MEMBRE_VALIDE" | "REFUSE",
+              }
+            : {}),
+          ...(emailDepartementFilter !== "TOUS" ? { departement: emailDepartementFilter } : {}),
+          ...(emailNiveauFilter !== "TOUS" ? { niveau: emailNiveauFilter } : {}),
+          ...(emailVolunteerFilter !== "TOUS"
+            ? { volunteer: emailVolunteerFilter as "oui" | "peut-etre" | "non" }
+            : {}),
+          ...(memberSchoolYearFilter !== "TOUS" ? { schoolYear: memberSchoolYearFilter } : {}),
+        },
+      });
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ae2v-${category.toLowerCase()}-emails-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      notifySite(
+        `${result.count} adresse(s) exportée(s) pour « ${emailCategoryLabel(category)} ».`,
+        {
+          kind: "success",
+        },
+      );
+    } catch {
+      notifySite("La liste email n’a pas pu être téléchargée.", { kind: "error" });
+    } finally {
+      setEmailDownloadingCategory(null);
+    }
   }
 
   useEffect(() => {
@@ -562,6 +593,10 @@ function BureauPage() {
   const [serverBillingLoaded, setServerBillingLoaded] = useState(false);
   const [serverMessagesLoaded, setServerMessagesLoaded] = useState(false);
   const [serverEmailRows, setServerEmailRows] = useState<BureauEmailListRow[]>([]);
+  const [serverEmailRowsLoaded, setServerEmailRowsLoaded] = useState(false);
+  const [emailDownloadingCategory, setEmailDownloadingCategory] = useState<EmailCategory | null>(
+    null,
+  );
   const [serverMessages, setServerMessages] = useState<ContactMessage[]>([]);
   const [serverCandidatures, setServerCandidatures] = useState<Candidature[]>([]);
   const [serverBilling, setServerBilling] = useState<Awaited<
@@ -656,14 +691,14 @@ function BureauPage() {
   useEffect(() => {
     if (!account || account.id.startsWith("acc-")) {
       setServerEmailRows([]);
+      setServerEmailRowsLoaded(true);
       return;
     }
     let active = true;
+    setServerEmailRowsLoaded(false);
     void getBureauEmailLists({
       data: {
-        ...(emailCategoryFilter !== "TOUS"
-          ? { category: emailCategoryFilter as (typeof EMAIL_CATEGORIES)[number] }
-          : {}),
+        category: emailCategoryFilter,
         ...(emailMembershipFilter !== "TOUS"
           ? {
               membershipStatus: emailMembershipFilter as
@@ -679,10 +714,16 @@ function BureauPage() {
       },
     })
       .then((rows) => {
-        if (active) setServerEmailRows(rows);
+        if (active) {
+          setServerEmailRows(rows);
+          setServerEmailRowsLoaded(true);
+        }
       })
       .catch(() => {
-        if (active) setServerEmailRows([]);
+        if (active) {
+          setServerEmailRows([]);
+          setServerEmailRowsLoaded(true);
+        }
       });
     return () => {
       active = false;
@@ -975,7 +1016,7 @@ function BureauPage() {
           }),
         );
       } catch {
-        alert("La demande de correction n’a pas pu être enregistrée.");
+        notifySite("La demande de correction n’a pas pu être enregistrée.", { kind: "error" });
         return;
       }
     }
@@ -989,7 +1030,10 @@ function BureauPage() {
     if (!refundDraft?.note.trim()) return;
     const amountCents = Math.round(Number(refundDraft.amountEuros.replace(",", ".")) * 100);
     if (!Number.isFinite(amountCents) || amountCents <= 0 || amountCents > refundDraft.maxCents) {
-      alert(`Le montant doit être compris entre 0,01 € et ${formatCents(refundDraft.maxCents)}.`);
+      notifySite(
+        `Le montant doit être compris entre 0,01 € et ${formatCents(refundDraft.maxCents)}.`,
+        { kind: "warning" },
+      );
       return;
     }
     const note = refundDraft.note.trim();
@@ -1034,7 +1078,7 @@ function BureauPage() {
       }
       setRefundDraft(null);
     } catch {
-      alert("Le remboursement n’a pas pu être enregistré.");
+      notifySite("Le remboursement n’a pas pu être enregistré.", { kind: "error" });
     }
   }
 
@@ -1350,8 +1394,13 @@ function BureauPage() {
         setScanCodeInput("");
       } catch {
         setScannedTicketContext(null);
-        alert("Billet introuvable ou code non reconnu.");
+        notifySite("Billet introuvable ou code non reconnu.", { kind: "warning" });
       }
+      return;
+    }
+
+    if (isRemoteSession && !serverMembersLoaded) {
+      notifySite("Chargement des adhérents…", { kind: "info" });
       return;
     }
 
@@ -1530,7 +1579,9 @@ function BureauPage() {
       .map(({ id, label, code }) => ({ id, label, code }));
     setSearchSuggestions(candidates);
     if (candidates.length === 0)
-      alert(`Aucun membre ni dossier trouvé pour le code : ${targetCode}`);
+      notifySite(`Aucun membre ni dossier trouvé pour le code : ${targetCode}`, {
+        kind: "warning",
+      });
   }
 
   async function validateScannedTicket() {
@@ -1549,7 +1600,10 @@ function BureauPage() {
         `Billet ${scannedTicketContext.ticket.code} validé à l'entrée`,
       );
     } catch {
-      alert("Le billet ne peut pas être validé : déjà utilisé, annulé ou paiement non confirmé.");
+      notifySite(
+        "Le billet ne peut pas être validé : déjà utilisé, annulé ou paiement non confirmé.",
+        { kind: "warning" },
+      );
     }
   }
 
@@ -1564,9 +1618,11 @@ function BureauPage() {
         await updatePaymentStatus({ data: { paymentId: payment.id, status: "CONFIRME" } });
       }
       setScannedServerPerson(await getPerson360({ data: { personId: scannedServerPerson.id } }));
-      alert(`${pending.length} paiement(s) confirmé(s), facture(s) créée(s).`);
+      notifySite(`${pending.length} paiement(s) confirmé(s), facture(s) créée(s).`, {
+        kind: "success",
+      });
     } catch {
-      alert("Au moins un paiement n’a pas pu être confirmé.");
+      notifySite("Au moins un paiement n’a pas pu être confirmé.", { kind: "error" });
     }
   }
 
@@ -1582,7 +1638,9 @@ function BureauPage() {
         );
       }
     } catch {
-      alert("Ce paiement n’a pas pu être confirmé. Vérifiez vos droits et son état.");
+      notifySite("Ce paiement n’a pas pu être confirmé. Vérifiez vos droits et son état.", {
+        kind: "error",
+      });
     }
   }
 
@@ -1687,7 +1745,7 @@ function BureauPage() {
         setSelectedContactMessage({ ...message, status });
       }
     } catch {
-      alert("L’état du message n’a pas pu être enregistré.");
+      notifySite("L’état du message n’a pas pu être enregistré.", { kind: "error" });
     }
   }
 
@@ -1936,9 +1994,9 @@ function BureauPage() {
         )}
 
         {selectedEventDetail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ae2v-black/60 p-4 backdrop-blur-sm">
-            <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto border-2 border-ae2v-black bg-card p-6 shadow-2xl">
-              <div className="mb-5 flex items-start justify-between gap-4 border-b-2 border-ae2v-black pb-3">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ae2v-black/60 p-4 backdrop-blur-sm sm:p-6">
+            <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden border-2 border-ae2v-black bg-card shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+              <div className="mb-5 flex shrink-0 items-start justify-between gap-4 border-b-2 border-ae2v-black px-6 pb-3 pt-6">
                 <div>
                   <p className="text-xs font-bold uppercase text-ae2v-red">Fiche événement</p>
                   <h3 className="font-impact text-3xl uppercase">{selectedEventDetail.title}</h3>
@@ -1956,22 +2014,43 @@ function BureauPage() {
                 </button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ["Date", selectedEventDetail.date],
-                  ["Horaires", selectedEventDetail.doors],
-                  ["Lieu", selectedEventDetail.place],
-                  ["Adresse", selectedEventDetail.address],
-                  ["Ouverture", selectedEventDetail.registrationOpensAt],
-                  ["Clôture", selectedEventDetail.registrationClosesAt],
-                  ["Jauge", `${selectedEventDetail.registered} / ${selectedEventDetail.capacity}`],
-                  ["Liste d’attente", selectedEventDetail.waitlist ? "Activée" : "Désactivée"],
-                ].map(([label, value]) => (
-                  <div key={label} className="border-2 border-ae2v-black/15 bg-ae2v-offwhite p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[0.65rem] font-bold uppercase text-muted-foreground">
-                        {label}
-                      </p>
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["Date", selectedEventDetail.date],
+                    ["Horaires", selectedEventDetail.doors],
+                    ["Lieu", selectedEventDetail.place],
+                    ["Adresse", selectedEventDetail.address],
+                    ["Ouverture", selectedEventDetail.registrationOpensAt],
+                    ["Clôture", selectedEventDetail.registrationClosesAt],
+                    [
+                      "Jauge",
+                      `${selectedEventDetail.registered} / ${selectedEventDetail.capacity}`,
+                    ],
+                    ["Liste d’attente", selectedEventDetail.waitlist ? "Activée" : "Désactivée"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="border-2 border-ae2v-black/15 bg-ae2v-offwhite p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[0.65rem] font-bold uppercase text-muted-foreground">
+                          {label}
+                        </p>
+                        <button
+                          type="button"
+                          className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
+                          onClick={() => openEventEditor(selectedEventDetail)}
+                        >
+                          Modifier
+                        </button>
+                      </div>
+                      <p className="mt-1 text-sm font-bold">{value || "À déterminer"}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-3 border-2 border-ae2v-black/15 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase">Contenu de l’événement</p>
                       <button
                         type="button"
                         className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
@@ -1980,138 +2059,122 @@ function BureauPage() {
                         Modifier
                       </button>
                     </div>
-                    <p className="mt-1 text-sm font-bold">{value || "À déterminer"}</p>
+                    <InfoRow label="Résumé" value={selectedEventDetail.summary || "À déterminer"} />
+                    <InfoRow
+                      label="Description"
+                      value={selectedEventDetail.description || "À déterminer"}
+                    />
+                    <InfoRow label="Accès" value={selectedEventDetail.access || "À déterminer"} />
+                    <InfoRow
+                      label="Informations pratiques"
+                      value={selectedEventDetail.practical.join(" · ") || "À déterminer"}
+                    />
+                    <InfoRow
+                      label="Visuel"
+                      value={selectedEventDetail.image ? "Configuré" : "Aucun visuel"}
+                    />
+                    <div className="overflow-hidden border-2 border-ae2v-black/15 bg-ae2v-black/5">
+                      {selectedEventDetail.image ? (
+                        <img
+                          src={selectedEventDetail.image}
+                          alt={`Visuel de ${selectedEventDetail.title}`}
+                          className="h-32 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-32 items-center justify-center text-xs font-bold uppercase text-muted-foreground">
+                          Aucun visuel · placeholder AE2V
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
-
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <div className="space-y-3 border-2 border-ae2v-black/15 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase">Contenu de l’événement</p>
-                    <button
-                      type="button"
-                      className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
-                      onClick={() => openEventEditor(selectedEventDetail)}
-                    >
-                      Modifier
-                    </button>
-                  </div>
-                  <InfoRow label="Résumé" value={selectedEventDetail.summary || "À déterminer"} />
-                  <InfoRow
-                    label="Description"
-                    value={selectedEventDetail.description || "À déterminer"}
-                  />
-                  <InfoRow label="Accès" value={selectedEventDetail.access || "À déterminer"} />
-                  <InfoRow
-                    label="Informations pratiques"
-                    value={selectedEventDetail.practical.join(" · ") || "À déterminer"}
-                  />
-                  <InfoRow
-                    label="Visuel"
-                    value={selectedEventDetail.image ? "Configuré" : "Aucun visuel"}
-                  />
-                  <div className="overflow-hidden border-2 border-ae2v-black/15 bg-ae2v-black/5">
-                    {selectedEventDetail.image ? (
-                      <img
-                        src={selectedEventDetail.image}
-                        alt={`Visuel de ${selectedEventDetail.title}`}
-                        className="h-32 w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-32 items-center justify-center text-xs font-bold uppercase text-muted-foreground">
-                        Aucun visuel · placeholder AE2V
+                  <div className="space-y-3 border-2 border-ae2v-black/15 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase">Tarifs</p>
+                      <button
+                        type="button"
+                        className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
+                        onClick={() => openEventEditor(selectedEventDetail)}
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                    {selectedEventDetail.tiers.map((tier) => (
+                      <div
+                        key={tier.id}
+                        className="flex items-start justify-between gap-3 border-b border-ae2v-black/15 pb-2 text-sm last:border-0"
+                      >
+                        <span>
+                          <strong>{tier.label}</strong>
+                          {tier.disabled && (
+                            <span className="ml-2 text-xs text-muted-foreground">désactivé</span>
+                          )}
+                          {tier.note && (
+                            <span className="block text-xs text-muted-foreground">{tier.note}</span>
+                          )}
+                        </span>
+                        <span className="font-bold">
+                          {tier.priceCents ? formatCents(tier.priceCents) : "Gratuit"}
+                        </span>
                       </div>
+                    ))}
+                    {!selectedEventDetail.tiers.length && (
+                      <p className="text-sm">Aucun tarif configuré.</p>
                     )}
                   </div>
                 </div>
-                <div className="space-y-3 border-2 border-ae2v-black/15 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase">Tarifs</p>
-                    <button
-                      type="button"
-                      className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
-                      onClick={() => openEventEditor(selectedEventDetail)}
-                    >
-                      Modifier
-                    </button>
-                  </div>
-                  {selectedEventDetail.tiers.map((tier) => (
-                    <div
-                      key={tier.id}
-                      className="flex items-start justify-between gap-3 border-b border-ae2v-black/15 pb-2 text-sm last:border-0"
-                    >
-                      <span>
-                        <strong>{tier.label}</strong>
-                        {tier.disabled && (
-                          <span className="ml-2 text-xs text-muted-foreground">désactivé</span>
-                        )}
-                        {tier.note && (
-                          <span className="block text-xs text-muted-foreground">{tier.note}</span>
-                        )}
-                      </span>
-                      <span className="font-bold">
-                        {tier.priceCents ? formatCents(tier.priceCents) : "Gratuit"}
-                      </span>
-                    </div>
-                  ))}
-                  {!selectedEventDetail.tiers.length && (
-                    <p className="text-sm">Aucun tarif configuré.</p>
-                  )}
-                </div>
-              </div>
 
-              {selectedEventDetail.program.length > 0 && (
-                <div className="mt-4 border-2 border-ae2v-black/15 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase">Programme</p>
-                    <button
-                      type="button"
-                      className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
-                      onClick={() => openEventEditor(selectedEventDetail)}
-                    >
-                      Modifier
-                    </button>
+                {selectedEventDetail.program.length > 0 && (
+                  <div className="mt-4 border-2 border-ae2v-black/15 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase">Programme</p>
+                      <button
+                        type="button"
+                        className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
+                        onClick={() => openEventEditor(selectedEventDetail)}
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {selectedEventDetail.program.map((item, index) => (
+                        <p key={`${item.time}-${index}`} className="text-sm">
+                          <strong>{item.time || ""}</strong>
+                          {item.label ? ` · ${item.label}` : ""}
+                          {item.detail ? ` — ${item.detail}` : ""}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-2 space-y-2">
-                    {selectedEventDetail.program.map((item, index) => (
-                      <p key={`${item.time}-${index}`} className="text-sm">
-                        <strong>{item.time || ""}</strong>
-                        {item.label ? ` · ${item.label}` : ""}
-                        {item.detail ? ` — ${item.detail}` : ""}
-                      </p>
+                )}
+
+                {(selectedEventDetail.customSections ?? []).length > 0 && (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2 flex items-center justify-between gap-3">
+                      <p className="text-xs font-bold uppercase">Sections personnalisées</p>
+                      <button
+                        type="button"
+                        className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
+                        onClick={() => openEventEditor(selectedEventDetail)}
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                    {(selectedEventDetail.customSections ?? []).map((section, index) => (
+                      <div
+                        key={`${section.title}-${index}`}
+                        className="border-2 border-ae2v-black/15 p-4"
+                      >
+                        <p className="text-xs font-bold uppercase">{section.title}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-sm">{section.body}</p>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {(selectedEventDetail.customSections ?? []).length > 0 && (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2 flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase">Sections personnalisées</p>
-                    <button
-                      type="button"
-                      className="text-[0.6rem] font-bold uppercase text-ae2v-red underline underline-offset-2"
-                      onClick={() => openEventEditor(selectedEventDetail)}
-                    >
-                      Modifier
-                    </button>
-                  </div>
-                  {(selectedEventDetail.customSections ?? []).map((section, index) => (
-                    <div
-                      key={`${section.title}-${index}`}
-                      className="border-2 border-ae2v-black/15 p-4"
-                    >
-                      <p className="text-xs font-bold uppercase">{section.title}</p>
-                      <p className="mt-2 whitespace-pre-wrap text-sm">{section.body}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-5 flex flex-wrap justify-end gap-2 border-t-2 border-ae2v-black pt-4">
+              <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t-2 border-ae2v-black px-6 pb-6 pt-4">
                 <Button variant="outline" onClick={() => openEventAttendees(selectedEventDetail)}>
-                  <Users className="size-4" /> Voir les inscrits
+                  <Users className="size-4" /> Voir les participants
                 </Button>
                 <Button
                   variant="black"
@@ -2148,7 +2211,7 @@ function BureauPage() {
                   type="text"
                   value={scanCodeInput}
                   onChange={(e) => setScanCodeInput(e.target.value)}
-                  placeholder="Ex. AE2V-2026-TK-9X82 ou sacha.demo@etu.uvsq.fr"
+                  placeholder="Ex. AE2V-2026-TK-9X82 ou prenom.nom@etu.uvsq.fr"
                   className="flex-1 min-h-[44px] border-2 border-ae2v-black bg-ae2v-offwhite px-4 font-mono text-sm outline-none focus-visible:border-ae2v-red"
                 />
                 <Button onClick={() => handleExecuteScan()} size="lg">
@@ -2164,6 +2227,11 @@ function BureauPage() {
                   {cameraOpen ? "Fermer la caméra" : "Ouvrir la caméra"}
                 </Button>
               </div>
+              {isRemoteSession && !serverMembersLoaded && (
+                <p className="mt-3 max-w-xl text-xs font-bold uppercase text-muted-foreground">
+                  Chargement des adhérents…
+                </p>
+              )}
 
               {cameraOpen && (
                 <div className="mt-4 max-w-xl border-2 border-ae2v-black bg-ae2v-offwhite p-3">
@@ -2209,26 +2277,6 @@ function BureauPage() {
                   </div>
                 </div>
               )}
-
-              {/* Codes de démonstration rapides */}
-              <div className="mt-4 pt-3 border-t border-ae2v-black/10 flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold text-muted-foreground uppercase">
-                  Exemples rapides :
-                </span>
-                {(demoAccounts ?? []).slice(0, 3).map((acc) => (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={async () => {
-                      setScanCodeInput(acc.cardCode);
-                      handleExecuteScan(acc.cardCode);
-                    }}
-                    className="border border-ae2v-black/30 bg-ae2v-offwhite px-2 py-1 font-mono text-[0.7rem] hover:bg-ae2v-black hover:text-white"
-                  >
-                    {acc.cardCode} ({acc.firstName})
-                  </button>
-                ))}
-              </div>
             </div>
 
             {scannedTicketContext && (
@@ -2573,36 +2621,6 @@ function BureauPage() {
                       />
                       Afficher les traités
                     </label>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={
-                        isRemoteSession
-                          ? !serverEmailRows.length
-                          : !safeDossiers.some((dossier) => dossier.emailPrefs.length > 0)
-                      }
-                      onClick={() =>
-                        downloadEmailsCsv(
-                          isRemoteSession
-                            ? serverEmailRows.map((row) => ({
-                                name: `${row.firstName} ${row.lastName}`,
-                                email: row.email,
-                                preferences: row.categories,
-                                source: row.source === "USER" ? "adhérent" : "adhésion",
-                              }))
-                            : safeDossiers
-                                .filter((dossier) => dossier.emailPrefs.length > 0)
-                                .map((dossier) => ({
-                                  name: `${dossier.firstName} ${dossier.lastName}`,
-                                  email: dossier.email,
-                                  preferences: dossier.emailPrefs,
-                                  source: "adhésion",
-                                })),
-                        )
-                      }
-                    >
-                      <Download className="size-4" /> Télécharger les e-mails
-                    </Button>
                     <Button size="sm" variant="default" onClick={() => openEmailComposer("")}>
                       <Send className="size-4" /> Rédiger un e-mail BDE
                     </Button>
@@ -3156,6 +3174,11 @@ function BureauPage() {
                     />
                   </>
                 }
+                emptyLabel={
+                  isRemoteSession && !serverMembersLoaded
+                    ? "Chargement des adhérents…"
+                    : "Aucun adhérent ne correspond aux filtres."
+                }
                 columns={[
                   {
                     key: "cardCode",
@@ -3343,19 +3366,63 @@ function BureauPage() {
                   <div>
                     <h3 className="font-impact text-xl uppercase">Listings e-mail opérationnels</h3>
                     <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                      Les destinataires sont recalculés côté serveur selon leurs choix. Cette liste
-                      ne crée pas de newsletter et exclut les désinscriptions globales.
+                      Choisissez une thématique : seuls les adhérents ayant accepté cette catégorie
+                      dans « Mes préférences email » et n’ayant pas désactivé les emails sont
+                      inclus.
                     </p>
                   </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {EMAIL_CATEGORIES.map((category) => (
+                    <div
+                      key={category}
+                      className={`border-2 p-4 ${
+                        emailCategoryFilter === category
+                          ? "border-ae2v-red bg-ae2v-red/5"
+                          : "border-ae2v-black bg-card"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="w-full text-left"
+                        onClick={() => setEmailCategoryFilter(category)}
+                      >
+                        <span className="text-xs font-bold uppercase tracking-[0.12em] text-ae2v-red">
+                          Liste thématique
+                        </span>
+                        <span className="mt-1 block font-impact text-lg uppercase">
+                          {emailCategoryLabel(category)}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          Préférence activée + consentement email conservé
+                        </span>
+                      </button>
+                      <Button
+                        size="sm"
+                        variant={emailCategoryFilter === category ? "black" : "outline"}
+                        className="mt-3 w-full"
+                        disabled={emailDownloadingCategory !== null || !isRemoteSession}
+                        onClick={() => void downloadThematicEmailList(category)}
+                      >
+                        <Download className="size-3.5" />
+                        {emailDownloadingCategory === category
+                          ? "Préparation…"
+                          : "Télécharger le CSV"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-end justify-between gap-4 border-2 border-ae2v-black bg-card p-4">
                   <div className="flex flex-wrap gap-2">
                     <label className="text-xs font-bold uppercase">
                       Catégorie
                       <select
                         className="mt-1 block min-h-10 border-2 border-ae2v-black bg-ae2v-offwhite px-3 text-sm"
                         value={emailCategoryFilter}
-                        onChange={(event) => setEmailCategoryFilter(event.target.value)}
+                        onChange={(event) =>
+                          setEmailCategoryFilter(event.target.value as EmailCategory)
+                        }
                       >
-                        <option value="TOUS">Toutes les catégories</option>
                         {EMAIL_CATEGORIES.map((category) => (
                           <option key={category} value={category}>
                             {emailCategoryLabel(category)}
@@ -3427,19 +3494,14 @@ function BureauPage() {
                     <Button
                       size="sm"
                       variant="black"
-                      disabled={!serverEmailRows.length}
-                      onClick={() =>
-                        downloadEmailsCsv(
-                          serverEmailRows.map((row) => ({
-                            name: `${row.firstName} ${row.lastName}`,
-                            email: row.email,
-                            preferences: row.categories,
-                            source: row.source,
-                          })),
-                        )
+                      disabled={
+                        emailDownloadingCategory !== null ||
+                        !isRemoteSession ||
+                        !serverEmailRowsLoaded
                       }
+                      onClick={() => void downloadThematicEmailList(emailCategoryFilter)}
                     >
-                      <Download className="size-4" /> Télécharger le listing
+                      <Download className="size-4" /> Télécharger cette liste
                     </Button>
                     <p className="basis-full text-xs text-muted-foreground">
                       La liste contient uniquement les personnes ayant accepté de recevoir les
@@ -3448,7 +3510,11 @@ function BureauPage() {
                     </p>
                   </div>
                 </div>
-                {serverEmailRows.length ? (
+                {!serverEmailRowsLoaded ? (
+                  <div className="border-2 border-ae2v-black bg-card p-8 text-center text-sm">
+                    Chargement de la liste « {emailCategoryLabel(emailCategoryFilter)} »…
+                  </div>
+                ) : serverEmailRows.length ? (
                   <DataTable
                     rows={serverEmailRows}
                     columns={[
@@ -3609,7 +3675,9 @@ function BureauPage() {
                                     data: { ids: current.map((item) => item.id) },
                                   });
                                 } catch {
-                                  alert("L’ordre n’a pas pu être enregistré côté serveur.");
+                                  notifySite("L’ordre n’a pas pu être enregistré côté serveur.", {
+                                    kind: "error",
+                                  });
                                 }
                               } else {
                                 saveDynamicTeamMembers(current);
@@ -3647,7 +3715,9 @@ function BureauPage() {
                                       });
                                     } else saveDynamicTeamMembers(current);
                                   } catch {
-                                    alert("L’ordre n’a pas pu être enregistré côté serveur.");
+                                    notifySite("L’ordre n’a pas pu être enregistré côté serveur.", {
+                                      kind: "error",
+                                    });
                                   }
                                 }}
                               >
@@ -3672,7 +3742,9 @@ function BureauPage() {
                                       });
                                     } else saveDynamicTeamMembers(current);
                                   } catch {
-                                    alert("L’ordre n’a pas pu être enregistré côté serveur.");
+                                    notifySite("L’ordre n’a pas pu être enregistré côté serveur.", {
+                                      kind: "error",
+                                    });
                                   }
                                 }}
                               >
@@ -3995,7 +4067,7 @@ function BureauPage() {
                       render: (e) => (
                         <div className="flex gap-2">
                           <Button size="sm" variant="black" onClick={() => openEventAttendees(e)}>
-                            <Users className="size-3.5" /> Inscrits ({e.registered})
+                            <Users className="size-3.5" /> Participants ({e.registered})
                           </Button>
                         </div>
                       ),
@@ -4033,7 +4105,7 @@ function BureauPage() {
                       })
                     }
                   >
-                    <Plus className="size-4" /> Nouveau formulaire complet
+                    <Plus className="size-4" /> Ajouter un produit
                   </Button>
                 </div>
 
@@ -4076,7 +4148,12 @@ function BureauPage() {
                           size="sm"
                           variant="outline"
                           onClick={async () => {
-                            if (window.confirm(`Supprimer l’aperçu « ${p.name} » ?`)) {
+                            if (
+                              await confirmSite(`Supprimer l’aperçu « ${p.name} » ?`, {
+                                title: "Supprimer cet aperçu ?",
+                                confirmLabel: "Supprimer",
+                              })
+                            ) {
                               if (
                                 account &&
                                 !account.id.startsWith("acc-") &&
@@ -4089,7 +4166,9 @@ function BureauPage() {
                                   );
                                   return;
                                 } catch {
-                                  alert("Le produit n’a pas pu être archivé côté serveur.");
+                                  notifySite("Le produit n’a pas pu être archivé côté serveur.", {
+                                    kind: "error",
+                                  });
                                   return;
                                 }
                               }
@@ -4137,7 +4216,7 @@ function BureauPage() {
                       setOrderFormOpen(true);
                     }}
                   >
-                    <Plus className="size-4" /> Formulaire complet
+                    <Plus className="size-4" /> Ajouter une commande
                   </Button>
                 </div>
 
@@ -4576,14 +4655,17 @@ function BureauPage() {
                               event.target.value = "";
                               if (!file) return;
                               if (!file.type.startsWith("image/") || file.size > 5_000_000) {
-                                alert("Choisissez une image JPG, PNG ou WebP de moins de 5 Mo.");
+                                notifySite(
+                                  "Choisissez une image JPG, PNG ou WebP de moins de 5 Mo.",
+                                  { kind: "warning" },
+                                );
                                 return;
                               }
                               try {
                                 const photoUrl = await processImageFile(file, "1:1", 600);
                                 setEditingMember({ ...editingMember, photoUrl });
                               } catch {
-                                alert("La photo n’a pas pu être traitée.");
+                                notifySite("La photo n’a pas pu être traitée.", { kind: "error" });
                               }
                             }}
                           />
@@ -4737,12 +4819,17 @@ function BureauPage() {
                 <Button
                   onClick={async () => {
                     if (editingMember.isOfficer && !editingMember.roleEmail?.trim()) {
-                      alert("Renseignez l’e-mail statutaire @ae2v.fr pour cet officier dirigeant.");
+                      notifySite(
+                        "Renseignez l’e-mail statutaire @ae2v.fr pour cet officier dirigeant.",
+                        { kind: "warning" },
+                      );
                       return;
                     }
                     const personalEmail = editingMember.personalAe2vEmail?.trim().toLowerCase();
                     if (!personalEmail || !personalEmail.endsWith("@ae2v.fr")) {
-                      alert("Renseignez l’e-mail nominatif @ae2v.fr du membre.");
+                      notifySite("Renseignez l’e-mail nominatif @ae2v.fr du membre.", {
+                        kind: "warning",
+                      });
                       return;
                     }
                     const normalizedRoleTitles = editingMember.roleTitles
@@ -4763,9 +4850,13 @@ function BureauPage() {
                     if (editingMember.officerRole) {
                       if (
                         existingOfficer &&
-                        !window.confirm(
+                        !(await confirmSite(
                           `${existingOfficer.displayName} possède déjà la fonction « ${editingMember.officerRole} ». Voulez-vous lui retirer cette fonction et l’attribuer à ${editingMember.displayName} ?`,
-                        )
+                          {
+                            title: "Réattribuer la fonction dirigeante ?",
+                            confirmLabel: "Réattribuer",
+                          },
+                        ))
                       ) {
                         return;
                       }
@@ -4824,7 +4915,9 @@ function BureauPage() {
                           },
                         });
                       } catch {
-                        alert("La fiche équipe n’a pas pu être enregistrée côté serveur.");
+                        notifySite("La fiche équipe n’a pas pu être enregistrée côté serveur.", {
+                          kind: "error",
+                        });
                         return;
                       }
                     }
@@ -4881,7 +4974,6 @@ function BureauPage() {
                     ["tagline", "Description courte"],
                     ["pricePublic", "Prix public (€)"],
                     ["priceMember", "Prix cotisant (€)"],
-                    ["image", "URL de l’image"],
                     ["helloAssoUrl", "Lien HelloAsso"],
                   ] as const
                 ).map(([field, label]) => (
@@ -4914,6 +5006,59 @@ function BureauPage() {
                     />
                   </label>
                 ))}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold uppercase">
+                    Visuel de l’article
+                    <input
+                      className="mt-1 block min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 text-sm font-normal file:mr-3 file:border-0 file:bg-ae2v-black file:px-3 file:py-2 file:font-bold file:uppercase file:text-ae2v-offwhite"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        if (!file.type.startsWith("image/") || file.size > 5_000_000) {
+                          notifySite("Choisissez une image JPG, PNG ou WebP de moins de 5 Mo.", {
+                            kind: "warning",
+                          });
+                          event.target.value = "";
+                          return;
+                        }
+                        try {
+                          const image = await processImageFile(file, "1:1", 900);
+                          if (image.length > 550_000) {
+                            notifySite(
+                              "Le visuel recadré reste trop lourd. Choisissez une image plus légère.",
+                              {
+                                kind: "warning",
+                              },
+                            );
+                            event.target.value = "";
+                            return;
+                          }
+                          setEditingProduct((current) =>
+                            current ? { ...current, image } : current,
+                          );
+                        } catch {
+                          notifySite("Le visuel n’a pas pu être traité.", { kind: "error" });
+                          event.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Image carrée 900 × 900 px. Le recadrage et la compression sont automatiques ;
+                    aucun lien d’image n’est nécessaire.
+                  </p>
+                  {editingProduct.image ? (
+                    <img
+                      src={editingProduct.image}
+                      alt="Aperçu du visuel de l’article"
+                      width={180}
+                      height={180}
+                      className="mt-3 aspect-square size-36 border-2 border-ae2v-black object-cover"
+                    />
+                  ) : null}
+                </div>
                 <label className="text-xs font-bold uppercase sm:col-span-2">
                   Tailles / variantes, séparées par des virgules
                   <input
@@ -4962,7 +5107,7 @@ function BureauPage() {
                           ...current.filter((item) => item.id !== result.product.id),
                         ]);
                       } catch {
-                        alert("L’article n’a pas pu être enregistré.");
+                        notifySite("L’article n’a pas pu être enregistré.", { kind: "error" });
                         return;
                       }
                     } else {
@@ -5135,7 +5280,7 @@ function BureauPage() {
                   onClick={() => {
                     const url = `${window.location.origin}/bureau?dossier=${encodeURIComponent(selectedDossier.id)}`;
                     void navigator.clipboard?.writeText(url);
-                    alert("Lien de la demande copié.");
+                    notifySite("Lien de la demande copié.", { kind: "success" });
                   }}
                 >
                   <Copy className="size-3.5" /> Copier le lien
@@ -5168,7 +5313,9 @@ function BureauPage() {
                             }),
                           );
                         } catch {
-                          alert("La validation n’a pas pu être enregistrée côté serveur.");
+                          notifySite("La validation n’a pas pu être enregistrée côté serveur.", {
+                            kind: "error",
+                          });
                           return;
                         }
                       }
@@ -5336,9 +5483,13 @@ function BureauPage() {
                             "NOTE_CANDIDATURE",
                             `Commentaire ajouté sur la candidature ${selectedCandidature.id}`,
                           );
-                          alert("Commentaire sauvegardé avec succès !");
+                          notifySite("Commentaire sauvegardé avec succès !", { kind: "success" });
                         })
-                        .catch(() => alert("Le commentaire n’a pas pu être sauvegardé."));
+                        .catch(() =>
+                          notifySite("Le commentaire n’a pas pu être sauvegardé.", {
+                            kind: "error",
+                          }),
+                        );
                     }}
                   >
                     Sauvegarder le commentaire
@@ -5370,7 +5521,9 @@ function BureauPage() {
                           );
                           setSelectedCandidature(null);
                         })
-                        .catch(() => alert("La décision n’a pas pu être enregistrée."));
+                        .catch(() =>
+                          notifySite("La décision n’a pas pu être enregistrée.", { kind: "error" }),
+                        );
                     }}
                   >
                     Accepter Candidature
@@ -5390,7 +5543,9 @@ function BureauPage() {
                         )
                         .then(() => setSelectedCandidature(null))
                         .catch(() =>
-                          alert("Le statut de la candidature n’a pas pu être enregistré."),
+                          notifySite("Le statut de la candidature n’a pas pu être enregistré.", {
+                            kind: "error",
+                          }),
                         );
                     }}
                   >
@@ -5437,7 +5592,10 @@ function BureauPage() {
                       item.unitPriceCents <= 0,
                   )
                 ) {
-                  alert("Chaque ligne doit avoir un article, une quantité et un prix valides.");
+                  notifySite(
+                    "Chaque ligne doit avoir un article, une quantité et un prix valides.",
+                    { kind: "warning" },
+                  );
                   return;
                 }
                 const totalCents = lineItems.reduce(
@@ -5487,7 +5645,10 @@ function BureauPage() {
                   );
                   setOrderFormOpen(false);
                 } catch {
-                  alert("La commande n’a pas pu être enregistrée. Vérifiez les informations.");
+                  notifySite(
+                    "La commande n’a pas pu être enregistrée. Vérifiez les informations.",
+                    { kind: "error" },
+                  );
                 }
               }}
             >
@@ -5786,7 +5947,9 @@ function BureauPage() {
                                 },
                               });
                             } catch {
-                              alert("Le statut de la commande n’a pas pu être enregistré.");
+                              notifySite("Le statut de la commande n’a pas pu être enregistré.", {
+                                kind: "error",
+                              });
                               return;
                             }
                           }
@@ -5911,516 +6074,452 @@ function BureauPage() {
         {/* MODAL 4: Édition rapide d'événement                               */}
         {/* ------------------------------------------------------------------ */}
         {eventFormOpen && editingEvent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ae2v-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl border-2 border-ae2v-black bg-card p-6 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between border-b-2 border-ae2v-black pb-3">
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ae2v-black/60 p-4 backdrop-blur-sm sm:p-6">
+            <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden border-2 border-ae2v-black bg-card shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+              <div className="mb-4 flex shrink-0 items-center justify-between border-b-2 border-ae2v-black bg-card px-6 pb-3 pt-6">
                 <h3 className="font-impact text-2xl uppercase">Éditer un événement</h3>
                 <button type="button" onClick={() => setEventFormOpen(false)} aria-label="Fermer">
                   <X className="size-5" />
                 </button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 text-xs">
-                <label className="sm:col-span-2 font-bold uppercase">
-                  Titre
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.title}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Date affichée
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.date}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Horaires
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.doors}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, doors: e.target.value })}
-                    placeholder="À déterminer"
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Lieu
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.place}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, place: e.target.value })}
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Adresse / accès précis
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.address}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, address: e.target.value })}
-                    placeholder="À déterminer"
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Capacité
-                  <input
-                    type="number"
-                    min={1}
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.capacity}
-                    onChange={(e) =>
-                      setEditingEvent({
-                        ...editingEvent,
-                        capacity: Math.max(editingEvent.registered, Number(e.target.value) || 1),
-                      })
-                    }
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Statut
-                  <select
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.status}
-                    onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, status: e.target.value as EventStatus })
-                    }
-                  >
-                    {Object.entries(eventStatusLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 self-end pb-2 font-bold uppercase">
-                  <input
-                    type="checkbox"
-                    checked={editingEvent.waitlist}
-                    onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, waitlist: e.target.checked })
-                    }
-                  />
-                  Liste d’attente activée
-                </label>
-                <label className="font-bold uppercase">
-                  Ouverture des inscriptions
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.registrationOpensAt}
-                    onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, registrationOpensAt: e.target.value })
-                    }
-                    placeholder="À déterminer"
-                    required
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Fermeture des inscriptions
-                  <input
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.registrationClosesAt}
-                    onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, registrationClosesAt: e.target.value })
-                    }
-                    placeholder="À déterminer"
-                    required
-                  />
-                </label>
-                <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-impact text-lg uppercase">Tarifs</p>
-                      <p className="text-[0.65rem] font-normal normal-case opacity-70">
-                        Public, cotisant et membre du bureau restent disponibles mais peuvent être
-                        désactivés. Pour un événement gratuit, laissez les montants à 0 € et
-                        désactivez les tarifs qui ne doivent pas être proposés.
-                      </p>
-                    </div>
-                    <label className="flex min-h-10 shrink-0 items-center gap-2 border-2 border-ae2v-black bg-card px-3 py-2 text-xs font-bold uppercase">
-                      <input
-                        type="checkbox"
-                        checked={editingEvent.tiers
-                          .filter((tier) => !tier.disabled)
-                          .every((tier) => tier.priceCents === 0)}
-                        onChange={(event) => {
-                          if (!event.target.checked) return;
-                          setEditingEvent({
-                            ...editingEvent,
-                            tiers: editingEvent.tiers.map((tier) => ({
-                              ...tier,
-                              priceCents: 0,
-                              disabled:
-                                tier.audience === "public" ? false : (tier.disabled ?? false),
-                            })),
-                          });
-                        }}
-                        className="size-4 accent-ae2v-red"
-                      />
-                      Événement gratuit
-                    </label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                <div className="grid gap-4 text-xs sm:grid-cols-2">
+                  <label className="sm:col-span-2 font-bold uppercase">
+                    Titre
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.title}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Date affichée
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.date}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Horaires
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.doors}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, doors: e.target.value })}
+                      placeholder="À déterminer"
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Lieu
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.place}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, place: e.target.value })}
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Adresse / accès précis
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.address}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, address: e.target.value })
+                      }
+                      placeholder="À déterminer"
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Capacité
+                    <input
+                      type="number"
+                      min={1}
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.capacity}
+                      onChange={(e) =>
                         setEditingEvent({
                           ...editingEvent,
-                          tiers: [
-                            ...editingEvent.tiers,
-                            {
-                              id: `custom-${Date.now()}`,
-                              label: "Nouveau tarif",
-                              priceCents: 0,
-                              audience: "public",
-                              disabled: false,
-                              system: false,
-                            },
-                          ],
+                          capacity: Math.max(editingEvent.registered, Number(e.target.value) || 1),
                         })
                       }
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Statut
+                    <select
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.status}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, status: e.target.value as EventStatus })
+                      }
                     >
-                      <Plus className="size-3.5" /> Ajouter un tarif
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {editingEvent.tiers.map((tier, index) => (
-                      <div
-                        key={tier.id}
-                        className="grid gap-2 border-2 border-ae2v-black/15 bg-card p-2 sm:grid-cols-[1.4fr_0.7fr_0.8fr_auto_auto] sm:items-center"
+                      {Object.entries(eventStatusLabels).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 self-end pb-2 font-bold uppercase">
+                    <input
+                      type="checkbox"
+                      checked={editingEvent.waitlist}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, waitlist: e.target.checked })
+                      }
+                    />
+                    Liste d’attente activée
+                  </label>
+                  <label className="font-bold uppercase">
+                    Ouverture des inscriptions
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.registrationOpensAt}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, registrationOpensAt: e.target.value })
+                      }
+                      placeholder="À déterminer"
+                      required
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Fermeture des inscriptions
+                    <input
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.registrationClosesAt}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, registrationClosesAt: e.target.value })
+                      }
+                      placeholder="À déterminer"
+                      required
+                    />
+                  </label>
+                  <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-impact text-lg uppercase">Tarifs</p>
+                        <p className="text-[0.65rem] font-normal normal-case opacity-70">
+                          Public, cotisant et membre du bureau restent disponibles mais peuvent être
+                          désactivés. Pour un événement gratuit, laissez les montants à 0 € et
+                          désactivez les tarifs qui ne doivent pas être proposés.
+                        </p>
+                      </div>
+                      <label className="flex min-h-10 shrink-0 items-center gap-2 border-2 border-ae2v-black bg-card px-3 py-2 text-xs font-bold uppercase">
+                        <input
+                          type="checkbox"
+                          checked={editingEvent.tiers
+                            .filter((tier) => !tier.disabled)
+                            .every((tier) => tier.priceCents === 0)}
+                          onChange={(event) => {
+                            if (!event.target.checked) return;
+                            setEditingEvent({
+                              ...editingEvent,
+                              tiers: editingEvent.tiers.map((tier) => ({
+                                ...tier,
+                                priceCents: 0,
+                                disabled:
+                                  tier.audience === "public" ? false : (tier.disabled ?? false),
+                              })),
+                            });
+                          }}
+                          className="size-4 accent-ae2v-red"
+                        />
+                        Événement gratuit
+                      </label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setEditingEvent({
+                            ...editingEvent,
+                            tiers: [
+                              ...editingEvent.tiers,
+                              {
+                                id: `custom-${Date.now()}`,
+                                label: "Nouveau tarif",
+                                priceCents: 0,
+                                audience: "public",
+                                disabled: false,
+                                system: false,
+                              },
+                            ],
+                          })
+                        }
                       >
-                        <input
-                          aria-label={`Nom du tarif ${index + 1}`}
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                          value={tier.label}
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              tiers: editingEvent.tiers.map((item, itemIndex) =>
-                                itemIndex === index ? { ...item, label: e.target.value } : item,
-                              ),
-                            })
-                          }
-                        />
-                        <input
-                          aria-label={`Prix du tarif ${index + 1}`}
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                          value={(tier.priceCents / 100).toFixed(2)}
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              tiers: editingEvent.tiers.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? {
-                                      ...item,
-                                      priceCents: Math.max(
-                                        0,
-                                        Math.round(Number(e.target.value || 0) * 100),
-                                      ),
-                                    }
-                                  : item,
-                              ),
-                            })
-                          }
-                        />
-                        <select
-                          aria-label={`Accès du tarif ${index + 1}`}
-                          disabled={tier.system}
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                          value={tier.audience}
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              tiers: editingEvent.tiers.map((item, itemIndex) =>
-                                itemIndex === index
-                                  ? { ...item, audience: e.target.value as EventTier["audience"] }
-                                  : item,
-                              ),
-                            })
-                          }
+                        <Plus className="size-3.5" /> Ajouter un tarif
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {editingEvent.tiers.map((tier, index) => (
+                        <div
+                          key={tier.id}
+                          className="grid gap-2 border-2 border-ae2v-black/15 bg-card p-2 sm:grid-cols-[1.4fr_0.7fr_0.8fr_auto_auto] sm:items-center"
                         >
-                          <option value="public">Public</option>
-                          <option value="adherent">Cotisant</option>
-                          <option value="bureau">Bureau</option>
-                        </select>
-                        <label className="flex items-center gap-1 text-[0.65rem] font-bold uppercase">
                           <input
-                            type="checkbox"
-                            checked={!tier.disabled}
+                            aria-label={`Nom du tarif ${index + 1}`}
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                            value={tier.label}
+                            onChange={(e) =>
+                              setEditingEvent({
+                                ...editingEvent,
+                                tiers: editingEvent.tiers.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, label: e.target.value } : item,
+                                ),
+                              })
+                            }
+                          />
+                          <input
+                            aria-label={`Prix du tarif ${index + 1}`}
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                            value={(tier.priceCents / 100).toFixed(2)}
                             onChange={(e) =>
                               setEditingEvent({
                                 ...editingEvent,
                                 tiers: editingEvent.tiers.map((item, itemIndex) =>
                                   itemIndex === index
-                                    ? { ...item, disabled: !e.target.checked }
+                                    ? {
+                                        ...item,
+                                        priceCents: Math.max(
+                                          0,
+                                          Math.round(Number(e.target.value || 0) * 100),
+                                        ),
+                                      }
                                     : item,
                                 ),
                               })
                             }
                           />
-                          Actif
-                        </label>
-                        <input
-                          aria-label={`Avertissement du tarif ${index + 1}`}
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs sm:col-span-3"
-                          value={tier.note ?? ""}
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              tiers: editingEvent.tiers.map((item, itemIndex) =>
-                                itemIndex === index ? { ...item, note: e.target.value } : item,
-                              ),
-                            })
-                          }
-                          placeholder="Avertissement facultatif avant validation (tarif custom)"
-                        />
-                        {!tier.system && (
-                          <button
-                            type="button"
-                            className="min-h-9 border-2 border-ae2v-red px-2 text-xs font-bold text-ae2v-red"
-                            onClick={() =>
+                          <select
+                            aria-label={`Accès du tarif ${index + 1}`}
+                            disabled={tier.system}
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                            value={tier.audience}
+                            onChange={(e) =>
                               setEditingEvent({
                                 ...editingEvent,
-                                tiers: editingEvent.tiers.filter(
-                                  (_, itemIndex) => itemIndex !== index,
+                                tiers: editingEvent.tiers.map((item, itemIndex) =>
+                                  itemIndex === index
+                                    ? { ...item, audience: e.target.value as EventTier["audience"] }
+                                    : item,
                                 ),
                               })
                             }
                           >
-                            Supprimer
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <label className="sm:col-span-2 font-bold uppercase">
-                  Résumé
-                  <textarea
-                    rows={3}
-                    className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
-                    value={editingEvent.summary}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, summary: e.target.value })}
-                    required
-                  />
-                </label>
-                <label className="sm:col-span-2 font-bold uppercase">
-                  Description complète
-                  <textarea
-                    rows={4}
-                    className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
-                    value={editingEvent.description}
-                    onChange={(e) =>
-                      setEditingEvent({ ...editingEvent, description: e.target.value })
-                    }
-                    placeholder="Présentez l’événement aux participants."
-                    required
-                  />
-                </label>
-                <label className="sm:col-span-2 font-bold uppercase">
-                  Visuel (facultatif)
-                  <input
-                    type="url"
-                    className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
-                    value={editingEvent.image}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, image: e.target.value })}
-                    placeholder="https://… ou laisser vide"
-                  />
-                  <span className="mt-1 block text-[0.65rem] font-normal normal-case text-muted-foreground">
-                    Le visuel est facultatif. Sans image, la page utilise sa mise en page de
-                    secours.
-                  </span>
-                  <div className="mt-3 overflow-hidden border-2 border-ae2v-black/15 bg-ae2v-black/5">
-                    {editingEvent.image ? (
-                      <img
-                        src={editingEvent.image}
-                        alt="Aperçu du visuel de l’événement"
-                        className="h-32 w-full object-cover"
-                        onError={(event) => {
-                          event.currentTarget.style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-32 items-center justify-center text-xs font-bold uppercase text-muted-foreground">
-                        Aucun visuel · placeholder AE2V
-                      </div>
-                    )}
-                  </div>
-                </label>
-                <label className="font-bold uppercase">
-                  Accès
-                  <textarea
-                    rows={3}
-                    className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
-                    value={editingEvent.access}
-                    onChange={(e) => setEditingEvent({ ...editingEvent, access: e.target.value })}
-                    placeholder="Adresse, transports, accès PMR…"
-                  />
-                </label>
-                <label className="font-bold uppercase">
-                  Informations pratiques
-                  <textarea
-                    rows={3}
-                    className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
-                    value={editingEvent.practical.join("\n")}
-                    onChange={(e) =>
-                      setEditingEvent({
-                        ...editingEvent,
-                        practical: e.target.value
-                          .split("\n")
-                          .map((line) => line.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder="Une information par ligne"
-                  />
-                </label>
-                <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-bold uppercase">Programme</p>
-                      <p className="text-[0.65rem] font-normal normal-case text-muted-foreground">
-                        Facultatif. Ajoutez les étapes directement, sans format technique.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          program: [...editingEvent.program, { time: "", label: "", detail: "" }],
-                        })
-                      }
-                    >
-                      <Plus className="size-3.5" /> Ajouter une étape
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {editingEvent.program.map((step, index) => (
-                      <div
-                        key={`${index}-${step.time}`}
-                        className="grid gap-2 border-2 border-ae2v-black/15 bg-card p-2 sm:grid-cols-[0.6fr_1fr_1fr_auto]"
-                      >
-                        <input
-                          aria-label={`Horaire de l’étape ${index + 1}`}
-                          value={step.time}
-                          placeholder="18h00"
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              program: editingEvent.program.map((item, itemIndex) =>
-                                itemIndex === index ? { ...item, time: e.target.value } : item,
-                              ),
-                            })
-                          }
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                        />
-                        <input
-                          aria-label={`Nom de l’étape ${index + 1}`}
-                          value={step.label}
-                          placeholder="Accueil"
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              program: editingEvent.program.map((item, itemIndex) =>
-                                itemIndex === index ? { ...item, label: e.target.value } : item,
-                              ),
-                            })
-                          }
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                        />
-                        <input
-                          aria-label={`Détail de l’étape ${index + 1}`}
-                          value={step.detail ?? ""}
-                          placeholder="Détail facultatif"
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              program: editingEvent.program.map((item, itemIndex) =>
-                                itemIndex === index ? { ...item, detail: e.target.value } : item,
-                              ),
-                            })
-                          }
-                          className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
-                        />
-                        <button
-                          type="button"
-                          className="min-h-9 border-2 border-ae2v-red px-2 text-xs font-bold text-ae2v-red"
-                          onClick={() =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              program: editingEvent.program.filter(
-                                (_, itemIndex) => itemIndex !== index,
-                              ),
-                            })
-                          }
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    ))}
-                    {!editingEvent.program.length && (
-                      <p className="text-xs text-muted-foreground">Aucune étape ajoutée.</p>
-                    )}
-                  </div>
-                </div>
-                <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-bold uppercase">Sections de texte personnalisées</p>
-                      <p className="text-[0.65rem] font-normal normal-case text-muted-foreground">
-                        Facultatif. Utilisez-les pour ajouter une information libre à la page
-                        publique.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        setEditingEvent({
-                          ...editingEvent,
-                          customSections: [
-                            ...(editingEvent.customSections ?? []),
-                            { title: "", body: "" },
-                          ],
-                        })
-                      }
-                    >
-                      <Plus className="size-3.5" /> Ajouter une section
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {(editingEvent.customSections ?? []).map((section, index) => (
-                      <div
-                        key={`${index}-${section.title}`}
-                        className="border-2 border-ae2v-black/15 bg-card p-2"
-                      >
-                        <div className="flex gap-2">
+                            <option value="public">Public</option>
+                            <option value="adherent">Cotisant</option>
+                            <option value="bureau">Bureau</option>
+                          </select>
+                          <label className="flex items-center gap-1 text-[0.65rem] font-bold uppercase">
+                            <input
+                              type="checkbox"
+                              checked={!tier.disabled}
+                              onChange={(e) =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  tiers: editingEvent.tiers.map((item, itemIndex) =>
+                                    itemIndex === index
+                                      ? { ...item, disabled: !e.target.checked }
+                                      : item,
+                                  ),
+                                })
+                              }
+                            />
+                            Actif
+                          </label>
                           <input
-                            aria-label={`Titre de la section ${index + 1}`}
-                            value={section.title}
-                            placeholder="Titre de la section"
+                            aria-label={`Avertissement du tarif ${index + 1}`}
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs sm:col-span-3"
+                            value={tier.note ?? ""}
                             onChange={(e) =>
                               setEditingEvent({
                                 ...editingEvent,
-                                customSections: (editingEvent.customSections ?? []).map(
-                                  (item, itemIndex) =>
-                                    itemIndex === index ? { ...item, title: e.target.value } : item,
+                                tiers: editingEvent.tiers.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, note: e.target.value } : item,
                                 ),
                               })
                             }
-                            className="min-h-9 min-w-0 flex-1 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                            placeholder="Avertissement facultatif avant validation (tarif custom)"
+                          />
+                          {!tier.system && (
+                            <button
+                              type="button"
+                              className="min-h-9 border-2 border-ae2v-red px-2 text-xs font-bold text-ae2v-red"
+                              onClick={() =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  tiers: editingEvent.tiers.filter(
+                                    (_, itemIndex) => itemIndex !== index,
+                                  ),
+                                })
+                              }
+                            >
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="sm:col-span-2 font-bold uppercase">
+                    Résumé
+                    <textarea
+                      rows={3}
+                      className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
+                      value={editingEvent.summary}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, summary: e.target.value })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="sm:col-span-2 font-bold uppercase">
+                    Description complète
+                    <textarea
+                      rows={4}
+                      className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
+                      value={editingEvent.description}
+                      onChange={(e) =>
+                        setEditingEvent({ ...editingEvent, description: e.target.value })
+                      }
+                      placeholder="Présentez l’événement aux participants."
+                      required
+                    />
+                  </label>
+                  <label className="sm:col-span-2 font-bold uppercase">
+                    Visuel (facultatif)
+                    <input
+                      type="url"
+                      className="mt-1 min-h-10 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 font-sans text-sm font-normal"
+                      value={editingEvent.image}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, image: e.target.value })}
+                      placeholder="https://… ou laisser vide"
+                    />
+                    <span className="mt-1 block text-[0.65rem] font-normal normal-case text-muted-foreground">
+                      Le visuel est facultatif. Sans image, la page utilise sa mise en page de
+                      secours.
+                    </span>
+                    <div className="mt-3 overflow-hidden border-2 border-ae2v-black/15 bg-ae2v-black/5">
+                      {editingEvent.image ? (
+                        <img
+                          src={editingEvent.image}
+                          alt="Aperçu du visuel de l’événement"
+                          className="h-32 w-full object-cover"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-32 items-center justify-center text-xs font-bold uppercase text-muted-foreground">
+                          Aucun visuel · placeholder AE2V
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                  <label className="font-bold uppercase">
+                    Accès
+                    <textarea
+                      rows={3}
+                      className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
+                      value={editingEvent.access}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, access: e.target.value })}
+                      placeholder="Adresse, transports, accès PMR…"
+                    />
+                  </label>
+                  <label className="font-bold uppercase">
+                    Informations pratiques
+                    <textarea
+                      rows={3}
+                      className="mt-1 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-3 py-2 font-sans text-sm font-normal"
+                      value={editingEvent.practical.join("\n")}
+                      onChange={(e) =>
+                        setEditingEvent({
+                          ...editingEvent,
+                          practical: e.target.value
+                            .split("\n")
+                            .map((line) => line.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="Une information par ligne"
+                    />
+                  </label>
+                  <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold uppercase">Programme</p>
+                        <p className="text-[0.65rem] font-normal normal-case text-muted-foreground">
+                          Facultatif. Ajoutez les étapes directement, sans format technique.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setEditingEvent({
+                            ...editingEvent,
+                            program: [...editingEvent.program, { time: "", label: "", detail: "" }],
+                          })
+                        }
+                      >
+                        <Plus className="size-3.5" /> Ajouter une étape
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {editingEvent.program.map((step, index) => (
+                        <div
+                          key={`${index}-${step.time}`}
+                          className="grid gap-2 border-2 border-ae2v-black/15 bg-card p-2 sm:grid-cols-[0.6fr_1fr_1fr_auto]"
+                        >
+                          <input
+                            aria-label={`Horaire de l’étape ${index + 1}`}
+                            value={step.time}
+                            placeholder="18h00"
+                            onChange={(e) =>
+                              setEditingEvent({
+                                ...editingEvent,
+                                program: editingEvent.program.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, time: e.target.value } : item,
+                                ),
+                              })
+                            }
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                          />
+                          <input
+                            aria-label={`Nom de l’étape ${index + 1}`}
+                            value={step.label}
+                            placeholder="Accueil"
+                            onChange={(e) =>
+                              setEditingEvent({
+                                ...editingEvent,
+                                program: editingEvent.program.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, label: e.target.value } : item,
+                                ),
+                              })
+                            }
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                          />
+                          <input
+                            aria-label={`Détail de l’étape ${index + 1}`}
+                            value={step.detail ?? ""}
+                            placeholder="Détail facultatif"
+                            onChange={(e) =>
+                              setEditingEvent({
+                                ...editingEvent,
+                                program: editingEvent.program.map((item, itemIndex) =>
+                                  itemIndex === index ? { ...item, detail: e.target.value } : item,
+                                ),
+                              })
+                            }
+                            className="min-h-9 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
                           />
                           <button
                             type="button"
@@ -6428,7 +6527,7 @@ function BureauPage() {
                             onClick={() =>
                               setEditingEvent({
                                 ...editingEvent,
-                                customSections: (editingEvent.customSections ?? []).filter(
+                                program: editingEvent.program.filter(
                                   (_, itemIndex) => itemIndex !== index,
                                 ),
                               })
@@ -6437,31 +6536,105 @@ function BureauPage() {
                             Supprimer
                           </button>
                         </div>
-                        <textarea
-                          aria-label={`Contenu de la section ${index + 1}`}
-                          rows={3}
-                          value={section.body}
-                          placeholder="Contenu de la section"
-                          onChange={(e) =>
-                            setEditingEvent({
-                              ...editingEvent,
-                              customSections: (editingEvent.customSections ?? []).map(
-                                (item, itemIndex) =>
-                                  itemIndex === index ? { ...item, body: e.target.value } : item,
-                              ),
-                            })
-                          }
-                          className="mt-2 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-2 py-2 text-xs"
-                        />
+                      ))}
+                      {!editingEvent.program.length && (
+                        <p className="text-xs text-muted-foreground">Aucune étape ajoutée.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2 border-2 border-ae2v-black bg-ae2v-offwhite p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-bold uppercase">Sections de texte personnalisées</p>
+                        <p className="text-[0.65rem] font-normal normal-case text-muted-foreground">
+                          Facultatif. Utilisez-les pour ajouter une information libre à la page
+                          publique.
+                        </p>
                       </div>
-                    ))}
-                    {!(editingEvent.customSections ?? []).length && (
-                      <p className="text-xs text-muted-foreground">Aucune section personnalisée.</p>
-                    )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setEditingEvent({
+                            ...editingEvent,
+                            customSections: [
+                              ...(editingEvent.customSections ?? []),
+                              { title: "", body: "" },
+                            ],
+                          })
+                        }
+                      >
+                        <Plus className="size-3.5" /> Ajouter une section
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {(editingEvent.customSections ?? []).map((section, index) => (
+                        <div
+                          key={`${index}-${section.title}`}
+                          className="border-2 border-ae2v-black/15 bg-card p-2"
+                        >
+                          <div className="flex gap-2">
+                            <input
+                              aria-label={`Titre de la section ${index + 1}`}
+                              value={section.title}
+                              placeholder="Titre de la section"
+                              onChange={(e) =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  customSections: (editingEvent.customSections ?? []).map(
+                                    (item, itemIndex) =>
+                                      itemIndex === index
+                                        ? { ...item, title: e.target.value }
+                                        : item,
+                                  ),
+                                })
+                              }
+                              className="min-h-9 min-w-0 flex-1 border-2 border-ae2v-black bg-ae2v-offwhite px-2 text-xs"
+                            />
+                            <button
+                              type="button"
+                              className="min-h-9 border-2 border-ae2v-red px-2 text-xs font-bold text-ae2v-red"
+                              onClick={() =>
+                                setEditingEvent({
+                                  ...editingEvent,
+                                  customSections: (editingEvent.customSections ?? []).filter(
+                                    (_, itemIndex) => itemIndex !== index,
+                                  ),
+                                })
+                              }
+                            >
+                              Supprimer
+                            </button>
+                          </div>
+                          <textarea
+                            aria-label={`Contenu de la section ${index + 1}`}
+                            rows={3}
+                            value={section.body}
+                            placeholder="Contenu de la section"
+                            onChange={(e) =>
+                              setEditingEvent({
+                                ...editingEvent,
+                                customSections: (editingEvent.customSections ?? []).map(
+                                  (item, itemIndex) =>
+                                    itemIndex === index ? { ...item, body: e.target.value } : item,
+                                ),
+                              })
+                            }
+                            className="mt-2 w-full border-2 border-ae2v-black bg-ae2v-offwhite px-2 py-2 text-xs"
+                          />
+                        </div>
+                      ))}
+                      {!(editingEvent.customSections ?? []).length && (
+                        <p className="text-xs text-muted-foreground">
+                          Aucune section personnalisée.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-5 flex justify-end gap-2 border-t-2 border-ae2v-black/10 pt-4">
+              <div className="flex shrink-0 justify-end gap-2 border-t-2 border-ae2v-black/10 px-6 pb-6 pt-4">
                 <Button variant="secondary" onClick={() => setEventFormOpen(false)}>
                   Annuler
                 </Button>
@@ -6492,14 +6665,16 @@ function BureauPage() {
                     ] as const;
                     const missing = requiredEventFields.find(([value]) => !value.trim());
                     if (missing) {
-                      alert(`Le champ ${missing[1]} est obligatoire.`);
+                      notifySite(`Le champ ${missing[1]} est obligatoire.`, { kind: "warning" });
                       return;
                     }
                     const incompleteCustomSection = (editingEvent.customSections ?? []).find(
                       (section) => !section.title.trim(),
                     );
                     if (incompleteCustomSection) {
-                      alert("Chaque section personnalisée doit avoir un titre.");
+                      notifySite("Chaque section personnalisée doit avoir un titre.", {
+                        kind: "warning",
+                      });
                       return;
                     }
                     const current = getDynamicEvents();
@@ -6541,7 +6716,9 @@ function BureauPage() {
                         const refreshedEvents = await getBureauEvents();
                         setEvents(refreshedEvents.map(publicRecordToEvent));
                       } catch {
-                        alert("L’événement n’a pas pu être enregistré côté serveur.");
+                        notifySite("L’événement n’a pas pu être enregistré côté serveur.", {
+                          kind: "error",
+                        });
                         return;
                       }
                     }
@@ -6568,218 +6745,261 @@ function BureauPage() {
         {/* MODAL 5: Vue participants                                           */}
         {/* ------------------------------------------------------------------ */}
         {selectedAttendeesEvent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ae2v-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-lg border-2 border-ae2v-black bg-card p-6 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between border-b-2 border-ae2v-black pb-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-ae2v-red">Événement</p>
-                  <h3 className="font-impact text-2xl uppercase">{selectedAttendeesEvent.title}</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedAttendeesEvent(null)}
-                  aria-label="Fermer"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+          <BureauModal
+            open
+            onOpenChange={(open) => {
+              if (!open) setSelectedAttendeesEvent(null);
+            }}
+            title={`Participants — ${selectedAttendeesEvent.title}`}
+            description="Recherchez une inscription, consultez son paiement et effectuez les actions d’accueil."
+            className="max-w-6xl"
+            footer={
+              <Button variant="black" onClick={() => setSelectedAttendeesEvent(null)}>
+                Fermer
+              </Button>
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <EventMetric
+                label="Inscrits"
+                value={String(selectedAttendeesEvent.registered)}
+                tone="neutral"
+              />
+              <EventMetric
+                label="Capacité"
+                value={String(selectedAttendeesEvent.capacity)}
+                tone="neutral"
+              />
+              <EventMetric
+                label="Places restantes"
+                value={String(
+                  Math.max(0, selectedAttendeesEvent.capacity - selectedAttendeesEvent.registered),
+                )}
+                tone={
+                  selectedAttendeesEvent.registered >= selectedAttendeesEvent.capacity
+                    ? "neutral"
+                    : "green"
+                }
+              />
+            </div>
+            {eventStats && (
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
                 <EventMetric
-                  label="Inscrits"
-                  value={String(selectedAttendeesEvent.registered)}
+                  label="Paiements en attente"
+                  value={String(eventStats.pendingPayments)}
                   tone="neutral"
                 />
                 <EventMetric
-                  label="Capacité"
-                  value={String(selectedAttendeesEvent.capacity)}
+                  label="Paiements confirmés"
+                  value={String(eventStats.confirmedPayments)}
+                  tone="green"
+                />
+                <EventMetric label="Présents" value={String(eventStats.present)} tone="green" />
+                <EventMetric
+                  label="Annulations"
+                  value={String(eventStats.cancelled)}
                   tone="neutral"
                 />
                 <EventMetric
-                  label="Places restantes"
-                  value={String(
-                    Math.max(
-                      0,
-                      selectedAttendeesEvent.capacity - selectedAttendeesEvent.registered,
-                    ),
-                  )}
-                  tone={
-                    selectedAttendeesEvent.registered >= selectedAttendeesEvent.capacity
-                      ? "neutral"
-                      : "green"
-                  }
+                  label="Liste d’attente"
+                  value={String(eventStats.waitlisted)}
+                  tone="neutral"
+                />
+                <EventMetric
+                  label="Recette confirmée"
+                  value={formatCents(eventStats.revenueConfirmedCents)}
+                  tone="green"
                 />
               </div>
-              {eventStats && (
-                <div className="mt-3 grid gap-3 sm:grid-cols-4">
-                  <EventMetric
-                    label="Paiements en attente"
-                    value={String(eventStats.pendingPayments)}
-                    tone="neutral"
-                  />
-                  <EventMetric
-                    label="Paiements confirmés"
-                    value={String(eventStats.confirmedPayments)}
-                    tone="green"
-                  />
-                  <EventMetric label="Présents" value={String(eventStats.present)} tone="green" />
-                  <EventMetric
-                    label="Annulations"
-                    value={String(eventStats.cancelled)}
-                    tone="neutral"
-                  />
-                  <EventMetric
-                    label="Liste d’attente"
-                    value={String(eventStats.waitlisted)}
-                    tone="neutral"
-                  />
-                  <EventMetric
-                    label="Recette confirmée"
-                    value={formatCents(eventStats.revenueConfirmedCents)}
-                    tone="green"
+            )}
+            <div className="mt-5 border-2 border-ae2v-black/15 bg-ae2v-offwhite p-4 text-sm">
+              <p className="font-bold">Liste des participants</p>
+              {eventAttendeesLoading ? (
+                <p className="mt-2 text-xs text-muted-foreground">Chargement des inscriptions…</p>
+              ) : !Array.isArray(eventAttendees) || eventAttendees.length === 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Aucun participant inscrit à cet événement.
+                </p>
+              ) : (
+                <div className="mt-3">
+                  <DataTable
+                    rows={eventAttendees}
+                    idPrefix="event-participants"
+                    searchable={(attendee) =>
+                      `${attendee.name} ${attendee.email} ${attendee.tier} ${attendee.paymentStatus ?? ""} ${attendee.ticketStatus ?? ""}`
+                    }
+                    searchLabel="Rechercher un participant"
+                    searchPlaceholder="Nom, e-mail, tarif ou statut…"
+                    caption={`Participants de ${selectedAttendeesEvent.title}`}
+                    columns={[
+                      {
+                        key: "name",
+                        header: "Participant",
+                        render: (attendee) => (
+                          <div className="min-w-0">
+                            <p className="truncate font-bold">{attendee.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {attendee.email}
+                            </p>
+                          </div>
+                        ),
+                      },
+                      {
+                        key: "tier",
+                        header: "Tarif",
+                        render: (attendee) => (
+                          <span>
+                            {attendee.tier} · {formatCents(attendee.priceCents)}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "paymentStatus",
+                        header: "Paiement",
+                        render: (attendee) => (
+                          <StatusPill
+                            tone={attendee.paymentStatus === "CONFIRME" ? "green" : "neutral"}
+                          >
+                            {attendee.paymentStatus === "CONFIRME" ? "Payé" : "En attente"}
+                          </StatusPill>
+                        ),
+                      },
+                      {
+                        key: "ticketStatus",
+                        header: "Billet",
+                        render: (attendee) => (
+                          <StatusPill
+                            tone={attendee.ticketStatus === "utilise" ? "green" : "neutral"}
+                          >
+                            {attendee.ticketStatus === "utilise"
+                              ? "Présent"
+                              : (attendee.ticketStatus ?? "À vérifier")}
+                          </StatusPill>
+                        ),
+                      },
+                      {
+                        key: "actions",
+                        header: "Actions",
+                        render: (attendee) => (
+                          <div className="flex min-w-[14rem] flex-wrap justify-end gap-2">
+                            {attendee.personId && (
+                              <Button asChild size="sm" variant="outline">
+                                <Link
+                                  to="/bureau/personnes/$personId"
+                                  params={{ personId: attendee.personId }}
+                                >
+                                  <Eye className="size-3.5" /> Voir le profil
+                                </Link>
+                              </Button>
+                            )}
+                            {attendee.paymentId && attendee.paymentStatus === "EN_ATTENTE" && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                disabled={!canFinance}
+                                title={!canFinance ? "Droits trésorerie requis" : undefined}
+                                onClick={async () => {
+                                  try {
+                                    await updatePaymentStatus({
+                                      data: { paymentId: attendee.paymentId!, status: "CONFIRME" },
+                                    });
+                                    const refreshed = await getEventRegistrations({
+                                      data: {
+                                        eventId:
+                                          selectedAttendeesEvent.serverId ??
+                                          selectedAttendeesEvent.id,
+                                      },
+                                    });
+                                    setEventAttendees(refreshed);
+                                  } catch {
+                                    notifySite("Le paiement n’a pas pu être confirmé.", {
+                                      kind: "error",
+                                    });
+                                  }
+                                }}
+                              >
+                                <CreditCard className="size-3.5" /> Confirmer le paiement
+                              </Button>
+                            )}
+                            {attendee.ticketCode && attendee.ticketStatus === "valide" ? (
+                              <Button
+                                size="sm"
+                                variant="black"
+                                onClick={async () => {
+                                  try {
+                                    await checkInTicket({
+                                      data: { ticketCode: attendee.ticketCode! },
+                                    });
+                                    const refreshed = await getEventRegistrations({
+                                      data: {
+                                        eventId:
+                                          selectedAttendeesEvent.serverId ??
+                                          selectedAttendeesEvent.id,
+                                      },
+                                    });
+                                    setEventAttendees(refreshed);
+                                  } catch {
+                                    notifySite(
+                                      "Le billet ne peut pas être pointé : paiement non confirmé ou billet invalide.",
+                                    );
+                                  }
+                                }}
+                              >
+                                <Check className="size-3.5" /> Valider le check-in
+                              </Button>
+                            ) : (
+                              <StatusPill
+                                tone={attendee.ticketStatus === "utilise" ? "green" : "neutral"}
+                              >
+                                {attendee.ticketStatus === "utilise" ? "Présent" : "À vérifier"}
+                              </StatusPill>
+                            )}
+                            {attendee.status !== "ANNULEE" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  if (
+                                    !(await confirmSite(
+                                      `Annuler l’inscription de ${attendee.name} ?`,
+                                      {
+                                        title: "Annuler cette inscription ?",
+                                        confirmLabel: "Annuler l’inscription",
+                                      },
+                                    ))
+                                  )
+                                    return;
+                                  try {
+                                    await cancelEventRegistration({
+                                      data: { registrationId: attendee.id },
+                                    });
+                                    const refreshed = await getEventRegistrations({
+                                      data: {
+                                        eventId:
+                                          selectedAttendeesEvent.serverId ??
+                                          selectedAttendeesEvent.id,
+                                      },
+                                    });
+                                    setEventAttendees(refreshed);
+                                  } catch {
+                                    notifySite("L’inscription n’a pas pu être annulée.", {
+                                      kind: "error",
+                                    });
+                                  }
+                                }}
+                              >
+                                <XCircle className="size-3.5" /> Annuler l’inscription
+                              </Button>
+                            )}
+                          </div>
+                        ),
+                      },
+                    ]}
                   />
                 </div>
               )}
-              <div className="mt-5 border-2 border-ae2v-black/15 bg-ae2v-offwhite p-4 text-sm">
-                <p className="font-bold">Participants et contrôle des billets</p>
-                {eventAttendeesLoading ? (
-                  <p className="mt-2 text-xs text-muted-foreground">Chargement des inscriptions…</p>
-                ) : !Array.isArray(eventAttendees) || eventAttendees.length === 0 ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Aucun participant serveur pour cet événement. Les événements de démonstration
-                    restent gérés localement jusqu’à leur migration.
-                  </p>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    {(Array.isArray(eventAttendees) ? eventAttendees : []).map((attendee) => (
-                      <div
-                        key={attendee.id}
-                        className="flex flex-col gap-2 border-2 border-ae2v-black/15 bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-bold">{attendee.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {attendee.email} · {attendee.phone || "Téléphone non renseigné"} ·{" "}
-                            {attendee.tier} · {formatCents(attendee.priceCents)}
-                          </p>
-                          <p className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
-                            Paiement : {attendee.paymentStatus ?? "non rattaché"} · Billet :{" "}
-                            {attendee.ticketStatus ?? "absent"} · Données :{" "}
-                            {attendee.legalConsentAt ? "oui" : "non"} · Conditions :{" "}
-                            {attendee.termsConsentAt ? "oui" : "non"} · Image :{" "}
-                            {attendee.imageConsentAt ? "oui" : "non"}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          {attendee.personId && (
-                            <Button asChild size="sm" variant="outline">
-                              <Link
-                                to="/bureau/personnes/$personId"
-                                params={{ personId: attendee.personId }}
-                              >
-                                <Eye className="size-3.5" /> Fiche
-                              </Link>
-                            </Button>
-                          )}
-                          {attendee.paymentId && attendee.paymentStatus === "EN_ATTENTE" && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              disabled={!canFinance}
-                              title={!canFinance ? "Droits trésorerie requis" : undefined}
-                              onClick={async () => {
-                                try {
-                                  await updatePaymentStatus({
-                                    data: { paymentId: attendee.paymentId!, status: "CONFIRME" },
-                                  });
-                                  const refreshed = await getEventRegistrations({
-                                    data: {
-                                      eventId:
-                                        selectedAttendeesEvent.serverId ??
-                                        selectedAttendeesEvent.id,
-                                    },
-                                  });
-                                  setEventAttendees(refreshed);
-                                } catch {
-                                  alert("Le paiement n’a pas pu être confirmé.");
-                                }
-                              }}
-                            >
-                              <CreditCard className="size-3.5" /> Confirmer paiement
-                            </Button>
-                          )}
-                          {attendee.ticketCode && attendee.ticketStatus === "valide" ? (
-                            <Button
-                              size="sm"
-                              variant="black"
-                              onClick={async () => {
-                                try {
-                                  await checkInTicket({
-                                    data: { ticketCode: attendee.ticketCode! },
-                                  });
-                                  const refreshed = await getEventRegistrations({
-                                    data: {
-                                      eventId:
-                                        selectedAttendeesEvent.serverId ??
-                                        selectedAttendeesEvent.id,
-                                    },
-                                  });
-                                  setEventAttendees(refreshed);
-                                } catch {
-                                  alert(
-                                    "Le billet ne peut pas être pointé : paiement non confirmé ou billet invalide.",
-                                  );
-                                }
-                              }}
-                            >
-                              <Check className="size-3.5" /> Pointer
-                            </Button>
-                          ) : (
-                            <StatusPill
-                              tone={attendee.ticketStatus === "utilise" ? "green" : "neutral"}
-                            >
-                              {attendee.ticketStatus === "utilise" ? "Présent" : "À vérifier"}
-                            </StatusPill>
-                          )}
-                          {attendee.status !== "ANNULEE" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                if (!window.confirm(`Annuler l’inscription de ${attendee.name} ?`))
-                                  return;
-                                try {
-                                  await cancelEventRegistration({
-                                    data: { registrationId: attendee.id },
-                                  });
-                                  const refreshed = await getEventRegistrations({
-                                    data: {
-                                      eventId:
-                                        selectedAttendeesEvent.serverId ??
-                                        selectedAttendeesEvent.id,
-                                    },
-                                  });
-                                  setEventAttendees(refreshed);
-                                } catch {
-                                  alert("L’inscription n’a pas pu être annulée.");
-                                }
-                              }}
-                            >
-                              <XCircle className="size-3.5" /> Annuler
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="mt-5 flex justify-end">
-                <Button variant="black" onClick={() => setSelectedAttendeesEvent(null)}>
-                  Fermer
-                </Button>
-              </div>
             </div>
-          </div>
+          </BureauModal>
         )}
 
         {/* ------------------------------------------------------------------ */}
@@ -6896,7 +7116,9 @@ function BureauPage() {
                         const alreadyRefunded = selectedInvoice.refundedAmountCents ?? 0;
                         const remaining = Math.max(0, selectedInvoice.totalCents - alreadyRefunded);
                         if (!remaining) {
-                          alert("Cette facture est déjà totalement remboursée.");
+                          notifySite("Cette facture est déjà totalement remboursée.", {
+                            kind: "warning",
+                          });
                           return;
                         }
                         setRefundDraft({
@@ -6938,7 +7160,7 @@ function BureauPage() {
                           const refreshed = await getBureauBilling();
                           setServerBilling(refreshed);
                         } catch {
-                          alert("La facture n’a pas pu être mise à jour.");
+                          notifySite("La facture n’a pas pu être mise à jour.", { kind: "error" });
                           return;
                         }
                       } else {
@@ -6951,7 +7173,7 @@ function BureauPage() {
                         );
                       }
                       addAuditLog("FACTURE_MODIFIEE", `Facture ${selectedInvoice.id} mise à jour`);
-                      alert("Facture mise à jour.");
+                      notifySite("Facture mise à jour.", { kind: "success" });
                     }}
                   >
                     <FileText className="size-3.5" /> Enregistrer la gestion
