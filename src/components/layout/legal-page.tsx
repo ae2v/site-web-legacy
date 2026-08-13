@@ -11,7 +11,7 @@ export const legalInfo = {
   status: "Association loi 1901",
   rna: "W784003407",
   address: "5e étage, appartement 517, 5 rue Paul Dautier, 78140 Vélizy-Villacoublay",
-  publicationDirector: "Hey’tham KORTAS",
+  publicationDirector: "Heytham KORTAS",
   contactEmail: "contact@ae2v.fr",
   /** Le site public a été conçu et développé par Bastian NOËL. */
   webmaster: "Bastian NOËL",

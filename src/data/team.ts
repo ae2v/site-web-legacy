@@ -100,7 +100,7 @@ function member(
 }
 
 export const teamMembers: TeamMember[] = [
-  member("hey-tham-kortas", "Hey’tham KORTAS", "Président", ["Direction", "Partenarial"], {
+  member("hey-tham-kortas", "Heytham KORTAS", "Président", ["Direction", "Partenarial"], {
     personalAe2vEmail: "heytham.kortas@ae2v.fr",
     roleEmail: "president@ae2v.fr",
   }),

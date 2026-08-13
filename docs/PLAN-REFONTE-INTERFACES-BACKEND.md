@@ -289,7 +289,7 @@ Les pôles opérationnels sont : Direction, Communication, Numérique, Finance, 
 
 | Membre                 | Fonction publique                                             | Pôles associés            |
 | ---------------------- | ------------------------------------------------------------- | ------------------------- |
-| Hey’tham KORTAS        | Président                                                     | Direction · Partenarial   |
+| Heytham KORTAS         | Président                                                     | Direction · Partenarial   |
 | Alexandre MARIETTE     | Vice-président                                                | Direction                 |
 | Carla BARRUET          | Secrétaire                                                    | Direction                 |
 | Jaden BRIVAL           | Trésorière                                                    | Finance · Direction       |
