@@ -1,12 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  LegalBlock,
-  LegalMail,
-  LegalPage,
-  LegalPending,
-  legalInfo,
-} from "@/components/layout/legal-page";
+import { LegalBlock, LegalMail, LegalPage, legalInfo } from "@/components/layout/legal-page";
 
 export const Route = createFileRoute("/mentions-legales")({
   head: () => ({
@@ -15,7 +9,7 @@ export const Route = createFileRoute("/mentions-legales")({
       {
         name: "description",
         content:
-          "Éditeur, directeur de la publication, webmestre, hébergeur Oracle Cloud et propriété intellectuelle du site de l'AE2V.",
+          "Éditeur, directeur de la publication, webmestre, hébergeur Vercel et propriété intellectuelle du site de l'AE2V.",
       },
       { property: "og:title", content: "Mentions légales — AE2V" },
       {
@@ -39,17 +33,15 @@ function MentionsPage() {
     >
       <LegalBlock title="1. Éditeur du site">
         <p>
-          <strong>{legalInfo.legalName}</strong> — {legalInfo.status}, association étudiante de
-          l'IUT de Vélizy.
+          <strong>{legalInfo.legalName}</strong> — {legalInfo.status}.
+        </p>
+        <p>
+          Le site ae2v.fr est le site officiel de l'{legalInfo.legalName} et est exploité par
+          l'association.
         </p>
         <ul className="space-y-1">
-          <li>
-            Siège social : {legalInfo.address ?? <LegalPending label="adresse du siège social" />}
-          </li>
-          <li>
-            Numéro RNA : {legalInfo.rna ?? <LegalPending label="numéro de déclaration RNA" />}
-          </li>
-          <li>SIRET : {legalInfo.siret ?? <LegalPending label="numéro SIRET" />}</li>
+          <li>Siège social : {legalInfo.address}</li>
+          <li>Numéro RNA : {legalInfo.rna}</li>
           <li>
             Courriel : <LegalMail />
           </li>
@@ -58,10 +50,8 @@ function MentionsPage() {
 
       <LegalBlock title="2. Directeur de la publication">
         <p>
-          Le·la président·e en exercice de l'AE2V :{" "}
-          {legalInfo.publicationDirector ?? (
-            <LegalPending label="identité du·de la président·e en exercice" />
-          )}
+          Directeur de la publication : {legalInfo.publicationDirector}, en qualité de président de
+          l'{legalInfo.legalName}.
         </p>
       </LegalBlock>
 
@@ -83,12 +73,7 @@ function MentionsPage() {
           par {legalInfo.host.company}.
         </p>
         <ul className="space-y-1">
-          <li>
-            Adresse de l'hébergeur :{" "}
-            {legalInfo.host.address ?? (
-              <LegalPending label="adresse contractuelle de l'hébergeur" />
-            )}
-          </li>
+          <li>Adresse de l'hébergeur : {legalInfo.host.address}</li>
           <li>Localisation des serveurs : {legalInfo.host.region}.</li>
           <li>
             Site de l'hébergeur :{" "}
@@ -98,7 +83,7 @@ function MentionsPage() {
               rel="noopener noreferrer"
               target="_blank"
             >
-              oracle.com/fr/cloud
+              vercel.com
             </a>
           </li>
         </ul>

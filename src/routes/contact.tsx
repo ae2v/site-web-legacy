@@ -42,11 +42,24 @@ function ContactPage() {
           <span id="ae2v-formulaire">Formulaire de contact</span>
         </SectionHeading>
         <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
-          Pour toute question ou envie de participer, contacte-nous par email ou rejoins directement notre Discord.
+          Pour toute question ou envie de participer, contacte-nous par email ou rejoins directement
+          notre Discord.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <a href="mailto:ae2v.asso@gmail.com" className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-red px-5 font-bold uppercase text-ae2v-offwhite hover:bg-ae2v-black">Envoyer un email</a>
-          <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-green px-5 font-bold uppercase text-ae2v-black hover:bg-ae2v-black hover:text-ae2v-offwhite">Rejoindre Discord</a>
+          <a
+            href="mailto:contact@ae2v.fr"
+            className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-red px-5 font-bold uppercase text-ae2v-offwhite hover:bg-ae2v-black"
+          >
+            Envoyer un email
+          </a>
+          <a
+            href="https://discord.gg/z85wnSmdnH"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-12 items-center border-2 border-ae2v-black bg-ae2v-green px-5 font-bold uppercase text-ae2v-black hover:bg-ae2v-black hover:text-ae2v-offwhite"
+          >
+            Rejoindre Discord
+          </a>
         </div>
       </section>
 

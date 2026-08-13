@@ -47,18 +47,30 @@ export function SiteFooter() {
           <h2 className="font-impact text-2xl uppercase">Nos liens</h2>
           <ul className="mt-4 flex flex-col gap-1">
             <li>
-              <Link to="/" className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green">Site AE2V</Link>
-            </li>
-            <li>
-              <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer" className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green">Discord AE2V</a>
+              <Link
+                to="/"
+                className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green"
+              >
+                Site AE2V
+              </Link>
             </li>
             <li>
               <a
-                href="mailto:ae2v.asso@gmail.com"
+                href="https://discord.gg/z85wnSmdnH"
+                target="_blank"
+                rel="noreferrer"
+                className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green"
+              >
+                Discord AE2V
+              </a>
+            </li>
+            <li>
+              <a
+                href="mailto:contact@ae2v.fr"
                 className="tap-44 inline-flex items-center gap-2 text-sm hover:text-ae2v-green focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ae2v-green"
               >
                 <Mail aria-hidden="true" className="size-4" />
-                ae2v.asso@gmail.com
+                contact@ae2v.fr
               </a>
             </li>
             <li>

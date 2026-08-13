@@ -3,34 +3,25 @@ import type { ReactNode } from "react";
 import { PageHero } from "@/components/layout/page-hero";
 
 /**
- * Informations légales centralisées.
- * ⚠️ Les valeurs marquées `TODO` doivent être renseignées par le bureau AE2V
- * avec les pièces officielles (récépissé de déclaration, statuts, assurance).
- * Ne jamais inventer ces informations.
+ * Informations légales centralisées de la version publique.
  */
 export const legalInfo = {
   siteName: "AE2V",
   legalName: "ASSOCIATION ETUDIANTE DE VELIZY-VILLACOUBLAY",
   status: "Association loi 1901",
-  /** TODO bureau : n° RNA (W…) figurant sur le récépissé de déclaration en préfecture. */
   rna: "W784003407",
-  /** TODO bureau : n° SIRET si l'association en possède un. */
-  siret: null as string | null,
-  /** TODO bureau : adresse du siège social déclarée en préfecture. */
   address: "5e étage, appartement 517, 5 rue Paul Dautier, 78140 Vélizy-Villacoublay",
-  /** TODO bureau : nom du/de la président·e en exercice (directeur·rice de la publication). */
-  publicationDirector: null as string | null,
-  contactEmail: "ae2v.asso@gmail.com",
+  publicationDirector: "Hey’tham KORTAS",
+  contactEmail: "contact@ae2v.fr",
   /** Le site public a été conçu et développé par Bastian NOËL. */
   webmaster: "Bastian NOËL",
-  webmasterEmail: "ae2v.asso@gmail.com",
+  webmasterEmail: "contact@ae2v.fr",
   host: {
-    name: "Oracle Cloud Infrastructure (OCI)",
-    company: "Oracle France SAS",
-    /** TODO bureau : adresse exacte figurant au contrat OCI. */
-    address: null as string | null,
-    region: "Régions Oracle Cloud situées dans l'Union européenne",
-    site: "https://www.oracle.com/fr/cloud/",
+    name: "Vercel Inc.",
+    company: "Vercel Inc.",
+    address: "440 N Barranca Ave #4133, Covina, CA 91723, United States",
+    region: "États-Unis",
+    site: "https://vercel.com",
   },
   lastUpdate: "8 août 2026",
 } as const;
@@ -82,15 +73,5 @@ export function LegalMail({ address = legalInfo.contactEmail }: { address?: stri
     <a className="ae2v-link font-bold text-ae2v-red" href={`mailto:${address}`}>
       {address}
     </a>
-  );
-}
-
-/** Valeur non encore fournie par le bureau : affichée honnêtement, jamais inventée. */
-export function LegalPending({ label }: { label: string }) {
-  return (
-    <span className="text-ae2v-black/60 italic">
-      {label} — information en cours de validation par le bureau, communiquée sur demande à{" "}
-      <LegalMail />.
-    </span>
   );
 }

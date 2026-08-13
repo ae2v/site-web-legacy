@@ -42,8 +42,8 @@ export const ae2vLinks: Ae2vLink[] = [
   {
     id: "mail",
     label: "Nous écrire",
-    detail: "ae2v.asso@gmail.com",
-    href: "mailto:ae2v.asso@gmail.com",
+    detail: "contact@ae2v.fr",
+    href: "mailto:contact@ae2v.fr",
     icon: "mail",
   },
   {
