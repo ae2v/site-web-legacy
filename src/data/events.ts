@@ -196,20 +196,18 @@ const catalogEvents: Ae2vEvent[] = [
     access:
       "Environ 10 minutes à pied depuis l’IUT, ou 2 stations de tram. Doddy’s Coffee — 5 avenue Morane Saulnier, 78140 Vélizy-Villacoublay.",
     practical: [
-      "Une boisson sans alcool est offerte à chaque personne inscrite par l’AE2V.",
-      "L’inscription est obligatoire pour bénéficier de la boisson sans alcool offerte.",
-      "Le bar demande une consommation sur place. Sans inscription, vous devrez acheter une consommation.",
+      "Une boisson sans alcool était offerte à chaque personne inscrite par l’AE2V.",
+      "L’inscription était obligatoire pour bénéficier de la boisson sans alcool offerte.",
+      "Le bar demandait une consommation sur place.",
       "L’abus d’alcool est dangereux pour la santé, à consommer avec modération.",
     ],
     capacity: 0,
     registered: 0,
     registrationOpensAt: "01/09/2026",
     registrationClosesAt: "18/09/2026",
-    status: "OUVERT",
+    status: "TERMINE",
     waitlist: false,
     tiers: [{ id: "pub", label: "Gratuit", priceCents: 0, audience: "public" }],
-    registrationUrl:
-      "https://www.helloasso.com/associations/ae2v/evenements/soiree-d-integration-doddy-s-coffee",
     mapUrl:
       "https://www.google.com/maps/search/?api=1&query=Doddy%27s%20Coffee%205%20avenue%20Morane%20Saulnier%2078140%20V%C3%A9lizy-Villacoublay",
     directionsUrl:

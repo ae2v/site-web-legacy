@@ -58,7 +58,15 @@ export function EventDetails({ event }: { event: Ae2vEvent }) {
               <Info icon={CalendarDays} label="Date" value={event.date} />
               <Info icon={Clock3} label="Horaires" value={event.doors} />
               <Info icon={MapPin} label="Lieu" value={`${event.place} · ${event.address}`} />
-              <Info icon={Ticket} label="Tarif" value="Gratuit sur inscription" />
+              <Info
+                icon={Ticket}
+                label="Tarif"
+                value={
+                  event.status === "TERMINE"
+                    ? "Gratuit · inscriptions fermées"
+                    : "Gratuit sur inscription"
+                }
+              />
             </dl>
             <p className="mt-5 max-w-3xl text-sm leading-7 md:text-base">{event.description}</p>
           </section>
@@ -113,13 +121,19 @@ export function EventDetails({ event }: { event: Ae2vEvent }) {
 
         <aside className="space-y-3 lg:sticky lg:top-24 lg:self-start">
           <div className="border-2 border-ae2v-black bg-ae2v-green p-5 text-ae2v-black">
-            <p className="text-xs font-bold uppercase tracking-[0.16em]">Entrée</p>
-            <p className="mt-1 font-impact text-4xl uppercase">Gratuite</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em]">
+              {event.status === "TERMINE" ? "Inscriptions" : "Entrée"}
+            </p>
+            <p className="mt-1 font-impact text-4xl uppercase">
+              {event.status === "TERMINE" ? "Fermées" : "Gratuite"}
+            </p>
             <p className="mt-2 text-sm leading-6">
-              Inscris-toi pour que l’AE2V puisse prévoir ta boisson sans alcool offerte.
+              {event.status === "TERMINE"
+                ? "Cet événement est terminé. Il n’est plus possible de s’inscrire."
+                : "Inscris-toi pour que l’AE2V puisse prévoir ta boisson sans alcool offerte."}
             </p>
           </div>
-          {event.registrationUrl && (
+          {event.status !== "TERMINE" && event.registrationUrl && (
             <Button asChild size="lg" className="min-h-12 w-full">
               <a
                 href={event.registrationUrl}

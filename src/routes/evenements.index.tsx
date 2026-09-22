@@ -34,13 +34,14 @@ function EvenementsPage() {
   const events = publicEvents;
   const audience: Audience = "public";
   const upcoming = events.filter((e) => e.status !== "TERMINE");
+  const past = events.filter((e) => e.status === "TERMINE");
 
   return (
     <>
       <PageHero
         eyebrow="Agenda AE2V"
         title="Événements"
-        intro="La soirée d’intégration AE2V se passe chez Doddy’s Coffee le vendredi 18 septembre. Inscription gratuite, boisson sans alcool offerte et happy hour sur place."
+        intro="La soirée d’intégration AE2V chez Doddy’s Coffee a eu lieu le vendredi 18 septembre. Les inscriptions sont fermées ; retrouve ses informations parmi les événements passés."
       >
         {!account && (
           <Button asChild size="lg">
@@ -54,10 +55,35 @@ function EvenementsPage() {
       <Section
         ghost="AGENDA"
         title="À venir"
-        intro="Retrouve les infos pratiques, le lien d’inscription et l’itinéraire directement sur la carte de la soirée."
+        intro={
+          upcoming.length
+            ? "Retrouve les informations pratiques des prochains rendez-vous."
+            : "Aucun nouvel événement n’est annoncé pour le moment. Suis notre Discord pour les prochaines dates."
+        }
+      >
+        {upcoming.length > 0 && (
+          <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {upcoming.map((event, index) => (
+              <li key={event.id} className="h-full">
+                <EventCard
+                  event={event}
+                  audience={audience}
+                  connected={Boolean(account)}
+                  index={index}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section
+        ghost="ARCHIVES"
+        title="Événements passés"
+        intro="Retrouve les informations des événements terminés."
       >
         <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {upcoming.map((event, index) => (
+          {past.map((event, index) => (
             <li key={event.id} className="h-full">
               <EventCard
                 event={event}

@@ -104,7 +104,7 @@ export function EventCard({
             <div>
               <p className="font-impact text-2xl uppercase text-ae2v-red">Gratuit</p>
               <p className="text-[0.65rem] font-bold tracking-[0.12em] uppercase text-ae2v-black/60">
-                sur inscription
+                {event.status === "TERMINE" ? "Inscriptions fermées" : "sur inscription"}
               </p>
             </div>
             <span
