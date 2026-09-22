@@ -11,7 +11,6 @@ import {
   GrainOverlay,
   ImpactTitle,
   SectionHeading,
-  SectionNumber,
   TapeLabel,
 } from "@/components/brand";
 import { BrandMarquee } from "@/components/brand/marquee";
@@ -161,8 +160,7 @@ function Index() {
       <section className="relative overflow-hidden bg-ae2v-black text-ae2v-offwhite">
         <DotCloud className="absolute bottom-6 right-8 text-ae2v-red/40" columns={9} rows={5} />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-16">
-          <Reveal className="flex items-start gap-4">
-            <SectionNumber value={1} tone="red" />
+          <Reveal>
             <SectionHeading as="h2" size="md" tone="offwhite" ghost="AGENDA">
               Prochains événements
             </SectionHeading>
@@ -252,9 +250,8 @@ function Index() {
         />
         <div className="relative mx-auto grid w-full max-w-7xl gap-8 px-4 py-14 md:grid-cols-2 md:items-center md:px-6 md:py-20">
           <Reveal variant="slide">
-            <SectionNumber value={2} tone="black" />
             <ImpactTitle as="h2" size="lg" className="mt-3">
-              <EditorialUnderline tone="green">L'adhésion</EditorialUnderline> AE2V
+              <span className="inline-block border-b-4 border-ae2v-green pb-[0.03em]">L'adhésion</span> AE2V
             </ImpactTitle>
             <p className="mt-5 max-w-lg">
               Une communauté étudiante ouverte : événements, projets et échanges sur Discord.
@@ -291,8 +288,7 @@ function Index() {
         <DotCloud className="absolute top-16 right-10 text-ae2v-green/30" columns={8} rows={4} />
 
         <div className="relative mx-auto w-full max-w-7xl px-4 py-14 md:px-6 md:py-20">
-          <Reveal className="flex items-start gap-4">
-            <SectionNumber value={3} tone="green" />
+          <Reveal>
             <SectionHeading as="h2" size="md" tone="offwhite" ghost="BDE">
               Le BDE
             </SectionHeading>

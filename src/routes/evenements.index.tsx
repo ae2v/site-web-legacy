@@ -40,20 +40,21 @@ function EvenementsPage() {
       <PageHero
         eyebrow="Agenda AE2V"
         title="Événements"
-        intro="Une nouvelle soirée se prépare pour après la rentrée. Les informations seront dévoilées prochainement."
+        intro="La soirée d’intégration AE2V se passe chez Doddy’s Coffee le vendredi 18 septembre. Inscription gratuite, boisson sans alcool offerte et happy hour sur place."
       >
         {!account && (
           <Button asChild size="lg">
-            <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">Rejoindre Discord pour les informations d'inscription</a>
+            <a href="https://discord.gg/z85wnSmdnH" target="_blank" rel="noreferrer">
+              Rejoindre Discord pour les informations d'inscription
+            </a>
           </Button>
         )}
       </PageHero>
 
       <Section
-        number={1}
         ghost="AGENDA"
         title="À venir"
-        intro="Un rendez-vous se prépare. Les détails arriveront bientôt sur nos canaux officiels."
+        intro="Retrouve les infos pratiques, le lien d’inscription et l’itinéraire directement sur la carte de la soirée."
       >
         <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {upcoming.map((event, index) => (
@@ -68,7 +69,6 @@ function EvenementsPage() {
           ))}
         </ul>
       </Section>
-
     </>
   );
 }

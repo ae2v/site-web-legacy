@@ -18,13 +18,13 @@ export function SiteHeader() {
 
   return (
     <header data-cursor-scheme="light" className="sticky top-0 z-50 bg-ae2v-red text-ae2v-offwhite">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-2 md:px-6">
         <Link
           to="/"
           onClick={() => setOpen(false)}
           className="tap-44 flex items-center focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ae2v-green"
         >
-          <Logo variant="horizontal" tone="white" priority alt="" className="h-10 w-auto md:h-12" />
+          <Logo variant="horizontal" tone="white" priority alt="" className="h-14 w-auto md:h-16" />
           <span className="sr-only">AE2V — Accueil</span>
         </Link>
 

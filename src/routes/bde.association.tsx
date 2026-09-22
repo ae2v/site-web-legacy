@@ -127,7 +127,7 @@ function AssociationPage() {
                 <dd className="font-bold">ASSOCIATION ETUDIANTE DE VELIZY-VILLACOUBLAY.</dd>
               </div>
               <div>
-                <dt className="opacity-70 uppercase font-sans">Numéro RNA :</dt>
+                <dt className="opacity-70 uppercase font-sans">Identifiant officiel de l’association (RNA / Charity ID) :</dt>
                 <dd className="font-bold">W784003407</dd>
               </div>
               <div>

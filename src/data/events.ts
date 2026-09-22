@@ -4,7 +4,7 @@
 
 import afterworkImg from "@/assets/events/afterwork.jpg";
 import galaImg from "@/assets/events/gala.jpg";
-import soireeImg from "@/assets/events/soiree-integration.jpg";
+import soireeImg from "@/assets/events/soiree-integration.png";
 import tournoiImg from "@/assets/events/tournoi-esport.jpg";
 import weekendImg from "@/assets/events/weekend.jpg";
 
@@ -64,6 +64,9 @@ export type Ae2vEvent = {
   status: EventStatus;
   waitlist: boolean;
   tiers: EventTier[];
+  registrationUrl?: string;
+  mapUrl?: string;
+  directionsUrl?: string;
 };
 
 export type PublicEventRecord = {
@@ -165,51 +168,52 @@ export function publicRecordToEvent(record: PublicEventRecord): Ae2vEvent {
 const catalogEvents: Ae2vEvent[] = [
   {
     id: "soiree-integration",
-    title: "Soirée d'intégration",
+    title: "Soirée d’intégration AE2V — Doddy’s Coffee",
     kind: "Soirée",
-    date: "Jeudi 24 septembre 2026",
-    isoDate: "2026-09-24T21:00",
-    doors: "21h00 — 03h00",
-    place: "Le Hangar",
-    address: "Vélizy-Villacoublay",
-    summary: "Le premier gros rendez-vous de l'année pour toutes les promos.",
+    date: "Vendredi 18 septembre 2026",
+    isoDate: "2026-09-18T17:00",
+    doors: "17h00 — 23h00",
+    place: "Doddy’s Coffee",
+    address: "5 avenue Morane Saulnier, 78140 Vélizy-Villacoublay",
+    summary:
+      "Une soirée de rentrée simple pour rencontrer les autres étudiants et commencer l’année ensemble.",
     description:
-      "Rencontre des promos, DJ set, vestiaire et navette retour. Entrée sur billet nominatif avec QR code présenté à l'entrée.",
+      "La soirée commence à 17h et vous pouvez arriver quand vous voulez entre 17h et 23h. Il est possible de rester au bar après 23h pour continuer la soirée.",
     image: soireeImg,
     program: [
+      { time: "17h00", label: "Début de la soirée", detail: "Aucune heure d’arrivée imposée." },
       {
-        time: "21h00",
-        label: "Ouverture des portes",
-        detail: "Contrôle des billets et vestiaire.",
+        time: "17h00 — 21h00",
+        label: "Happy Hour",
+        detail: "Bières et cocktails à 6 €, petits plats à partager disponibles sur place.",
       },
-      { time: "21h30", label: "Warm-up", detail: "Set d'ouverture par le pôle événementiel." },
-      { time: "23h00", label: "DJ set principal" },
-      { time: "02h30", label: "Dernier service" },
-      { time: "03h00", label: "Fermeture", detail: "Navette retour vers le campus." },
+      {
+        time: "23h00",
+        label: "Fin du créneau AE2V",
+        detail: "Vous pouvez rester au bar après 23h.",
+      },
     ],
-    access: "Bus 379 arrêt Louvois, puis 5 minutes à pied. Parking gratuit sur place.",
+    access:
+      "Environ 10 minutes à pied depuis l’IUT, ou 2 stations de tram. Doddy’s Coffee — 5 avenue Morane Saulnier, 78140 Vélizy-Villacoublay.",
     practical: [
-      "Pièce d'identité obligatoire à l'entrée.",
-      "Billet nominatif : le QR code n'est valable qu'une fois.",
-      "Vestiaire inclus dans le prix du billet.",
+      "Une boisson sans alcool est offerte à chaque personne inscrite par l’AE2V.",
+      "L’inscription est obligatoire pour bénéficier de la boisson sans alcool offerte.",
+      "Le bar demande une consommation sur place. Sans inscription, vous devrez acheter une consommation.",
+      "L’abus d’alcool est dangereux pour la santé, à consommer avec modération.",
     ],
-    capacity: 400,
-    registered: 356,
+    capacity: 0,
+    registered: 0,
     registrationOpensAt: "01/09/2026",
-    registrationClosesAt: "23/09/2026",
+    registrationClosesAt: "18/09/2026",
     status: "OUVERT",
-    waitlist: true,
-    tiers: [
-      { id: "adh", label: "Tarif cotisant", priceCents: 800, audience: "adherent" },
-      { id: "pub", label: "Tarif public", priceCents: 1500, audience: "public" },
-      {
-        id: "staff",
-        label: "Bénévole bureau",
-        priceCents: 0,
-        audience: "bureau",
-        note: "Créneau de tenue de poste obligatoire.",
-      },
-    ],
+    waitlist: false,
+    tiers: [{ id: "pub", label: "Gratuit", priceCents: 0, audience: "public" }],
+    registrationUrl:
+      "https://www.helloasso.com/associations/ae2v/evenements/soiree-d-integration-doddy-s-coffee",
+    mapUrl:
+      "https://www.google.com/maps/search/?api=1&query=Doddy%27s%20Coffee%205%20avenue%20Morane%20Saulnier%2078140%20V%C3%A9lizy-Villacoublay",
+    directionsUrl:
+      "https://www.google.com/maps/dir/?api=1&origin=IUT%20de%20V%C3%A9lizy&destination=Doddy%27s%20Coffee%2C%205%20avenue%20Morane%20Saulnier%2C%2078140%20V%C3%A9lizy-Villacoublay&travelmode=walking",
   },
   {
     id: "afterwork-octobre",
@@ -350,20 +354,6 @@ export const publicEvents: Ae2vEvent[] = integrationEvent
   ? [
       {
         ...integrationEvent,
-        date: "Après la rentrée",
-        isoDate: "",
-        doors: "",
-        place: "",
-        address: "",
-        summary: "Quelque chose se prépare pour commencer l'année ensemble.",
-        description: "Une première rencontre se prépare. Les détails seront révélés prochainement sur nos canaux officiels.",
-        capacity: 0,
-        registered: 0,
-        registrationOpensAt: "",
-        registrationClosesAt: "",
-        status: "BIENTOT",
-        waitlist: false,
-        tiers: [],
       },
     ]
   : [];

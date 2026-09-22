@@ -19,6 +19,7 @@ import { Route as BdeIndexRouteImport } from './routes/bde.index'
 import { Route as BdeAssociationRouteImport } from './routes/bde.association'
 import { Route as BdeEquipeRouteImport } from './routes/bde.equipe'
 import { Route as EvenementsIndexRouteImport } from './routes/evenements.index'
+import { Route as EvenementsEventIdRouteImport } from './routes/evenements.$eventId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,11 @@ const EvenementsIndexRoute = EvenementsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => EvenementsRoute,
 } as any)
+const EvenementsEventIdRoute = EvenementsEventIdRouteImport.update({
+  id: '/$eventId',
+  path: '/$eventId',
+  getParentRoute: () => EvenementsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
+  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde/': typeof BdeIndexRoute
   '/evenements/': typeof EvenementsIndexRoute
 }
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
+  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde': typeof BdeIndexRoute
   '/evenements': typeof EvenementsIndexRoute
 }
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/bde/association': typeof BdeAssociationRoute
   '/bde/equipe': typeof BdeEquipeRoute
+  '/evenements/$eventId': typeof EvenementsEventIdRoute
   '/bde/': typeof BdeIndexRoute
   '/evenements/': typeof EvenementsIndexRoute
 }
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/bde/association'
     | '/bde/equipe'
+    | '/evenements/$eventId'
     | '/bde/'
     | '/evenements/'
   fileRoutesByTo: FileRoutesByTo
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/bde/association'
     | '/bde/equipe'
+    | '/evenements/$eventId'
     | '/bde'
     | '/evenements'
   id:
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/bde/association'
     | '/bde/equipe'
+    | '/evenements/$eventId'
     | '/bde/'
     | '/evenements/'
   fileRoutesById: FileRoutesById
@@ -224,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EvenementsIndexRouteImport
       parentRoute: typeof EvenementsRoute
     }
+    '/evenements/$eventId': {
+      id: '/evenements/$eventId'
+      path: '/$eventId'
+      fullPath: '/evenements/$eventId'
+      preLoaderRoute: typeof EvenementsEventIdRouteImport
+      parentRoute: typeof EvenementsRoute
+    }
   }
 }
 
@@ -242,10 +261,12 @@ const BdeRouteChildren: BdeRouteChildren = {
 const BdeRouteWithChildren = BdeRoute._addFileChildren(BdeRouteChildren)
 
 interface EvenementsRouteChildren {
+  EvenementsEventIdRoute: typeof EvenementsEventIdRoute
   EvenementsIndexRoute: typeof EvenementsIndexRoute
 }
 
 const EvenementsRouteChildren: EvenementsRouteChildren = {
+  EvenementsEventIdRoute: EvenementsEventIdRoute,
   EvenementsIndexRoute: EvenementsIndexRoute,
 }
 
