@@ -144,7 +144,7 @@ export const teamMembers: TeamMember[] = [
     ["Communication"],
     { personalAe2vEmail: "mathis.laporte.kouassi@ae2v.fr" },
   ),
-  member("yasmine-lacheb", "Yasmine LACHEB", "Chargée de communication", ["Communication"], {
+  member("yasmine-lachheb", "Yasmine LACHHEB", "Chargée de communication", ["Communication"], {
     personalAe2vEmail: "yasmine.lacheb@ae2v.fr",
   }),
   member(
@@ -164,9 +164,6 @@ export const teamMembers: TeamMember[] = [
   }),
   member("matteo-cakarun", "Matteo CAKARUN", "Membre du bureau", [], {
     personalAe2vEmail: "matteo.cakarun@ae2v.fr",
-  }),
-  member("aurelia-okoto", "Aurélia OKOTO", "Membre du bureau", [], {
-    personalAe2vEmail: "aurelia.okoto@ae2v.fr",
   }),
 ];
 
