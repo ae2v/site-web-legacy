@@ -295,7 +295,7 @@ Les pôles opérationnels sont : Direction, Communication, Numérique, Finance, 
 | Jaden BRIVAL           | Trésorière                                                    | Finance · Direction       |
 | Selma CHADLI           | Chargée de communication                                      | Communication             |
 | Mathis LAPORTE KOUASSI | Chargé de communication                                       | Communication             |
-| Yasmine LACHEB         | Chargée de communication                                      | Communication             |
+| Yasmine LACHHEB        | Chargée de communication                                      | Communication             |
 | Gaelle RASOLOMANANA    | Chargée de communication                                      | Communication             |
 | Julline AZER           | Chargée de communication                                      | Communication             |
 | Bastian NOËL           | Responsable de l’infrastructure numérique · Webmaster adjoint | Numérique · Communication |
@@ -303,7 +303,6 @@ Les pôles opérationnels sont : Direction, Communication, Numérique, Finance, 
 | Franck MANICKAM        | **Chargé de l’événementiel**                                  | Événementiel              |
 | Zohra SEKKAL           | Membre du bureau                                              | À définir                 |
 | Matteo CAKARUN         | Membre du bureau                                              | À définir                 |
-| Aurélia OKOTO          | Membre du bureau                                              | À définir                 |
 
 L’ordre d’affichage public est : Président, Vice-président, Secrétaire, Trésorière, responsables de pôles, autres membres. Le Bureau peut réordonner les cartes par glisser-déposer ; l’ordre est une donnée de présentation, pas une permission.
 
