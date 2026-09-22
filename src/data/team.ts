@@ -145,7 +145,7 @@ export const teamMembers: TeamMember[] = [
     { personalAe2vEmail: "mathis.laporte.kouassi@ae2v.fr" },
   ),
   member("yasmine-lachheb", "Yasmine LACHHEB", "Chargée de communication", ["Communication"], {
-    personalAe2vEmail: "yasmine.lacheb@ae2v.fr",
+    personalAe2vEmail: "yasmine.lachheb@ae2v.fr",
   }),
   member(
     "gaelle-rasolomanana",
